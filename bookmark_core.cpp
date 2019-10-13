@@ -282,7 +282,7 @@ namespace {
 		static ui_element_config::ptr g_get_default_configuration() { return ui_element_config::g_create_empty(g_get_guid()); }
 		//get: Derive config from state; called at shutdown
 		ui_element_config::ptr get_configuration() {
-			console::formatter() << "get_configuration called.";
+			//console::formatter() << "get_configuration called.";
 			for (int i = 0; i < nColumns; i++)
 				m_widths[i] = (int)m_guiList.GetColumnWidthF(i);
 
@@ -290,7 +290,7 @@ namespace {
 		}
 		//set: Apply config to class
 		void set_configuration(ui_element_config::ptr config) {
-			console::formatter() << "set_configuration called.";
+			//console::formatter() << "set_configuration called.";
 			m_widths = parseConfig(config);
 			configToUI();
 		}
@@ -319,7 +319,7 @@ namespace {
 			if (sizeof(widths) / sizeof(uint32_t) != nColumns)
 				return makeConfig();
 
-			console::formatter() << "Making config from " << widths[0] << " and " << widths[1];
+			//console::formatter() << "Making config from " << widths[0] << " and " << widths[1];
 			return makeConfig(widths[0], widths[1]);
 		}
 		static ui_element_config::ptr makeConfig(uint32_t width0, uint32_t width1) {
@@ -328,7 +328,7 @@ namespace {
 			return out.finish(g_get_guid());
 		}
 		void configToUI() {
-			console::formatter() << "Applying config to UI: " << m_widths[0] << " and " << m_widths[1];
+			//console::formatter() << "Applying config to UI: " << m_widths[0] << " and " << m_widths[1];
 			auto DPI = m_guiList.GetDPI();
 			m_guiList.DeleteColumns(pfc::bit_array_true(), false);
 			m_guiList.AddColumn("Time", MulDiv(m_widths[0], DPI.cx, 96));
