@@ -30,3 +30,12 @@
 *.exe
 *.out
 *.app
+
+# Untracked Directories
+/Release/*
+/Debug/*
+/Release FB2K/*
+/Debug FB2K/*
+/.vs/*
+
+forbiddenKnowledge
