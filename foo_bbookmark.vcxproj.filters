@@ -67,8 +67,10 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="readme.txt" />
     <None Include="cpp.hint" />
+    <None Include="README.md">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\libPPUI\IDI_SCROLL.ico">

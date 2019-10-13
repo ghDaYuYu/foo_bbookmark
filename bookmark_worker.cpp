@@ -57,13 +57,7 @@ void bookmark_worker::restore(std::vector<bookmark_t>& masterList, size_t index)
 
 	if (index >= 0 && index < masterList.size()) {	//load using the index
 		auto rec = masterList[index];
-
-
-		/*static_api_ptr_t<main_thread_callback_manager> p_main_thread;
-		service_ptr_t<t_main_thread_plbkctrl> p_tagger = new service_impl_t<t_main_thread_plbkctrl>();
-		p_main_thread->add_callback(p_tagger);*/
-
-
+		g_pendingSeek = 0.0;	//reset just in case
 
 		//restore track:
 		auto metadb_ptr = metadb::get();
@@ -87,17 +81,17 @@ void bookmark_worker::restore(std::vector<bookmark_t>& masterList, size_t index)
 					console::complain("Bookmark Restoration partially failed", "Could not find Track");
 				}
 				else {
-					//Restore by way of the queue:
+					//Change track by way of the queue:
 					playlist_manager_ptr->queue_flush();
 					playlist_manager_ptr->queue_add_item_playlist(index_pl, index_item);
 
 					playback_control_ptr->next();
-					g_pendingSeek = rec.m_time; //This is checked by the 
+					g_pendingSeek = rec.m_time; //This will be applied by bmWorker_play_callback::on_playback_new_track once the change of track has gone through
 				}
 			}
 		}
-		else {
-			//restore playback position directly
+
+		if (g_pendingSeek == 0.0) { //If a time change was not queued up, the track is either already correct or could not be determined
 			if (!core_api::assert_main_thread()) console::formatter() << "not the m thread";
 			console::formatter() << "Restoring time:" << rec.m_time;
 			playback_control_ptr->playback_seek(rec.m_time);

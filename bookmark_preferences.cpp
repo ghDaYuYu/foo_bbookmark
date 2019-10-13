@@ -52,7 +52,7 @@ public:
 	CBookmarkPreferences(preferences_page_callback::ptr callback) : m_callback(callback) {}
 
 	//dialog resource ID
-	enum { IDD = IDD_MYPREFERENCES };
+	enum { IDD = IDD_BOOKMARK_PREFERENCES };
 	// preferences_page_instance methods (not all of them - get_wnd() is supplied by preferences_page_impl helpers)
 	t_uint32 get_state();
 	void apply();
@@ -78,7 +78,7 @@ private:
 
 	boxAndBool_t bab_as_newTrack = { IDC_AUTOSAVE_TRACK, &cfg_bookmark_autosave_newTrack, default_cfg_bookmark_autosave_newTrack };
 	boxAndBool_t bab_as_newTrackFilter = { IDC_AUTOSAVE_TRACK_FILTER_CHECK, &cfg_bookmark_autosave_newTrackFilter, default_cfg_bookmark_autosave_newTrackFilter };
-	boxAndBool_t bab_as_exit = { IDC_AUTOSAVE_EXIT, &cfg_bookmark_autosave_onQuit, default_cfg_bookmark_autosave_onClose};
+	boxAndBool_t bab_as_exit = { IDC_AUTOSAVE_EXIT, &cfg_bookmark_autosave_onQuit, default_cfg_bookmark_autosave_onClose };
 
 	void cfgToUi(boxAndBool_t bab) {
 		CCheckBox cb(GetDlgItem(bab.idc));
@@ -90,7 +90,7 @@ private:
 	}
 	void uiToCfg(boxAndBool_t bab) {
 		CCheckBox cb(GetDlgItem(bab.idc));
-		*(bab.cfg) = (bool) cb.GetCheck();
+		*(bab.cfg) = (bool)cb.GetCheck();
 	}
 	bool isUiChanged(boxAndBool_t bab) {
 		CCheckBox cb(GetDlgItem(bab.idc));
@@ -129,7 +129,7 @@ private:
 		size_t outSize;
 		wcstombs_s(&outSize, convertedContent, fieldContent, stringlength - 1);
 
-		return strcmp(convertedContent, *eat.cfg);		
+		return strcmp(convertedContent, *eat.cfg);
 	}
 
 	static_api_ptr_t<playback_control> m_playback_control;
@@ -168,7 +168,7 @@ t_uint32 CBookmarkPreferences::get_state() {
 void CBookmarkPreferences::reset() {
 	defToUi(eat_format);
 	defToUi(eat_as_newTrackPlaylists);
-	
+
 	defToUi(bab_as_exit);
 	defToUi(bab_as_newTrack);
 	defToUi(bab_as_newTrackFilter);
@@ -179,11 +179,11 @@ void CBookmarkPreferences::reset() {
 void CBookmarkPreferences::apply() {
 	uiToCfg(eat_format);
 	uiToCfg(eat_as_newTrackPlaylists);
-	
+
 	//Read the checkboxes:
 	uiToCfg(bab_as_exit);
 	uiToCfg(bab_as_newTrack);
-	uiToCfg(bab_as_newTrackFilter);	
+	uiToCfg(bab_as_newTrackFilter);
 
 	OnChanged(); //our dialog content has not changed but the flags have - our currently shown values now match the settings so the apply button can be disabled
 }
