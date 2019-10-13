@@ -1,5 +1,5 @@
 # foo_bbookmark #
-###Basic Bookmark component for foobar2000###
+### Basic Bookmark component for foobar2000 ###
 
 (Re-)stores playback time, playlist name and the track path. Customizable display name using title formatting.
 Bookmarks can be automatically created when changing songs or quitting the program. 
