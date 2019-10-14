@@ -1,5 +1,6 @@
 #include "stdafx.h"
 
+//bbookmark
 #include "resource.h"
 #include "bookmark_preferences.h"
 #include "CListControlBookmark.h"
@@ -8,23 +9,35 @@
 #include "bookmark_worker.h"
 #include "bookmark_automatic.h"
 
+//columns ui
+#include <columns_ui-sdk/ui_extension.h>
+#include <commctrl.h>
+#include <windowsx.h>
+
+//f2k sdk
 #include <atltypes.h>
 #include <libPPUI/CListControlSimple.h>
 #include <libPPUI/win32_utility.h>
 #include <libPPUI/win32_op.h> // WIN32_OP()
 #include <helpers/atl-misc.h>
 #include <helpers/BumpableElem.h>
+//from columns example:
+#include <foobar2000/SDK/foobar2000.h>
+#include <helpers/helpers.h>
 
+//base
 #include <algorithm>
 #include <array>
 #include <vector>
 
 #include <iomanip>
-#include <fstream>
+
 
 namespace {
 	//~~~~~~~~~~~~~~~~~DEFINITIONS~~~~~~~~~~~~~~~~~~~
 	static const GUID guid_bookmarkDialog = { 0x5c20d8ca, 0x91be, 0x4ef2, { 0xae, 0x81, 0x32, 0x1f, 0x1c, 0x2d, 0x27, 0x23 } };
+	//static const GUID guid_bookmarkPanel = { 0x2983f947, 0x3536, 0x4865, { 0x8e, 0x46, 0x3d, 0x81, 0x12, 0x7e, 0xca, 0x19 } };
+
 
 	//The masterList, containing all bookmarks during runtime
 	static std::vector<bookmark_t> g_masterList = std::vector<bookmark_t>();
@@ -39,6 +52,7 @@ namespace {
 	static const std::array<uint32_t, nColumns> defaultWidths = { 80, 150 };
 
 	class CListControlBookmarkDialog : public CDialogImpl<CListControlBookmarkDialog>, public ui_element_instance,
+		//public ui_extension::container_ui_extension,
 		private IListControlBookmarkSource {
 	protected:
 		const ui_element_instance_callback::ptr m_callback;
@@ -192,6 +206,45 @@ namespace {
 		void listSetEditField(ctx_t ctx, size_t item, size_t subItem, const char * val) override { return; }	//We don't want to allow edits		
 		bool listIsColumnEditable(ctx_t, size_t subItem) override { return false; }
 
+		//=======overrides for ui_extension_window (columns ui)=========
+		//1st attempt
+	/*public:
+		virtual const GUID & get_extension_guid() const { return guid_bookmarkPanel; }
+		virtual void get_name(pfc::string_base & out)const {
+			out.set_string("Basic Bookmark");
+		}
+		virtual void get_category(pfc::string_base & out)const {
+			out.set_string("Panels");
+		}
+		unsigned get_type() const { return uie::type_panel; }
+	private:
+		ui_helpers::container_window::class_data & get_class_data()const {
+			__implement_get_class_data(_T("{79F574F1-DC70-4f3f-8155-384B00AE0679}"), true);
+		}
+		virtual void get_menu_items(uie::menu_hook_t & p_hook);*/
+
+	//2nd attempt
+	//public:
+	//	virtual const GUID & get_extension_guid() const;
+	//	virtual void get_name(pfc::string_base & out)const;
+	//	virtual void get_category(pfc::string_base & out)const;
+	//	unsigned get_type() const;
+
+	//private:
+	//	/** Our window procedure */
+	//	LRESULT on_message(HWND wnd, UINT msg, WPARAM wp, LPARAM lp);
+
+	//	virtual class_data & get_class_data()const;
+	//	virtual void get_menu_items(uie::menu_hook_t & p_hook);
+
+	//	static const GUID g_extension_guid;
+
+	//	/** Our child window */
+	//	HWND wnd_static;
+
+
+		//==============context menu=================
+	private:
 		void OnContextMenu(CWindow wnd, CPoint point) {
 			try {
 				if (m_callback->is_edit_mode_enabled()) {
@@ -340,6 +393,8 @@ namespace {
 	class clist_control_bookmark_impl : public ui_element_impl_withpopup<CListControlBookmarkDialog> {	};
 	static service_factory_t< clist_control_bookmark_impl > g_CListControlBookmarkDialog_factory;
 
+	//factory for columns ui:
+	//uie::window_factory<CListControlBookmarkDialog> g_BookmarkDialogPanel_factory;
 
 	//=====================Callback Classes========================
 	//---Play Callback---
@@ -373,6 +428,7 @@ namespace {
 
 	static service_factory_single_t<bmCore_play_callback> g_play_callback_static_factory;
 
+
 	//---Init/Quit Callback---
 	class initquit_bbookmark : public initquit {
 		virtual void on_init() {
@@ -387,6 +443,91 @@ namespace {
 		}
 	};
 	static initquit_factory_t< initquit_bbookmark > g_bookmark_initquit;
+
+	//============Definitions for columns ui:=================
+	////menu class 
+	//class menu_node_close : public ui_extension::menu_node_command_t
+	//{
+	//	service_ptr_t<CListControlBookmarkDialog> p_this;
+	//public:
+	//	virtual bool get_display_data(pfc::string_base & p_out, unsigned & p_displayflags) const
+	//	{
+	//		p_out = "Close";
+	//		p_displayflags = 0;
+	//		return true;
+	//	}
+	//	virtual bool get_description(pfc::string_base & p_out) const
+	//	{
+	//		return false;
+	//	}
+	//	virtual void execute()
+	//	{
+	//		HWND wnd = p_this->get_wnd();
+	//		/*uie::window_host_ptr p_host = p_this->get_host();
+	//		uie::window_ptr(p_this)->destroy_window();
+	//		p_host->relinquish_ownership(wnd);*/
+	//	}
+	//	menu_node_close(CListControlBookmarkDialog * wnd) : p_this(wnd) {};
+	//};
+
+	//void CListControlBookmarkDialog::get_menu_items(uie::menu_hook_t & p_hook) {
+	//	menu_node_close * mnc = new menu_node_close(this);
+	//	p_hook.add_node(mnc);
+	//};
+
+	//LRESULT CListControlBookmarkDialog::on_message(HWND wnd, UINT msg, WPARAM wp, LPARAM lp)
+	//{
+
+	////	switch (msg)
+	////	{
+	////	case WM_CREATE:
+	////	{
+	////		RECT rc;
+	////		GetClientRect(wnd, &rc);
+
+	////		/** Create a static window, with text "Example" */
+	////		wnd_static = CreateWindowEx(0, WC_STATIC, _T("Example panel"),
+	////			WS_CHILD | WS_VISIBLE, 0, 0, rc.right, rc.bottom,
+	////			wnd, HMENU(0), core_api::get_my_instance(), NULL);
+	////	}
+	////	break;
+	////	case WM_SIZE:
+	////		/** Apparently, the static control sucks */
+	////		RedrawWindow(wnd_static, 0, 0, RDW_INVALIDATE | RDW_ERASE);
+	////		/** Reposition our child window */
+	////		SetWindowPos(wnd_static, 0, 0, 0, LOWORD(lp), HIWORD(lp), SWP_NOZORDER);
+	////		break;
+	////	case WM_DESTROY:
+	////		/** DefWindowProc will destroy our child window. Set our window handle to NULL now. */
+	////		wnd_static = NULL;
+	////		break;
+	////	}
+	//	return DefWindowProc();
+	//}
+
+	//CListControlBookmarkDialog::class_data & CListControlBookmarkDialog::get_class_data() const
+	//{
+	//	//static const GUID guid_bookmarkPanel = { 0x2983f947, 0x3536, 0x4865, { 0x8e, 0x46, 0x3d, 0x81, 0x12, 0x7e, 0xca, 0x19 } };
+	//	__implement_get_class_data(_T("{2983f947-3536-4f3f-4865-8e463d81127exca19}"), true);
+	//}
+
+	//const GUID & CListControlBookmarkDialog::get_extension_guid() const
+	//{
+	//	return g_extension_guid;
+	//}
+
+	//void CListControlBookmarkDialog::get_name(pfc::string_base & out)const
+	//{
+	//	out.set_string("Example");
+	//}
+	//void CListControlBookmarkDialog::get_category(pfc::string_base & out)const
+	//{
+	//	out.set_string("Panels");
+	//}
+	//unsigned CListControlBookmarkDialog::get_type() const { return uie::type_panel; }
+
+	//uie::window_factory<CListControlBookmarkDialog> g_CListControlBookmarkDialog_factory;
+	
 
 } //anonymous namespace
 

@@ -8,3 +8,4 @@
 		pfc::string m_path;
 		uint32_t m_subsong;
 	};
+

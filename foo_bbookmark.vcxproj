@@ -114,6 +114,7 @@
     <ClCompile Include="bookmark_core.cpp" />
     <ClCompile Include="bookmark_menu.cpp" />
     <ClCompile Include="bookmark_worker.cpp" />
+    <ClCompile Include="demoPanel2.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PCH.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
