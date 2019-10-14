@@ -17,34 +17,46 @@ bookmark_worker::~bookmark_worker()
 
 void bookmark_worker::store(std::vector<bookmark_t>& masterList) {
 	pfc::string_formatter songDesc;
+	bookmark_t newMark = bookmark_t();
 
 	metadb_handle_ptr dbHandle_item;
 	auto playback_control_ptr = playback_control::get();
-	playback_control_ptr->get_now_playing(dbHandle_item);
+	if (!playback_control_ptr->get_now_playing(dbHandle_item)) {
+		//We can not obtain the currently playing item - fizzle out
+		console::formatter() << "get_now_playing failed, can only store time.";
+		songDesc << "Could not find song info.";
 
-	titleformat_object::ptr desc_format;
-	static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(desc_format, cfg_bookmark_desc_format.c_str());
+		newMark.m_time = playback_control_ptr->playback_get_position();
+		newMark.m_desc = songDesc;
+		newMark.m_playlist = "";	//without using c_str(), the full 80 characters are written every time
+		newMark.m_path = "";
+		newMark.m_subsong = 0;
+	}
+	else {
+		titleformat_object::ptr desc_format;
+		static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(desc_format, cfg_bookmark_desc_format.c_str());
 
-	if (!dbHandle_item->format_title(NULL, songDesc, desc_format, NULL)) {
-		songDesc << "Could not generate Description.";
+		if (!dbHandle_item->format_title(NULL, songDesc, desc_format, NULL)) {
+			songDesc << "Could not generate Description.";
+		}
+
+		//TODO: graceful failure?!
+		pfc::string_fixed_t<80> playing_pl_name = "Could not read playlist name.";
+		size_t index_playlist;
+		size_t index_item;
+		auto playlist_manager_ptr = playlist_manager::get();
+		if (playlist_manager_ptr->get_playing_item_location(&index_playlist, &index_item))
+			playlist_manager_ptr->playlist_get_name(index_playlist, playing_pl_name);
+
+		pfc::string songPath = dbHandle_item->get_path();
+
+		newMark.m_time = playback_control_ptr->playback_get_position();
+		newMark.m_desc = songDesc;
+		newMark.m_playlist = playing_pl_name.c_str();	//without using c_str(), the full 80 characters are written every time
+		newMark.m_path = songPath;
+		newMark.m_subsong = dbHandle_item->get_subsong_index();
 	}
 
-	//TODO: graceful failure?!
-	pfc::string_fixed_t<80> playing_pl_name = "Could not read playlist name.";
-	size_t index_playlist;
-	size_t index_item;
-	auto playlist_manager_ptr = playlist_manager::get();
-	if (playlist_manager_ptr->get_playing_item_location(&index_playlist, &index_item))
-		playlist_manager_ptr->playlist_get_name(index_playlist, playing_pl_name);
-
-	pfc::string songPath = dbHandle_item->get_path();
-
-	bookmark_t newMark = bookmark_t();
-	newMark.m_time = playback_control_ptr->playback_get_position();
-	newMark.m_desc = songDesc;
-	newMark.m_playlist = playing_pl_name.c_str();	//without using c_str(), the full 80 characters are written every time
-	newMark.m_path = songPath;
-	newMark.m_subsong = dbHandle_item->get_subsong_index();
 
 	masterList.emplace_back(newMark);
 }
