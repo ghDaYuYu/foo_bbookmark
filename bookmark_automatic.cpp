@@ -94,11 +94,16 @@ bool bookmark_automatic::upgradeDummy(std::vector<bookmark_t>& masterList, std::
 			allowedPlaylists.push_back(token);
 		}
 
+		//replace all , in the name of the current playlist with .
+		pfc::string8 dummyPlaylist = dummy.m_playlist.c_str();
+		dummyPlaylist.replace_char(',', '.', 0);
+
+
 		//compare the contents of the filter
 		bool matchFound = false;
 		for (std::string ap : allowedPlaylists) {
 			if (noisy) console::formatter() << "...comparing with filter: " << ap.c_str();
-			if (strcmp(ap.c_str(), dummy.m_playlist.c_str()) == 0) {
+			if (strcmp(ap.c_str(), dummyPlaylist.c_str()) == 0) {
 				matchFound = true;
 				if (noisy) console::formatter() << "...matches.";
 				break;

@@ -6,6 +6,9 @@
 
 #include <libPPUI/wtl-pp.h> // CCheckBox
 
+#include <vector>
+#include <list>
+#include <sstream>
 
 static const int stringlength = 80;
 
@@ -50,6 +53,7 @@ struct ectrlAndString_t {
 class CBookmarkPreferences : public CDialogImpl<CBookmarkPreferences>, public preferences_page_instance {
 public:
 	CBookmarkPreferences(preferences_page_callback::ptr callback) : m_callback(callback) {}
+	std::vector<pfc::string8> m_currentPlNames;
 
 	//dialog resource ID
 	enum { IDD = IDD_BOOKMARK_PREFERENCES };
@@ -67,8 +71,8 @@ public:
 
 private:
 	BOOL OnInitDialog(CWindow, LPARAM);
-	void OnEditChange(UINT, int, CWindow);
-	void OnCheckChange(UINT, int, CWindow);
+	void OnEditChange(UINT uNotifyCode, int nId, CWindow wndCtl);
+	void OnCheckChange(UINT uNotifyCode, int nId, CWindow wndCtl);
 	bool HasChanged();
 	void OnChanged();
 
@@ -134,11 +138,12 @@ private:
 
 	static_api_ptr_t<playback_control> m_playback_control;
 	const preferences_page_callback::ptr m_callback;
+
 };
 
 
 
-BOOL CBookmarkPreferences::OnInitDialog(CWindow, LPARAM) {
+BOOL CBookmarkPreferences::OnInitDialog(CWindow wndCtl, LPARAM) {
 	//Push cfg_vars to UI
 	cfgToUi(eat_format);
 	cfgToUi(eat_as_newTrackPlaylists);
@@ -146,17 +151,79 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow, LPARAM) {
 	cfgToUi(bab_as_exit);
 	cfgToUi(bab_as_newTrack);
 	cfgToUi(bab_as_newTrackFilter);
+
+	//populate the combo box with all currently existing playlists
+	size_t plCount = playlist_manager::get()->get_playlist_count();
+	m_currentPlNames.clear();
+	//m_currentPlNames.resize(plCount);
+	CComboBox comboBox = GetDlgItem(IDC_COMBO1);
+	for (size_t i = 0; i < plCount; i++) {
+		//get playlist name
+		pfc::string8 plName;
+		playlist_manager::get()->playlist_get_name(i, plName);
+		console::formatter() << "found playlist called " << plName.c_str();
+		m_currentPlNames.emplace_back(plName);
+
+		//convert pl name
+		wchar_t wideString[stringlength];
+		size_t outSize;
+		mbstowcs_s(&outSize, wideString, stringlength, plName.c_str(), stringlength - 1);
+
+		//write pl name
+		SendMessage(comboBox, CB_ADDSTRING, 0, (LPARAM)wideString);
+	}
+	SendMessage(comboBox, CB_SETCURSEL, 0, 0);
+	
+
+	comboBox.SetTopIndex(0);
+
 	return FALSE;
 }
 
-void CBookmarkPreferences::OnEditChange(UINT, int, CWindow) {
+void CBookmarkPreferences::OnEditChange(UINT uNotifyCode, int nId, CWindow wndCtl) {
 	// not much to do here
 	OnChanged();
 }
 
-void CBookmarkPreferences::OnCheckChange(UINT, int, CWindow) {
-	// not much to do here
-	OnChanged();
+void CBookmarkPreferences::OnCheckChange(UINT uNotifyCode, int nId, CWindow wndCtl) {
+	if (nId == IDC_BUTTON1) {
+		//Todo: add currently selected playlist to the filter edit control
+		CComboBox comboBox = GetDlgItem(IDC_COMBO1);
+		int selected = comboBox.GetCurSel();
+
+		if (selected >= 0 && selected < m_currentPlNames.size()) {
+			pfc::string8 newName;
+			newName += m_currentPlNames[selected];
+			//replace all commas with dots (because of the comma-seperated list)
+			newName.replace_char(',', '.', 0);
+
+			//check if the cfg already contains this name
+			std::stringstream ss(cfg_bookmark_autosave_newTrack_playlists.c_str());
+			std::string token;
+			while (std::getline(ss, token, ',')) {
+				if (strcmp(token.c_str(), newName.c_str()) == 0) {
+					//We already know that name, fizzle 
+					return;
+				}
+			}
+
+			console::formatter() << "adding to auto-bookmarking playlists: " << newName;
+
+			//Add newName to the cfg
+			pfc::string8 combined = cfg_bookmark_autosave_newTrack_playlists;
+			if (combined.length() != 0) combined += pfc::string8(",");
+			combined += newName;
+			cfg_bookmark_autosave_newTrack_playlists = combined;
+
+			//Apply cfg to the ui
+			cfgToUi(eat_as_newTrackPlaylists);
+			OnChanged();
+			return; //changing the edit control causes a call to onchanged anyways
+		}
+
+	} else {
+		OnChanged();
+	}
 }
 
 t_uint32 CBookmarkPreferences::get_state() {
