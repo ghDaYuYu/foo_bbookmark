@@ -35,8 +35,16 @@ namespace {
 	bookmark_automatic g_bmAuto;
 
 	//Config
-	static const int nColumns = 2;
-	static const std::array<uint32_t, nColumns> defaultWidths = { 80, 150 };
+	static const enum colID {
+		TIME_COL = 0,
+		DESC_COL,
+		PLAYLIST_COL,
+		N_COLUMNS
+	};
+	static const char* COLUMNNAMES[] = { "Time", "Description", "Playlist" };
+	//Order of columns: time, description, playlist
+	static const std::array<uint32_t, N_COLUMNS> defaultColWidths = { 40, 150, 110 };
+	static const std::array<bool, N_COLUMNS> defaultColActive = { true, true, false };
 
 	class CListControlBookmarkDialog : public CDialogImpl<CListControlBookmarkDialog>, public ui_element_instance,
 		private IListControlBookmarkSource {
@@ -44,7 +52,9 @@ namespace {
 		const ui_element_instance_callback::ptr m_callback;
 	public:
 		//---Dialog Setup---
-		CListControlBookmarkDialog(ui_element_config::ptr cfg, ui_element_instance_callback::ptr cb) : m_callback(cb), m_widths(parseConfig(cfg)), m_guiList(this) {}
+		CListControlBookmarkDialog(ui_element_config::ptr cfg, ui_element_instance_callback::ptr cb) : m_callback(cb), /*m_colWidths(parseApplyConfig(cfg)),*/ m_guiList(this) {
+			parseConfig(cfg, m_colWidths, m_colActive);
+		}
 
 		enum { IDD = IDD_BOOKMARK_DIALOG };
 
@@ -110,7 +120,8 @@ namespace {
 	private:
 		// ==================================members====================
 		CListControlBookmark m_guiList;
-		std::array<uint32_t, nColumns> m_widths;
+		std::array<uint32_t, N_COLUMNS> m_colWidths;
+		std::array<bool, N_COLUMNS> m_colActive;
 
 		//========================UI code===============================
 		BOOL OnInitDialog(CWindow, LPARAM) {
@@ -146,7 +157,7 @@ namespace {
 		pfc::string8 listGetSubItemText(ctx_t, size_t item, size_t subItem) override {
 			auto & rec = g_masterList[item];
 			switch (subItem) {
-			case 0:
+			case TIME_COL:
 			{
 				std::ostringstream conv;
 				int hours = (int)rec.m_time / 3600;
@@ -157,8 +168,10 @@ namespace {
 				conv << std::setfill('0') << std::setw(2) << minutes << ":" << std::setfill('0') << std::setw(2) << seconds;
 				return conv.str().c_str();
 			}
-			case 1:
+			case DESC_COL:
 				return rec.m_desc.c_str();
+			case PLAYLIST_COL:
+				return rec.m_playlist.c_str();
 			default:
 				return "";
 			}
@@ -208,70 +221,106 @@ namespace {
 				// Used to check for obscure errors in debug builds, does nothing (ignores errors) in release build
 				WIN32_OP_D(menu.CreatePopupMenu());
 
-				enum { ID_STORE = 1, ID_RESTORE, ID_DEL, ID_CLEAR, ID_SELECTALL, ID_SELECTNONE, ID_INVERTSEL };
-				menu.AppendMenu(MF_STRING, ID_STORE, L"Store Bookmark");
-				menu.AppendMenu(MF_STRING, ID_RESTORE, L"Restore Bookmark");
-				menu.AppendMenu(MF_STRING, ID_DEL, L"Delete Selected Bookmarks");
-				menu.AppendMenu(MF_SEPARATOR);
-				menu.AppendMenu(MF_STRING, ID_CLEAR, L"Clear Bookmarks");
-				menu.AppendMenu(MF_SEPARATOR);
-				// Note: Ctrl+A handled automatically by CListControl, no need for us to catch it
-				menu.AppendMenu(MF_STRING, ID_SELECTALL, L"Select all\tCtrl+A");
-				menu.AppendMenu(MF_STRING, ID_SELECTNONE, L"Select none");
-				menu.AppendMenu(MF_STRING, ID_INVERTSEL, L"Invert selection");
+				//Allow the (de)activation of columns when point is within the header area
+				CRect headerRct;
+				m_guiList.GetHeaderCtrl().GetWindowRect(headerRct);
+				if (headerRct.PtInRect(point)) {	
+					const int stringlength = 25;
+					for (uint32_t i = 0; i < N_COLUMNS; i++) {
+						//Need to convert to UI friendly stringformat first:
+						wchar_t wideString[stringlength];
+						size_t outSize;
+						mbstowcs_s(&outSize, wideString, stringlength, COLUMNNAMES[i], stringlength - 1);
 
-				int cmd;
-				{
-					// Callback object to show menu command descriptions in the status bar.
-					// it's actually a hidden window, needs a parent HWND, where we feed our control's HWND
-					CMenuDescriptionMap descriptions(m_hWnd);
+						//The + 1 and - 1 below ensure that the 0-Index (which cmd is set to when clicking outside of the context menu) remains unused
+						auto flags = MF_STRING;
+						if (m_colActive[i])
+							flags |= MF_CHECKED;
+						else
+							flags |= MF_UNCHECKED;
 
-					// Set descriptions of all our items
-					descriptions.Set(ID_STORE, "This stores the playback position to a bookmark");
-					descriptions.Set(ID_RESTORE, "This restores the playback position from a bookmark");
-					descriptions.Set(ID_DEL, "This deletes all selected bookmarks");
-					descriptions.Set(ID_CLEAR, "This deletes all  bookmarks");
-					descriptions.Set(ID_SELECTALL, "Selects all items");
-					descriptions.Set(ID_SELECTNONE, "Deselects all items");
-					descriptions.Set(ID_INVERTSEL, "Invert selection");
+						menu.AppendMenu(flags, i + 1, wideString);
+					}
 
-					cmd = menu.TrackPopupMenuEx(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, descriptions, nullptr);
-				}
-				switch (cmd) {
-				case ID_STORE:
-					storeBookmark();
+					int cmd;
+					{
+						// Callback object to show menu command descriptions in the status bar.
+						// it's actually a hidden window, needs a parent HWND, where we feed our control's HWND
+						CMenuDescriptionMap descriptions(m_hWnd);
+
+						// Set descriptions of all our items
+						descriptions.Set(TIME_COL + 1, "Timestamp");
+						descriptions.Set(DESC_COL + 1, "Custom Description");
+						descriptions.Set(PLAYLIST_COL + 1, "Playlist");
+
+						cmd = menu.TrackPopupMenuEx(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, descriptions, nullptr);
+					}
+					m_colActive[cmd - 1] = !m_colActive[cmd - 1]; //Toggle the state of the column whose menucommand was triggered
+					configToUI();
+
+				} else {//Contextmenu for listbody
+					enum { ID_STORE = 1, ID_RESTORE, ID_DEL, ID_CLEAR, ID_SELECTALL, ID_SELECTNONE, ID_INVERTSEL };
+					menu.AppendMenu(MF_STRING, ID_STORE, L"Store Bookmark");
+					menu.AppendMenu(MF_STRING, ID_RESTORE, L"Restore Bookmark");
+					menu.AppendMenu(MF_STRING, ID_DEL, L"Delete Selected Bookmarks");
+					menu.AppendMenu(MF_SEPARATOR);
+					menu.AppendMenu(MF_STRING, ID_CLEAR, L"Clear Bookmarks");
+					menu.AppendMenu(MF_SEPARATOR);
+					// Note: Ctrl+A handled automatically by CListControl, no need for us to catch it
+					menu.AppendMenu(MF_STRING, ID_SELECTALL, L"Select all\tCtrl+A");
+					menu.AppendMenu(MF_STRING, ID_SELECTNONE, L"Select none");
+					menu.AppendMenu(MF_STRING, ID_INVERTSEL, L"Invert selection");
+
+					int cmd;
+					{
+						CMenuDescriptionMap descriptions(m_hWnd);
+
+						// Set descriptions of all our items
+						descriptions.Set(ID_STORE, "This stores the playback position to a bookmark");
+						descriptions.Set(ID_RESTORE, "This restores the playback position from a bookmark");
+						descriptions.Set(ID_DEL, "This deletes all selected bookmarks");
+						descriptions.Set(ID_CLEAR, "This deletes all  bookmarks");
+						descriptions.Set(ID_SELECTALL, "Selects all items");
+						descriptions.Set(ID_SELECTNONE, "Deselects all items");
+						descriptions.Set(ID_INVERTSEL, "Invert selection");
+
+						cmd = menu.TrackPopupMenuEx(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, descriptions, nullptr);
+					}
+					switch (cmd) {
+					case ID_STORE:
+						storeBookmark();
+						break;
+					case ID_RESTORE:
+						restoreFocusedBookmark();
+						break;
+					case ID_DEL:
+						m_guiList.RequestRemoveSelection();
+						break;
+					case ID_CLEAR:
+						clearBookmarks();
+						break;
+					case ID_SELECTALL:
+						m_guiList.SelectAll(); // trivial
+						break;
+					case ID_SELECTNONE:
+						m_guiList.SelectNone(); // trivial
+						break;
+					case ID_INVERTSEL:
+					{
+						auto mask = m_guiList.GetSelectionMask();
+						m_guiList.SetSelection(
+							// Items which we alter - all of them
+							pfc::bit_array_true(),
+							// Selection values - NOT'd original selection mask
+							pfc::bit_array_not(mask)
+						);
+						// Exclusion of footer item from selection handled via CanSelectItem()
+					}
 					break;
-				case ID_RESTORE:
-					restoreFocusedBookmark();
-					break;
-				case ID_DEL:
-					m_guiList.RequestRemoveSelection();
-					break;
-				case ID_CLEAR:
-					clearBookmarks();
-					break;
-				case ID_SELECTALL:
-					m_guiList.SelectAll(); // trivial
-					break;
-				case ID_SELECTNONE:
-					m_guiList.SelectNone(); // trivial
-					break;
-				case ID_INVERTSEL:
-				{
-					auto mask = m_guiList.GetSelectionMask();
-					m_guiList.SetSelection(
-						// Items which we alter - all of them
-						pfc::bit_array_true(),
-						// Selection values - NOT'd original selection mask
-						pfc::bit_array_not(mask)
-					);
-					// Exclusion of footer item from selection handled via CanSelectItem()
-				}
-				break;
-				}
-				//return true;
-			}
-			catch (std::exception const & e) {
+					}
+				}//Contextmenu for listbody
+
+			} catch (std::exception const & e) {
 				console::complain("Context menu failure", e); //rare
 			}
 		};
@@ -283,61 +332,77 @@ namespace {
 		//get: Derive config from state; called at shutdown
 		ui_element_config::ptr get_configuration() {
 			//console::formatter() << "get_configuration called.";
-			for (int i = 0; i < nColumns; i++)
-				m_widths[i] = (int)m_guiList.GetColumnWidthF(i);
+			for (int i = 0; i < N_COLUMNS; i++) {
+				//do not accept 0; also prevents overwriting of inactive columns
+				int width = (int)m_guiList.GetColumnWidthF(i);
+				if (width != 0)
+					m_colWidths[i] = width;
+			}
 
-			return makeConfig(m_widths);
+			return makeConfig(m_colWidths, m_colActive);
 		}
 		//set: Apply config to class
 		void set_configuration(ui_element_config::ptr config) {
 			//console::formatter() << "set_configuration called.";
-			m_widths = parseConfig(config);
+			parseConfig(config, m_colWidths, m_colActive);
+
 			configToUI();
 		}
 	private:
-		static std::array<uint32_t, nColumns>  parseConfig(ui_element_config::ptr cfg) {
+		//Reads a config into the supplied variables; Falls back to defaults if necessary
+		static void parseConfig(ui_element_config::ptr cfg, std::array<uint32_t, N_COLUMNS> &widths, std::array<bool, N_COLUMNS> &active) {
 			//console::formatter() << "Parsing config";
+			//initialize to defaults:
+			for (int i = 0; i < N_COLUMNS; i++)
+				widths[i] = defaultColWidths[i];
+			for (int i = 0; i < N_COLUMNS; i++)
+				active[i] = defaultColActive[i];
+
 			try {
 				::ui_element_config_parser in(cfg);
-				std::array<uint32_t, nColumns> widths;
-
-				for (int i = 0; i < nColumns; i++)
-					widths[i] = defaultWidths[i];
-
-				in >> widths[0];
-				in >> widths[1];
-				//console::formatter() << "m_widths we parsed are:" << widths[0] << " and " << widths[1];
-				return widths;
-			}
-			catch (exception_io_data) {
-				// If we got here, someone's feeding us nonsense, fall back to defaults
-				std::array<uint32_t, nColumns> widths = defaultWidths;
-				return widths;
+				//read from config:
+				for (int i = 0; i < N_COLUMNS; i++)
+					in >> widths[i];
+				for (int i = 0; i < N_COLUMNS; i++)
+					in >> active[i];
+			} catch (exception_io_data_truncation e) {
+				console::complain("Failed to parse configuration", e);
+			} catch (exception_io_data e) {
+				console::complain("Failed to parse configuration", e);
 			}
 		}
-		static ui_element_config::ptr makeConfig(std::array<uint32_t, nColumns> widths = defaultWidths) {
-			if (sizeof(widths) / sizeof(uint32_t) != nColumns)
+
+		static ui_element_config::ptr makeConfig(std::array<uint32_t, N_COLUMNS> widths = defaultColWidths, std::array<bool, N_COLUMNS> active = defaultColActive) {
+			if (sizeof(widths) / sizeof(uint32_t) != N_COLUMNS)
 				return makeConfig();
 
 			//console::formatter() << "Making config from " << widths[0] << " and " << widths[1];
-			return makeConfig(widths[0], widths[1]);
-		}
-		static ui_element_config::ptr makeConfig(uint32_t width0, uint32_t width1) {
+
 			ui_element_config_builder out;
-			out << width0 << width1;
+			for (int i = 0; i < N_COLUMNS; i++)
+				out << widths[i];
+			for (int i = 0; i < N_COLUMNS; i++)
+				out << active[i];
 			return out.finish(g_get_guid());
 		}
+
 		void configToUI() {
-			//console::formatter() << "Applying config to UI: " << m_widths[0] << " and " << m_widths[1];
+			//console::formatter() << "Applying config to UI: " << m_colWidths[0] << " and " << m_colWidths[1];
 			auto DPI = m_guiList.GetDPI();
 			m_guiList.DeleteColumns(pfc::bit_array_true(), false);
-			m_guiList.AddColumn("Time", MulDiv(m_widths[0], DPI.cx, 96));
-			m_guiList.AddColumn("Description", MulDiv(m_widths[1], DPI.cx, 96));
+
+			for (int i = 0; i < N_COLUMNS; i++) {
+				//console::formatter() << "configToUi: i is " << i << "; name: " << COLUMNNAMES[i] << ", active: " << m_colActive[i] << ", widths: " << m_colWidths[i];
+				if (m_colActive[i]) {
+					int width = (m_colWidths[i] != 0) ? m_colWidths[i] : defaultColWidths[i];	//do not accept a width of 0, as the column would be invisible. Instead, defaults.
+					m_guiList.AddColumn(COLUMNNAMES[i], MulDiv(width, DPI.cx, 96));
+				}
+			}
 		}
 	};
 
 	//=========================service factory======================
-	class clist_control_bookmark_impl : public ui_element_impl_withpopup<CListControlBookmarkDialog> {	};
+	class clist_control_bookmark_impl : public ui_element_impl_withpopup<CListControlBookmarkDialog> {};
 	static service_factory_t< clist_control_bookmark_impl > g_CListControlBookmarkDialog_factory;
 
 
