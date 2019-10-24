@@ -80,6 +80,14 @@ bool bookmark_automatic::upgradeDummy(std::vector<bookmark_t>& masterList, std::
 		return false;
 	//TODO: what if there is no valid song name?
 
+	//Fizzle out if we have reached the end of the track
+	auto metadb_ptr = metadb::get();
+	metadb_handle_ptr track_bm = metadb_ptr->handle_create(dummy.m_path.c_str(), dummy.m_subsong);
+	if (dummy.m_time + 3 >= track_bm->get_length()) {
+		return false;
+	}
+
+
 	if (cfg_bookmark_autosave_newTrackFilter) {
 		//Filter is active, check for a match:
 

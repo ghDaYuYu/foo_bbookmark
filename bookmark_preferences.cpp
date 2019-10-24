@@ -10,7 +10,7 @@
 #include <list>
 #include <sstream>
 
-static const int stringlength = 80;
+static const int stringlength = 256;
 
 //---GUIDs---
 static const GUID guid_cfg_bookmark_desc_format = { 0xb1cd9cbe, 0x4ee3, 0x4716, { 0x81, 0x7e, 0xbf, 0x5a, 0x91, 0x8b, 0x4c, 0x60 } };
@@ -209,16 +209,23 @@ void CBookmarkPreferences::OnCheckChange(UINT uNotifyCode, int nId, CWindow wndC
 
 			console::formatter() << "adding to auto-bookmarking playlists: " << newName;
 
-			//Add newName to the cfg
-			pfc::string8 combined = cfg_bookmark_autosave_newTrack_playlists;
-			if (combined.length() != 0) combined += pfc::string8(",");
-			combined += newName;
-			cfg_bookmark_autosave_newTrack_playlists = combined;
+			//Add newName to the ui:			
+			wchar_t fieldContent[1 + (stringlength * 2)];
+			GetDlgItemTextW(IDC_AUTOSAVE_TRACK_FILTER, (LPTSTR)fieldContent, stringlength);
 
-			//Apply cfg to the ui
-			cfgToUi(eat_as_newTrackPlaylists);
-			OnChanged();
-			return; //changing the edit control causes a call to onchanged anyways
+			wchar_t wideS[stringlength];
+			size_t outSize;
+			mbstowcs_s(&outSize, wideS, stringlength, newName.c_str(), stringlength - 1);
+
+			if (fieldContent[0] != L"\0"[0]) {
+				wcscat_s(fieldContent, L",");
+				console::formatter() << "fc was determined to not be empty";
+			}
+			wcscat_s(fieldContent, wideS);
+			
+			SetDlgItemText(IDC_AUTOSAVE_TRACK_FILTER, fieldContent);
+
+			return; 
 		}
 
 	} else {
