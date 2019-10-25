@@ -29,6 +29,7 @@ namespace {
 	//The masterList, containing all bookmarks during runtime
 	static std::vector<bookmark_t> g_masterList = std::vector<bookmark_t>();
 	static std::list<CListControlBookmark *> g_guiLists;
+	static CListControlBookmark * g_primaryGuiList = NULL;
 
 	bookmark_persistence g_permStore;
 	bookmark_worker g_bmWorker;
@@ -79,11 +80,20 @@ namespace {
 		// ---(Re)store Bookmarks---
 		//Restores the bookmark currently focused by the first-born instance
 		static void restoreFocusedBookmark() {
-			if (g_guiLists.empty())	//fall back to 0 if there is no list, and hence no selected bookmark
+			if (g_guiLists.empty()) {	//fall back to 0 if there is no list, and hence no selected bookmark
+				console::formatter() << "Global Bookmark Restore: No bookmark UI found, falling back to first bookmark";
 				restoreBookmark(0);
+				return;
+			}
 
-			auto it = g_guiLists.begin();
-			size_t focused = (*it)->GetFocusItem();
+			size_t focused;
+			if (g_primaryGuiList != NULL) {
+				console::formatter() << "Global Bookmark Restore: No primary UI found, falling back to firstborn UI.";
+				focused = g_primaryGuiList->GetFocusItem();
+			} else {
+				auto it = g_guiLists.begin();
+				focused = (*it)->GetFocusItem();
+			}
 			restoreBookmark(focused);
 		}
 
@@ -113,7 +123,10 @@ namespace {
 		}
 
 		~CListControlBookmarkDialog() {
-			console::formatter() << "Destructor was called";
+			//console::formatter() << "Destructor was called";
+			if (g_primaryGuiList == &m_guiList) {
+				g_primaryGuiList = NULL;
+			}
 			g_guiLists.remove(&m_guiList);
 		}
 
@@ -129,6 +142,9 @@ namespace {
 			// automatically initialize position, font, etc
 			m_guiList.CreateInDialog(*this, IDC_BOOKMARKLIST);
 			g_guiLists.emplace_back(&m_guiList);
+			if (g_primaryGuiList == NULL) {
+				g_primaryGuiList = &m_guiList;
+			}
 
 			HWND hwndBookmarkList = GetDlgItem(IDC_BOOKMARKLIST);
 			CListViewCtrl wndList(hwndBookmarkList);
@@ -224,7 +240,7 @@ namespace {
 				//Allow the (de)activation of columns when point is within the header area
 				CRect headerRct;
 				m_guiList.GetHeaderCtrl().GetWindowRect(headerRct);
-				if (headerRct.PtInRect(point)) {	
+				if (headerRct.PtInRect(point)) {
 					const int stringlength = 25;
 					for (uint32_t i = 0; i < N_COLUMNS; i++) {
 						//Need to convert to UI friendly stringformat first:
@@ -259,7 +275,7 @@ namespace {
 					configToUI();
 
 				} else {//Contextmenu for listbody
-					enum { ID_STORE = 1, ID_RESTORE, ID_DEL, ID_CLEAR, ID_SELECTALL, ID_SELECTNONE, ID_INVERTSEL };
+					enum { ID_STORE = 1, ID_RESTORE, ID_DEL, ID_CLEAR, ID_SELECTALL, ID_SELECTNONE, ID_INVERTSEL, ID_MAKEPRIME };
 					menu.AppendMenu(MF_STRING, ID_STORE, L"Store Bookmark");
 					menu.AppendMenu(MF_STRING, ID_RESTORE, L"Restore Bookmark");
 					menu.AppendMenu(MF_STRING, ID_DEL, L"Delete Selected Bookmarks");
@@ -270,6 +286,14 @@ namespace {
 					menu.AppendMenu(MF_STRING, ID_SELECTALL, L"Select all\tCtrl+A");
 					menu.AppendMenu(MF_STRING, ID_SELECTNONE, L"Select none");
 					menu.AppendMenu(MF_STRING, ID_INVERTSEL, L"Invert selection");
+					menu.AppendMenu(MF_SEPARATOR);
+					//Determine whether to set the checkmark:
+					auto flags = MF_STRING;
+					if (g_primaryGuiList == &m_guiList)
+						flags |= MF_CHECKED;
+					else
+						flags |= MF_UNCHECKED;
+					menu.AppendMenu(flags, ID_MAKEPRIME, L"Primary UI");
 
 					int cmd;
 					{
@@ -283,6 +307,7 @@ namespace {
 						descriptions.Set(ID_SELECTALL, "Selects all items");
 						descriptions.Set(ID_SELECTNONE, "Deselects all items");
 						descriptions.Set(ID_INVERTSEL, "Invert selection");
+						descriptions.Set(ID_INVERTSEL, "The primary list's selection determines the bookmark restored by the global restore command.");
 
 						cmd = menu.TrackPopupMenuEx(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, descriptions, nullptr);
 					}
@@ -317,6 +342,9 @@ namespace {
 						// Exclusion of footer item from selection handled via CanSelectItem()
 					}
 					break;
+					case ID_MAKEPRIME:
+						g_primaryGuiList = &m_guiList;
+						break;
 					}
 				}//Contextmenu for listbody
 

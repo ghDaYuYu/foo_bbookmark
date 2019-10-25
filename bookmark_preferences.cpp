@@ -213,15 +213,15 @@ void CBookmarkPreferences::OnCheckChange(UINT uNotifyCode, int nId, CWindow wndC
 			wchar_t fieldContent[1 + (stringlength * 2)];
 			GetDlgItemTextW(IDC_AUTOSAVE_TRACK_FILTER, (LPTSTR)fieldContent, stringlength);
 
-			wchar_t wideS[stringlength];
+			wchar_t newEntry[stringlength];
 			size_t outSize;
-			mbstowcs_s(&outSize, wideS, stringlength, newName.c_str(), stringlength - 1);
+			mbstowcs_s(&outSize, newEntry, stringlength, newName.c_str(), stringlength - 1);
 
 			if (fieldContent[0] != L"\0"[0]) {
 				wcscat_s(fieldContent, L",");
-				console::formatter() << "fc was determined to not be empty";
+				//console::formatter() << "fc was determined to not be empty";
 			}
-			wcscat_s(fieldContent, wideS);
+			wcscat_s(fieldContent, newEntry);
 			
 			SetDlgItemText(IDC_AUTOSAVE_TRACK_FILTER, fieldContent);
 
