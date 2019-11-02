@@ -3,19 +3,15 @@
 
 const static bool noisy = false;
 
-bookmark_automatic::bookmark_automatic()
-{
+bookmark_automatic::bookmark_automatic() {
 
 }
 
 
-bookmark_automatic::~bookmark_automatic()
-{
-}
+bookmark_automatic::~bookmark_automatic() {}
 
 //Only update the time stored in the dummy - assumes that we will be notified of song changes
-void bookmark_automatic::updateDummyTime()
-{
+void bookmark_automatic::updateDummyTime() {
 	dummy.m_time = playback_control::get()->playback_get_position();
 
 	if (updatePlName) {
@@ -48,8 +44,7 @@ void bookmark_automatic::updateDummyTime()
 }
 
 //fully update the dummy
-void bookmark_automatic::updateDummy()
-{
+void bookmark_automatic::updateDummy() {
 	pfc::string_formatter songDesc;
 
 	metadb_handle_ptr dbHandle_item;
@@ -120,6 +115,15 @@ bool bookmark_automatic::upgradeDummy(std::vector<bookmark_t>& masterList, std::
 		if (!matchFound) {
 			if (noisy) console::formatter() << "...no match.";
 			return false;	//Filter is active and did not match, do not store a bookmark
+		}
+	}
+
+	//Check if an (almost) identical entry already exists 
+	for (std::vector<bookmark_t>::iterator it = masterList.begin(); it != masterList.end(); ++it) {
+		if ((abs(it->m_time - dummy.m_time) <= 1.0 ) &&	//do not require an exact match
+			(it->m_path == dummy.m_path) &&
+			(it->m_playlist == dummy.m_playlist)) {
+			return false;
 		}
 	}
 
