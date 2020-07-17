@@ -9,6 +9,7 @@
 #define IDD_BOOKMARK_DIALOG             149
 #define IDC_BOGO1                       1001
 #define IDC_BOGO2                       1002
+#define IDC_VERBOSE                     1002
 #define IDC_SLIDER1                     1012
 #define IDC_CHECK3                      1016
 #define IDC_AUTOSAVE_EXIT               1016
@@ -20,7 +21,6 @@
 #define IDC_AUTOSAVE_TRACK_FILTER_CHECK 1030
 #define IDC_EDIT1                       1031
 #define IDC_AUTOSAVE_TRACK_FILTER       1032
-#define IDC_LIST1                       1033
 #define IDC_COMBO1                      1034
 #define IDC_BUTTON1                     1035
 

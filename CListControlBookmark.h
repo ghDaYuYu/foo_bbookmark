@@ -91,8 +91,6 @@ public:
 		this->OnItemsReordered(order, count);
 	}
 	void RequestRemoveSelection() override {
-		console::formatter() << "RRS was called.";
-
 		auto mask = this->GetSelectionMask();
 		size_t oldCount = GetItemCount();
 		if (!m_host->listRemoveItems(this, mask)) return;

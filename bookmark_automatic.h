@@ -1,4 +1,5 @@
 #pragma once
+
 #include "bookmark_types.h"
 #include "bookmark_preferences.h"
 #include "CListControlBookmark.h"
@@ -11,7 +12,7 @@ class bookmark_automatic
 {
 private:
 	bookmark_t dummy;
-	bool updatePlName = true;
+	bool m_updatePlaylist = true;
 public:
 	bookmark_automatic();
 	~bookmark_automatic();

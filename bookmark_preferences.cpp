@@ -20,6 +20,8 @@ static const GUID guid_cfg_bookmark_autosave_onClose = { 0x5d055347, 0xd9a9, 0x4
 static const GUID guid_cfg_bookmark_autosave_newTrack = { 0xa687aaff, 0xf382, 0x473e, { 0xbf, 0x64, 0xf1, 0x4d, 0x30, 0x7, 0xf1, 0x45 } };
 static const GUID guid_cfg_bookmark_autosave_newTrackFilter = { 0x781424f7, 0x9ff9, 0x4f7a, { 0x8a, 0x3d, 0xe9, 0x1d, 0x75, 0xd2, 0x17, 0xb0 } };
 
+static const GUID guid_cfg_bookmark_verbose = { 0xe8342c32, 0xa1ac, 0x4c7d, { 0xbc, 0x20, 0x9, 0xec, 0x37, 0xab, 0x79, 0x66 } };
+
 //--defaults---
 static const pfc::string8 default_cfg_bookmark_desc_format = "%title%";
 static const pfc::string8 default_cfg_bookmark_autosave_newTrack_playlists = "Podcatcher";
@@ -28,6 +30,8 @@ static const bool default_cfg_bookmark_autosave_newTrack = false;
 static const bool default_cfg_bookmark_autosave_newTrackFilter = true;
 static const bool default_cfg_bookmark_autosave_onClose = false;
 
+static const bool default_cfg_bookmark_verbose = false;
+
 // ---CFG_VARS---
 cfg_string cfg_bookmark_desc_format(guid_cfg_bookmark_desc_format, default_cfg_bookmark_desc_format.c_str());
 cfg_string cfg_bookmark_autosave_newTrack_playlists(guid_cfg_bookmark_autosave_newTrack_playlists, default_cfg_bookmark_autosave_newTrack_playlists.c_str());
@@ -35,6 +39,8 @@ cfg_string cfg_bookmark_autosave_newTrack_playlists(guid_cfg_bookmark_autosave_n
 cfg_bool cfg_bookmark_autosave_newTrack(guid_cfg_bookmark_autosave_newTrack, default_cfg_bookmark_autosave_newTrack);
 cfg_bool cfg_bookmark_autosave_newTrackFilter(guid_cfg_bookmark_autosave_newTrackFilter, default_cfg_bookmark_autosave_newTrackFilter);
 cfg_bool cfg_bookmark_autosave_onQuit(guid_cfg_bookmark_autosave_onClose, default_cfg_bookmark_autosave_onClose);
+
+cfg_bool cfg_bookmark_verbose(guid_cfg_bookmark_verbose, default_cfg_bookmark_verbose);
 
 struct boxAndBool_t {
 	int idc;
@@ -83,6 +89,8 @@ private:
 	boxAndBool_t bab_as_newTrack = { IDC_AUTOSAVE_TRACK, &cfg_bookmark_autosave_newTrack, default_cfg_bookmark_autosave_newTrack };
 	boxAndBool_t bab_as_newTrackFilter = { IDC_AUTOSAVE_TRACK_FILTER_CHECK, &cfg_bookmark_autosave_newTrackFilter, default_cfg_bookmark_autosave_newTrackFilter };
 	boxAndBool_t bab_as_exit = { IDC_AUTOSAVE_EXIT, &cfg_bookmark_autosave_onQuit, default_cfg_bookmark_autosave_onClose };
+
+	boxAndBool_t bab_verbose = { IDC_VERBOSE, &cfg_bookmark_verbose, default_cfg_bookmark_verbose };
 
 	void cfgToUi(boxAndBool_t bab) {
 		CCheckBox cb(GetDlgItem(bab.idc));
@@ -151,6 +159,8 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow wndCtl, LPARAM) {
 	cfgToUi(bab_as_exit);
 	cfgToUi(bab_as_newTrack);
 	cfgToUi(bab_as_newTrackFilter);
+
+	cfgToUi(bab_verbose);
 
 	//populate the combo box with all currently existing playlists
 	size_t plCount = playlist_manager::get()->get_playlist_count();
@@ -247,6 +257,8 @@ void CBookmarkPreferences::reset() {
 	defToUi(bab_as_newTrack);
 	defToUi(bab_as_newTrackFilter);
 
+	defToUi(bab_verbose);
+
 	OnChanged();
 }
 
@@ -258,6 +270,7 @@ void CBookmarkPreferences::apply() {
 	uiToCfg(bab_as_exit);
 	uiToCfg(bab_as_newTrack);
 	uiToCfg(bab_as_newTrackFilter);
+	uiToCfg(bab_verbose);
 
 	OnChanged(); //our dialog content has not changed but the flags have - our currently shown values now match the settings so the apply button can be disabled
 }
@@ -271,6 +284,8 @@ bool CBookmarkPreferences::HasChanged() {
 	result |= isUiChanged(bab_as_exit);
 	result |= isUiChanged(bab_as_newTrack);
 	result |= isUiChanged(bab_as_newTrackFilter);
+
+	result |= isUiChanged(bab_verbose);
 
 	return result;
 }

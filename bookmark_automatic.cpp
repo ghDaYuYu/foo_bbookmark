@@ -1,12 +1,9 @@
 #include "stdafx.h"
 #include "bookmark_automatic.h"
 
-const static bool noisy = false;
-
 bookmark_automatic::bookmark_automatic() {
 
 }
-
 
 bookmark_automatic::~bookmark_automatic() {}
 
@@ -14,36 +11,32 @@ bookmark_automatic::~bookmark_automatic() {}
 void bookmark_automatic::updateDummyTime() {
 	dummy.m_time = playback_control::get()->playback_get_position();
 
-	if (updatePlName) {
-		updatePlName = false;
+	if (m_updatePlaylist) {
+		m_updatePlaylist = false;
 
-		pfc::string_fixed_t<80> playing_pl_name;// = "Could not read playlist name.";
+		pfc::string_fixed_t<80> playing_pl_name;
 		size_t index_playlist;
 		size_t index_item;
 		auto playlist_manager_ptr = playlist_manager::get();
-		/*if (noisy) {
+		if (cfg_bookmark_verbose) {
 			if (playlist_manager_ptr->get_playing_item_location(&index_playlist, &index_item)) {
 				console::formatter() << "AutoBookmark: dummy update: Playlist index is " << index_playlist;
 				if (playlist_manager_ptr->playlist_get_name(index_playlist, playing_pl_name))
 					console::formatter() << "AutoBookmark: dummy update: Playlist name is " << playing_pl_name;
-			}
-			else {
+			} else {
 				console::formatter() << "AutoBookmark: dummy update: couldn't find playlist index";
 			}
 		}
-		else {*/
 
 		//Set the flag back to true if either operation fails
-		updatePlName |= !playlist_manager_ptr->get_playing_item_location(&index_playlist, &index_item);
-		updatePlName |= !playlist_manager_ptr->playlist_get_name(index_playlist, playing_pl_name);
-		//}
-
+		m_updatePlaylist |= !playlist_manager_ptr->get_playing_item_location(&index_playlist, &index_item);
+		m_updatePlaylist |= !playlist_manager_ptr->playlist_get_name(index_playlist, playing_pl_name);
 
 		dummy.m_playlist = playing_pl_name.c_str();	//without using c_str(), the full 80 characters are written every time
 	}
 }
 
-//fully update the dummy
+//Fully update the dummy.
 void bookmark_automatic::updateDummy() {
 	pfc::string_formatter songDesc;
 
@@ -58,7 +51,7 @@ void bookmark_automatic::updateDummy() {
 		songDesc << "Could not generate Description.";
 	}
 
-	updatePlName = true;	//We can't read the PlName right after the track was changed
+	m_updatePlaylist = true;	//We can't read the PlName right after the track was changed
 
 	pfc::string songPath = dbHandle_item->get_path();
 
@@ -86,8 +79,7 @@ bool bookmark_automatic::upgradeDummy(std::vector<bookmark_t>& masterList, std::
 	if (cfg_bookmark_autosave_newTrackFilter) {
 		//Filter is active, check for a match:
 
-		//Obtain name of current playlist
-		if (noisy) console::formatter() << "AutoBookmark: The dummie's playlist is called " << dummy.m_playlist.c_str();
+		if (cfg_bookmark_verbose) console::formatter() << "AutoBookmark: The dummie's playlist is called " << dummy.m_playlist.c_str();
 
 		//Obtain individual names in the filter
 		std::vector<std::string> allowedPlaylists;
@@ -105,35 +97,34 @@ bool bookmark_automatic::upgradeDummy(std::vector<bookmark_t>& masterList, std::
 		//compare the contents of the filter
 		bool matchFound = false;
 		for (std::string ap : allowedPlaylists) {
-			if (noisy) console::formatter() << "...comparing with filter: " << ap.c_str();
+			if (cfg_bookmark_verbose) console::formatter() << "...comparing with filter: " << ap.c_str();
 			if (strcmp(ap.c_str(), dummyPlaylist.c_str()) == 0) {
 				matchFound = true;
-				if (noisy) console::formatter() << "...matches.";
+				if (cfg_bookmark_verbose) console::formatter() << "...matches.";
 				break;
 			}
 		}
 		if (!matchFound) {
-			if (noisy) console::formatter() << "...no match.";
+			if (cfg_bookmark_verbose) console::formatter() << "...no match.";
 			return false;	//Filter is active and did not match, do not store a bookmark
 		}
 	}
 
-	//Check if an (almost) identical entry already exists 
+	double timeFuzz = 1.0;
 	for (std::vector<bookmark_t>::iterator it = masterList.begin(); it != masterList.end(); ++it) {
-		if ((abs(it->m_time - dummy.m_time) <= 1.0 ) &&	//do not require an exact match
+		if ((abs(it->m_time - dummy.m_time) <= timeFuzz) &&
 			(it->m_path == dummy.m_path) &&
 			(it->m_playlist == dummy.m_playlist)) {
 			return false;
 		}
 	}
 
-
 	console::formatter() << "AutoBookmark: storing";
 	//The filter was either disabled or matched the current playlist, continue:
 	bookmark_t copy = bookmark_t(dummy);
 	masterList.emplace_back(copy);	//store the mark
 
-	//Update the gui
+	//Update each gui List
 	for (std::list<CListControlBookmark *>::iterator it = guiLists.begin(); it != guiLists.end(); ++it) {
 		(*it)->OnItemsInserted(masterList.size(), 1, true);
 	}

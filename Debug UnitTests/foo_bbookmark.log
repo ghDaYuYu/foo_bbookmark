@@ -1,0 +1,4 @@
+﻿C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\VC\VCTargets\Platforms\Win32\PlatformToolsets\v141_xp\Toolset.targets(39,5): warning MSB8051: Support for targeting Windows XP is deprecated and will not be present in future releases of Visual Studio. Please see https://go.microsoft.com/fwlink/?linkid=2023588 for more information.
+  bookmark_core.cpp
+n:\foobarsdk\sdk-2019-09-18_primary\foobar2000\foo_bbookmark\bookmark_core.cpp(44): warning C4091: 'static ': ignored on left of 'const `anonymous-namespace'::colID' when no variable is declared
+n:\foobarsdk\sdk-2019-09-18_primary\foobar2000\foo_bbookmark\bookmark_core.cpp(170): error C2065: 'm_list': undeclared identifier

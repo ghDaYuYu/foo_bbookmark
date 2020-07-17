@@ -43,7 +43,6 @@ namespace {
 		N_COLUMNS
 	};
 	static const char* COLUMNNAMES[] = { "Time", "Description", "Playlist" };
-	//Order of columns: time, description, playlist
 	static const std::array<uint32_t, N_COLUMNS> defaultColWidths = { 40, 150, 110 };
 	static const std::array<bool, N_COLUMNS> defaultColActive = { true, true, false };
 
@@ -108,7 +107,7 @@ namespace {
 				(*it)->OnItemsInserted(g_masterList.size(), 1, true);
 			}
 
-			//console::formatter() << "Created Bookmark, saving to file now.";
+			if (cfg_bookmark_verbose) console::formatter() << "Created Bookmark, saving to file now.";
 			g_permStore.write(g_masterList);
 		}
 
@@ -123,7 +122,7 @@ namespace {
 		}
 
 		~CListControlBookmarkDialog() {
-			//console::formatter() << "Destructor was called";
+			if (cfg_bookmark_verbose) console::formatter() << "Destructor was called";
 			if (g_primaryGuiList == &m_guiList) {
 				g_primaryGuiList = NULL;
 			}
@@ -205,7 +204,7 @@ namespace {
 
 			pfc::remove_mask_t(g_masterList, mask); //remove from global list
 
-			//Update the other lists
+			//Update all guiLists
 			for (std::list<CListControlBookmark *>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
 				if ((*it) != &m_guiList) {
 					(*it)->OnItemsRemoved(mask, oldCount);
@@ -237,10 +236,11 @@ namespace {
 				// Used to check for obscure errors in debug builds, does nothing (ignores errors) in release build
 				WIN32_OP_D(menu.CreatePopupMenu());
 
-				//Allow the (de)activation of columns when point is within the header area
+
 				CRect headerRct;
 				m_guiList.GetHeaderCtrl().GetWindowRect(headerRct);
 				if (headerRct.PtInRect(point)) {
+					//Contextmenu for Headers: (Dis-)able columns
 					const int stringlength = 25;
 					for (uint32_t i = 0; i < N_COLUMNS; i++) {
 						//Need to convert to UI friendly stringformat first:
@@ -274,7 +274,8 @@ namespace {
 					m_colActive[cmd - 1] = !m_colActive[cmd - 1]; //Toggle the state of the column whose menucommand was triggered
 					configToUI();
 
-				} else {//Contextmenu for listbody
+				} else {
+					//Contextmenu for listbody
 					enum { ID_STORE = 1, ID_RESTORE, ID_DEL, ID_CLEAR, ID_SELECTALL, ID_SELECTNONE, ID_INVERTSEL, ID_MAKEPRIME };
 					menu.AppendMenu(MF_STRING, ID_STORE, L"Store Bookmark");
 					menu.AppendMenu(MF_STRING, ID_RESTORE, L"Restore Bookmark");
@@ -299,7 +300,6 @@ namespace {
 					{
 						CMenuDescriptionMap descriptions(m_hWnd);
 
-						// Set descriptions of all our items
 						descriptions.Set(ID_STORE, "This stores the playback position to a bookmark");
 						descriptions.Set(ID_RESTORE, "This restores the playback position from a bookmark");
 						descriptions.Set(ID_DEL, "This deletes all selected bookmarks");
@@ -325,10 +325,10 @@ namespace {
 						clearBookmarks();
 						break;
 					case ID_SELECTALL:
-						m_guiList.SelectAll(); // trivial
+						m_guiList.SelectAll();
 						break;
 					case ID_SELECTNONE:
-						m_guiList.SelectNone(); // trivial
+						m_guiList.SelectNone();
 						break;
 					case ID_INVERTSEL:
 					{
@@ -336,10 +336,9 @@ namespace {
 						m_guiList.SetSelection(
 							// Items which we alter - all of them
 							pfc::bit_array_true(),
-							// Selection values - NOT'd original selection mask
+							// Selection values - inverted original selection mask
 							pfc::bit_array_not(mask)
 						);
-						// Exclusion of footer item from selection handled via CanSelectItem()
 					}
 					break;
 					case ID_MAKEPRIME:
@@ -359,7 +358,7 @@ namespace {
 		static ui_element_config::ptr g_get_default_configuration() { return ui_element_config::g_create_empty(g_get_guid()); }
 		//get: Derive config from state; called at shutdown
 		ui_element_config::ptr get_configuration() {
-			//console::formatter() << "get_configuration called.";
+			if (cfg_bookmark_verbose) console::formatter() << "get_configuration called.";
 			for (int i = 0; i < N_COLUMNS; i++) {
 				//do not accept 0; also prevents overwriting of inactive columns
 				int width = (int)m_guiList.GetColumnWidthF(i);
@@ -371,7 +370,7 @@ namespace {
 		}
 		//set: Apply config to class
 		void set_configuration(ui_element_config::ptr config) {
-			//console::formatter() << "set_configuration called.";
+			if (cfg_bookmark_verbose) console::formatter() << "set_configuration called.";
 			parseConfig(config, m_colWidths, m_colActive);
 
 			configToUI();
@@ -379,20 +378,19 @@ namespace {
 	private:
 		//Reads a config into the supplied variables; Falls back to defaults if necessary
 		static void parseConfig(ui_element_config::ptr cfg, std::array<uint32_t, N_COLUMNS> &widths, std::array<bool, N_COLUMNS> &active) {
-			//console::formatter() << "Parsing config";
-			//initialize to defaults:
+			if (cfg_bookmark_verbose) console::formatter() << "Parsing config";
 			for (int i = 0; i < N_COLUMNS; i++)
 				widths[i] = defaultColWidths[i];
 			for (int i = 0; i < N_COLUMNS; i++)
 				active[i] = defaultColActive[i];
 
 			try {
-				::ui_element_config_parser in(cfg);
+				::ui_element_config_parser configParser(cfg);
 				//read from config:
 				for (int i = 0; i < N_COLUMNS; i++)
-					in >> widths[i];
+					configParser >> widths[i];
 				for (int i = 0; i < N_COLUMNS; i++)
-					in >> active[i];
+					configParser >> active[i];
 			} catch (exception_io_data_truncation e) {
 				console::complain("Failed to parse configuration", e);
 			} catch (exception_io_data e) {
@@ -404,7 +402,7 @@ namespace {
 			if (sizeof(widths) / sizeof(uint32_t) != N_COLUMNS)
 				return makeConfig();
 
-			//console::formatter() << "Making config from " << widths[0] << " and " << widths[1];
+			if (cfg_bookmark_verbose) console::formatter() << "Making config from " << widths[0] << " and " << widths[1];
 
 			ui_element_config_builder out;
 			for (int i = 0; i < N_COLUMNS; i++)
@@ -415,12 +413,12 @@ namespace {
 		}
 
 		void configToUI() {
-			//console::formatter() << "Applying config to UI: " << m_colWidths[0] << " and " << m_colWidths[1];
+			if (cfg_bookmark_verbose) console::formatter() << "Applying config to UI: " << m_colWidths[0] << " and " << m_colWidths[1];
 			auto DPI = m_guiList.GetDPI();
 			m_guiList.DeleteColumns(pfc::bit_array_true(), false);
 
 			for (int i = 0; i < N_COLUMNS; i++) {
-				//console::formatter() << "configToUi: i is " << i << "; name: " << COLUMNNAMES[i] << ", active: " << m_colActive[i] << ", widths: " << m_colWidths[i];
+				if (cfg_bookmark_verbose) console::formatter() << "configToUi: i is " << i << "; name: " << COLUMNNAMES[i] << ", active: " << m_colActive[i] << ", widths: " << m_colWidths[i];
 				if (m_colActive[i]) {
 					int width = (m_colWidths[i] != 0) ? m_colWidths[i] : defaultColWidths[i];	//do not accept a width of 0, as the column would be invisible. Instead, defaults.
 					m_guiList.AddColumn(COLUMNNAMES[i], MulDiv(width, DPI.cx, 96));
@@ -487,5 +485,3 @@ namespace {
 void bbookmarkHook_store() { CListControlBookmarkDialog::storeBookmark(); }
 void bbookmarkHook_restore() { CListControlBookmarkDialog::restoreFocusedBookmark(); }
 void bbookmarkHook_clear() { CListControlBookmarkDialog::clearBookmarks(); }
-
-

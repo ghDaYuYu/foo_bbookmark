@@ -65,6 +65,9 @@
     <ClInclude Include="bookmark_preferences.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="bookmark_play_callback.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="cpp.hint" />

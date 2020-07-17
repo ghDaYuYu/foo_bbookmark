@@ -1,0 +1,13 @@
+﻿C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\VC\VCTargets\Platforms\Win32\PlatformToolsets\v141_xp\Toolset.targets(39,5): warning MSB8051: Support for targeting Windows XP is deprecated and will not be present in future releases of Visual Studio. Please see https://go.microsoft.com/fwlink/?linkid=2023588 for more information.
+  PCH.cpp
+  bookmark_automatic.cpp
+  bookmark_core.cpp
+n:\foobarsdk\sdk-2019-09-18_primary\foobar2000\foo_bbookmark\bookmark_core.cpp(46): warning C4091: 'static ': ignored on left of 'const `anonymous-namespace'::colID' when no variable is declared
+  bookmark_menu.cpp
+  bookmark_worker.cpp
+  main.cpp
+  bookmark_persistence.cpp
+  bookmark_preferences.cpp
+n:\foobarsdk\sdk-2019-09-18_primary\foobar2000\foo_bbookmark\bookmark_preferences.cpp(194): warning C4018: '<': signed/unsigned mismatch
+LINK : fatal error C1905: Front end and back end not compatible (must target same processor).
+LINK : fatal error LNK1257: code generation failed
