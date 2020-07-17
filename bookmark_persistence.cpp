@@ -8,7 +8,7 @@ bookmark_persistence::bookmark_persistence() {
 
 #define AB_C_DUMMY foobar2000_io::abort_callback_dummy()
 
-const char separator = '\f';
+const char separator = '\v';
 
 //Stores the contents of masterList in a persistent file
 void bookmark_persistence::write(std::vector<bookmark_t> & masterList) {
@@ -125,21 +125,13 @@ BOOL bookmark_persistence::readDataFile(std::vector<bookmark_t> & masterList) {
 
 
 std::vector<pfc::string> bookmark_persistence::splitString(const char * str, char separator) {
-	std::vector<pfc::string> lines;
-	for (;;) {
-		const char * next = strchr(str, separator);
-		if (next == NULL) {
-			lines.push_back(pfc::string_part(str, strlen(str)));
-			break;
-		}
-		const char * walk = next;
-		while (walk > str && walk[-1] == '\r') {
-			--walk;
-		}
-		lines.push_back(pfc::string_part(str, walk - str));
-		str = next + 1;
+	std::vector<pfc::string> parts;
+	std::stringstream ss(str);
+	std::string token;
+	while (std::getline(ss, token, separator)) {
+		parts.push_back(pfc::string(token.c_str()));
 	}
-	return lines;
+	return parts;
 }
 
 void bookmark_persistence::replaceMasterList(std::vector<bookmark_t>  &newContent, std::vector<bookmark_t> & masterList) {
