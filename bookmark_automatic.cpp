@@ -20,11 +20,11 @@ void bookmark_automatic::updateDummyTime() {
 		auto playlist_manager_ptr = playlist_manager::get();
 		if (cfg_bookmark_verbose) {
 			if (playlist_manager_ptr->get_playing_item_location(&index_playlist, &index_item)) {
-				console::formatter() << "AutoBookmark: dummy update: Playlist index is " << index_playlist;
+				FB2K_console_print("AutoBookmark: dummy update: Playlist index is ", index_playlist);
 				if (playlist_manager_ptr->playlist_get_name(index_playlist, playing_pl_name))
-					console::formatter() << "AutoBookmark: dummy update: Playlist name is " << playing_pl_name;
+					FB2K_console_print("AutoBookmark: dummy update: Playlist name is ", playing_pl_name);
 			} else {
-				console::formatter() << "AutoBookmark: dummy update: couldn't find playlist index";
+				FB2K_console_print("AutoBookmark: dummy update: couldn't find playlist index");
 			}
 		}
 
@@ -79,7 +79,7 @@ bool bookmark_automatic::upgradeDummy(std::vector<bookmark_t>& masterList, std::
 	if (cfg_bookmark_autosave_newTrackFilter) {
 		//Filter is active, check for a match:
 
-		if (cfg_bookmark_verbose) console::formatter() << "AutoBookmark: The dummie's playlist is called " << dummy.m_playlist.c_str();
+		if (cfg_bookmark_verbose) FB2K_console_print("AutoBookmark: The dummie's playlist is called ", dummy.m_playlist.c_str());
 
 		//Obtain individual names in the filter
 		std::vector<std::string> allowedPlaylists;
@@ -91,21 +91,21 @@ bool bookmark_automatic::upgradeDummy(std::vector<bookmark_t>& masterList, std::
 
 		//replace all , in the name of the current playlist with .
 		pfc::string8 dummyPlaylist = dummy.m_playlist.c_str();
-		dummyPlaylist.replace_char(',', '.', 0);
+		dummyPlaylist.replace_char(',', '.');
 
 
 		//compare the contents of the filter
 		bool matchFound = false;
 		for (std::string ap : allowedPlaylists) {
-			if (cfg_bookmark_verbose) console::formatter() << "...comparing with filter: " << ap.c_str();
+			if (cfg_bookmark_verbose) FB2K_console_print("...comparing with filter: ", ap.c_str());
 			if (strcmp(ap.c_str(), dummyPlaylist.c_str()) == 0) {
 				matchFound = true;
-				if (cfg_bookmark_verbose) console::formatter() << "...matches.";
+				if (cfg_bookmark_verbose) FB2K_console_print("...matches.");
 				break;
 			}
 		}
 		if (!matchFound) {
-			if (cfg_bookmark_verbose) console::formatter() << "...no match.";
+			if (cfg_bookmark_verbose) FB2K_console_print("...no match.");
 			return false;	//Filter is active and did not match, do not store a bookmark
 		}
 	}
@@ -119,7 +119,7 @@ bool bookmark_automatic::upgradeDummy(std::vector<bookmark_t>& masterList, std::
 		}
 	}
 
-	console::formatter() << "AutoBookmark: storing";
+	FB2K_console_print("AutoBookmark: storing");
 	//The filter was either disabled or matched the current playlist, continue:
 	bookmark_t copy = bookmark_t(dummy);
 	masterList.emplace_back(copy);	//store the mark

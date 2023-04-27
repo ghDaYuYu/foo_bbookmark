@@ -108,8 +108,8 @@ public:
 	}
 
 protected:
-	void OnFocusChanged(size_t newFocus) override {
-		__super::OnFocusChanged(newFocus);
+	void OnFocusChanged(size_t o, size_t f) override {
+		__super::OnFocusChanged(o, f);
 		m_host->listFocusChanged(this);
 	}
 	void OnSelectionChanged(pfc::bit_array const & affected, pfc::bit_array const & status) {

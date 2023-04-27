@@ -23,6 +23,7 @@
 #define IDC_AUTOSAVE_TRACK_FILTER       1032
 #define IDC_COMBO1                      1034
 #define IDC_BUTTON1                     1035
+#define IDC_STATIC_DESC                 1036
 
 // Next default values for new objects
 // 

@@ -36,7 +36,7 @@ namespace {
 	bookmark_automatic g_bmAuto;
 
 	//Config
-	static const enum colID {
+	const enum colID {
 		TIME_COL = 0,
 		DESC_COL,
 		PLAYLIST_COL,
@@ -80,14 +80,14 @@ namespace {
 		//Restores the bookmark currently focused by the first-born instance
 		static void restoreFocusedBookmark() {
 			if (g_guiLists.empty()) {	//fall back to 0 if there is no list, and hence no selected bookmark
-				console::formatter() << "Global Bookmark Restore: No bookmark UI found, falling back to first bookmark";
+				FB2K_console_print("Global Bookmark Restore: No bookmark UI found, falling back to first bookmark");
 				restoreBookmark(0);
 				return;
 			}
 
 			size_t focused;
 			if (g_primaryGuiList != NULL) {
-				console::formatter() << "Global Bookmark Restore: No primary UI found, falling back to firstborn UI.";
+				FB2K_console_print("Global Bookmark Restore: No primary UI found, falling back to firstborn UI.");
 				focused = g_primaryGuiList->GetFocusItem();
 			} else {
 				auto it = g_guiLists.begin();
@@ -107,7 +107,7 @@ namespace {
 				(*it)->OnItemsInserted(g_masterList.size(), 1, true);
 			}
 
-			if (cfg_bookmark_verbose) console::formatter() << "Created Bookmark, saving to file now.";
+			if (cfg_bookmark_verbose) FB2K_console_print("Created Bookmark, saving to file now.");
 			g_permStore.write(g_masterList);
 		}
 
@@ -122,7 +122,7 @@ namespace {
 		}
 
 		~CListControlBookmarkDialog() {
-			if (cfg_bookmark_verbose) console::formatter() << "Destructor was called";
+			if (cfg_bookmark_verbose) FB2K_console_print("Destructor was called");
 			if (g_primaryGuiList == &m_guiList) {
 				g_primaryGuiList = NULL;
 			}
@@ -358,7 +358,7 @@ namespace {
 		static ui_element_config::ptr g_get_default_configuration() { return ui_element_config::g_create_empty(g_get_guid()); }
 		//get: Derive config from state; called at shutdown
 		ui_element_config::ptr get_configuration() {
-			if (cfg_bookmark_verbose) console::formatter() << "get_configuration called.";
+			if (cfg_bookmark_verbose) FB2K_console_print("get_configuration called.");
 			for (int i = 0; i < N_COLUMNS; i++) {
 				//do not accept 0; also prevents overwriting of inactive columns
 				int width = (int)m_guiList.GetColumnWidthF(i);
@@ -370,7 +370,7 @@ namespace {
 		}
 		//set: Apply config to class
 		void set_configuration(ui_element_config::ptr config) {
-			if (cfg_bookmark_verbose) console::formatter() << "set_configuration called.";
+			if (cfg_bookmark_verbose) FB2K_console_print("set_configuration called.");
 			parseConfig(config, m_colWidths, m_colActive);
 
 			configToUI();
@@ -378,7 +378,7 @@ namespace {
 	private:
 		//Reads a config into the supplied variables; Falls back to defaults if necessary
 		static void parseConfig(ui_element_config::ptr cfg, std::array<uint32_t, N_COLUMNS> &widths, std::array<bool, N_COLUMNS> &active) {
-			if (cfg_bookmark_verbose) console::formatter() << "Parsing config";
+			if (cfg_bookmark_verbose) FB2K_console_print("Parsing config");
 			for (int i = 0; i < N_COLUMNS; i++)
 				widths[i] = defaultColWidths[i];
 			for (int i = 0; i < N_COLUMNS; i++)
@@ -402,7 +402,7 @@ namespace {
 			if (sizeof(widths) / sizeof(uint32_t) != N_COLUMNS)
 				return makeConfig();
 
-			if (cfg_bookmark_verbose) console::formatter() << "Making config from " << widths[0] << " and " << widths[1];
+			if (cfg_bookmark_verbose) FB2K_console_print("Making config from ", widths[0], " and ", widths[1]);
 
 			ui_element_config_builder out;
 			for (int i = 0; i < N_COLUMNS; i++)
@@ -413,12 +413,12 @@ namespace {
 		}
 
 		void configToUI() {
-			if (cfg_bookmark_verbose) console::formatter() << "Applying config to UI: " << m_colWidths[0] << " and " << m_colWidths[1];
+			if (cfg_bookmark_verbose) FB2K_console_print("Applying config to UI: ", m_colWidths[0], " and ", m_colWidths[1]);
 			auto DPI = m_guiList.GetDPI();
 			m_guiList.DeleteColumns(pfc::bit_array_true(), false);
 
 			for (int i = 0; i < N_COLUMNS; i++) {
-				if (cfg_bookmark_verbose) console::formatter() << "configToUi: i is " << i << "; name: " << COLUMNNAMES[i] << ", active: " << m_colActive[i] << ", widths: " << m_colWidths[i];
+				if (cfg_bookmark_verbose) FB2K_console_print("configToUi: i is ", i, "; name: ", COLUMNNAMES[i], ", active: ", m_colActive[i], ", widths: ", m_colWidths[i]);
 				if (m_colActive[i]) {
 					int width = (m_colWidths[i] != 0) ? m_colWidths[i] : defaultColWidths[i];	//do not accept a width of 0, as the column would be invisible. Instead, defaults.
 					m_guiList.AddColumn(COLUMNNAMES[i], MulDiv(width, DPI.cx, 96));

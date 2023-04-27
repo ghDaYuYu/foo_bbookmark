@@ -32,10 +32,16 @@
 *.app
 
 # Untracked Directories
-/Release/*
+/Debug FB2K/*
 /Debug/*
 /Release FB2K/*
-/Debug FB2K/*
+/Release/*
+/x64/Debug FB2K/*
+/x64/Debug/*
+/x64/ReleaseFoobar/*
+/x64/Release FB2k/*
+/x64/Release/*
 /.vs/*
+/packages/*
 
 forbiddenKnowledge

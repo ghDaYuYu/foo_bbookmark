@@ -23,7 +23,7 @@ void bookmark_worker::store(std::vector<bookmark_t>& masterList) {
 	auto playback_control_ptr = playback_control::get();
 	if (!playback_control_ptr->get_now_playing(dbHandle_item)) {
 		//We can not obtain the currently playing item - fizzle out
-		console::formatter() << "get_now_playing failed, can only store time.";
+		FB2K_console_print("get_now_playing failed, can only store time.");
 		songDesc << "Could not find song info.";
 
 		newMark.m_time = playback_control_ptr->playback_get_position();
@@ -104,8 +104,8 @@ void bookmark_worker::restore(std::vector<bookmark_t>& masterList, size_t index)
 		}
 
 		if (g_pendingSeek == 0.0) { //If a time change was not queued up, the track is either already correct or could not be determined
-			if (!core_api::assert_main_thread()) console::formatter() << "not the m thread";
-			console::formatter() << "Restoring time:" << rec.m_time;
+			if (!core_api::assert_main_thread()) FB2K_console_print("not the m thread");
+			FB2K_console_print("Restoring time:", rec.m_time);
 			playback_control_ptr->playback_seek(rec.m_time);
 		}
 

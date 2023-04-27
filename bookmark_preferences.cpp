@@ -166,12 +166,13 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow wndCtl, LPARAM) {
 	size_t plCount = playlist_manager::get()->get_playlist_count();
 	m_currentPlNames.clear();
 	//m_currentPlNames.resize(plCount);
-	CComboBox comboBox = GetDlgItem(IDC_COMBO1);
+	CWindow comboBoxWindow = GetDlgItem(IDC_COMBO1);
+	CComboBox comboBox = (CComboBox) comboBoxWindow;
 	for (size_t i = 0; i < plCount; i++) {
 		//get playlist name
 		pfc::string8 plName;
 		playlist_manager::get()->playlist_get_name(i, plName);
-		console::formatter() << "found playlist called " << plName.c_str();
+		FB2K_console_print("found playlist called ", plName.c_str());
 		m_currentPlNames.emplace_back(plName);
 
 		//convert pl name
@@ -198,14 +199,15 @@ void CBookmarkPreferences::OnEditChange(UINT uNotifyCode, int nId, CWindow wndCt
 void CBookmarkPreferences::OnCheckChange(UINT uNotifyCode, int nId, CWindow wndCtl) {
 	if (nId == IDC_BUTTON1) {
 		//Todo: add currently selected playlist to the filter edit control
-		CComboBox comboBox = GetDlgItem(IDC_COMBO1);
+		CWindow comboBoxWindow = GetDlgItem(IDC_COMBO1);
+		CComboBox comboBox = (CComboBox)comboBoxWindow;
 		int selected = comboBox.GetCurSel();
 
 		if (selected >= 0 && selected < m_currentPlNames.size()) {
 			pfc::string8 newName;
 			newName += m_currentPlNames[selected];
 			//replace all commas with dots (because of the comma-seperated list)
-			newName.replace_char(',', '.', 0);
+			newName.replace_char(',', '.');
 
 			//check if the cfg already contains this name
 			std::stringstream ss(cfg_bookmark_autosave_newTrack_playlists.c_str());
@@ -217,7 +219,7 @@ void CBookmarkPreferences::OnCheckChange(UINT uNotifyCode, int nId, CWindow wndC
 				}
 			}
 
-			console::formatter() << "adding to auto-bookmarking playlists: " << newName;
+			FB2K_console_print("adding to auto-bookmarking playlists: ", newName);
 
 			//Add newName to the ui:			
 			wchar_t fieldContent[1 + (stringlength * 2)];
@@ -229,7 +231,7 @@ void CBookmarkPreferences::OnCheckChange(UINT uNotifyCode, int nId, CWindow wndC
 
 			if (fieldContent[0] != L"\0"[0]) {
 				wcscat_s(fieldContent, L",");
-				//console::formatter() << "fc was determined to not be empty";
+				//FB2K_console_print("fc was determined to not be empty");
 			}
 			wcscat_s(fieldContent, newEntry);
 			
