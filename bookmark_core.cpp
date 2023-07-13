@@ -287,7 +287,7 @@ namespace {
 				} else {
 					//Contextmenu for listbody
 					enum { ID_STORE = 1, ID_RESTORE, ID_DEL, ID_CLEAR, ID_SELECTALL, ID_SELECTNONE, ID_INVERTSEL, ID_MAKEPRIME };
-					menu.AppendMenu(MF_STRING, ID_STORE, L"Store Bookmark");
+					menu.AppendMenu(MF_STRING, ID_STORE, L""Add Bookmark"");
 					menu.AppendMenu(MF_STRING, ID_RESTORE, L"Restore Bookmark");
 					menu.AppendMenu(MF_STRING, ID_DEL, L"Delete Selected Bookmarks");
 					menu.AppendMenu(MF_SEPARATOR);

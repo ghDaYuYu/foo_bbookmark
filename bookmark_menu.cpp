@@ -36,7 +36,7 @@ public:
 	}
 	void get_name(t_uint32 p_index, pfc::string_base & p_out) {
 		switch (p_index) {
-		case   cmd_store: p_out = "Store Bookmark"; break;
+		case   cmd_store: p_out = "Add Bookmark; break;
 		case cmd_restore: p_out = "Restore Bookmark"; break;
 		case cmd_clearBookmarks: p_out = "Clear Bookmarks"; break;
 		default: uBugCheck(); // should never happen unless somebody called us with invalid parameters - bail
