@@ -102,7 +102,7 @@ namespace {
 			}
 
 			if (cfg_verbose) FB2K_console_print("Created Bookmark, saving to file now.");
-			g_permStore.write(g_masterList);
+			g_permStore.writeDataFile(g_masterList);
 		}
 
 		//Deletes all bookmarks, updates all UIs, writes to file
@@ -112,7 +112,7 @@ namespace {
 			for (std::list<CListControlBookmark *>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
 				(*it)->OnItemsRemoved(pfc::bit_array_true(), oldCount);
 			}
-			g_permStore.write(g_masterList);
+			g_permStore.writeDataFile(g_masterList);
 		}
 
 		~CListControlBookmarkDialog() {
@@ -197,7 +197,7 @@ namespace {
 		bool listReorderItems(ctx_t, const size_t* order, size_t count) override {
 			PFC_ASSERT(count == g_masterList.size());
 			pfc::reorder_t(g_masterList, order, count);
-			g_permStore.write(g_masterList);
+			g_permStore.writeDataFile(g_masterList);
 			return true;
 		}
 		bool listRemoveItems(ctx_t, pfc::bit_array const & mask) override {
@@ -212,7 +212,7 @@ namespace {
 				}
 			}
 
-			g_permStore.write(g_masterList);	//Write to file
+			g_permStore.writeDataFile(g_masterList);	//Write to file
 			return true;
 		}
 		void listItemAction(ctx_t, size_t item) override { restoreBookmark(item); }
@@ -473,7 +473,7 @@ namespace {
 				return;
 
 			if (g_bmAuto.upgradeDummy(g_masterList, g_guiLists))
-				g_permStore.write(g_masterList);
+				g_permStore.writeDataFile(g_masterList);
 			g_bmAuto.updateDummy();
 		}
 		void on_playback_seek(double p_time) override { g_bmAuto.updateDummyTime(); }
@@ -496,7 +496,7 @@ namespace {
 		virtual void on_quit() {
 			if (cfg_autosave_on_quit) {
 				if (g_bmAuto.upgradeDummy(g_masterList, g_guiLists))
-					g_permStore.write(g_masterList);
+					g_permStore.writeDataFile(g_masterList);
 			}
 		}
 	};

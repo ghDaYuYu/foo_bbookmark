@@ -1,15 +1,23 @@
 #include "stdafx.h"
+
+#include <string>
+#include <sstream>
+
 #include "bookmark_persistence.h"
 
-
 bookmark_persistence::bookmark_persistence() {
+	//..
+}
 
+bookmark_persistence::~bookmark_persistence()
+{
+	//..
 }
 
 const char separator = '\v';
 
 //Stores the contents of masterList in a persistent file
-void bookmark_persistence::write(std::vector<bookmark_t> & masterList) {
+void bookmark_persistence::writeDataFile(std::vector<bookmark_t> & masterList) {
 	if (core_api::is_quiet_mode_enabled()) {
 		FB2K_console_print("Quiet mode, will not write bookmarks to file");
 		return;
@@ -22,7 +30,7 @@ void bookmark_persistence::write(std::vector<bookmark_t> & masterList) {
 		if (cfg_verbose) FB2K_console_print("Preparing Data for write.");
 
 		size_t n_entries = masterList.size();
-		pfc::string linebreak = "\n";
+		pfc::string8 linebreak = "\n";
 
 		auto addValue = [](foobar2000_io::file_ptr file, pfc::string value, const char separator) {
 			file->write_string_raw(value.c_str(), fb2k::noAbort);
@@ -30,15 +38,21 @@ void bookmark_persistence::write(std::vector<bookmark_t> & masterList) {
 		};
 
 		for (size_t i = 0; i < n_entries; i++) {
-			//write the time first
-			addValue(file, pfc::format_float(masterList[i].m_time), separator);
+			//writeDataFile the time first
+			addValue(file, std::to_string(masterList[i].m_time).c_str(), separator);
 			//and then the description, playlist and path
 			addValue(file, masterList[i].m_desc, separator);
 			addValue(file, masterList[i].m_playlist, separator);
+			addValue(file, pfc::print_guid(masterList[i].m_guid_playlist).c_str(), separator);
 			addValue(file, masterList[i].m_path, separator);
-			addValue(file, pfc::format_float(masterList[i].m_subsong).c_str(), '\n');	//lastly, add the subsong index			
+			//lastly, add the subsong index
+			addValue(file, std::to_string(masterList[i].m_subsong).c_str(), '\n');
 		}
 		file->set_eof(fb2k::noAbort);
+		
+		file->flushFileBuffers(fb2k::noAbort);
+        file.release()
+		
 		FB2K_console_print("Wrote bookmarks to file"); //, genFilePath().c_str();
 	} catch (foobar2000_io::exception_io e) {
 		console::complain("Could not write bookmarks to file", e);
@@ -64,7 +78,7 @@ BOOL bookmark_persistence::readDataFile(std::vector<bookmark_t> & masterList) {
 		file->read_string_raw(fullContent, fb2k::noAbort);
 
 		std::vector<pfc::string> lines = splitString(fullContent, '\n');
-		for (pfc::string line : lines) {
+		for (pfc::string8 line : lines) {
 			if (cfg_verbose) FB2K_console_print("Found line: ", line.c_str());
 
 			if (line.get_length() == 0)
@@ -72,29 +86,46 @@ BOOL bookmark_persistence::readDataFile(std::vector<bookmark_t> & masterList) {
 
 			auto values = splitString(line.c_str(), separator);
 
-			if (values.size() < 5) {
-				FB2K_console_print("Insufficient values in line, skipping.\nLine was:", line.c_str());
-				continue;
-			}
+			if (values.size() < SZ_DAT_VER_1) {
+                FB2K_console_print("Insufficient values in line, skipping.\nLine was:", line.c_str());
+                continue;
+            }
+            else {
+                if (values.size() < SZ_DAT_VER_2) {
+                    //convert to VER_2 (no backwards compatibility)
+                    pfc::string8 str_plguid;
+                    if (core_version_info_v2::get()->test_version(2, 0, 0, 0)) {
+                        size_t ndx = playlist_manager_v5::get()->find_playlist(values[2]);
+                        if (ndx != pfc_infinite) {
+                            GUID plguid = playlist_manager_v5::get()->playlist_get_guid(ndx);
+                            str_plguid = pfc::print_guid(plguid);
+                        }
+                    }
+                    //insert V2 guid_playlist after playlist ndx
+                    values.insert(values.begin() + 3, str_plguid);
+                }
+            }
 
-			//construct bookmark_t
-			bookmark_t elem = bookmark_t();
-			elem.m_time = pfc::string_to_float(values[0].c_str(), values[0].get_length());
-			if (cfg_verbose) FB2K_console_print("Read a time: ", elem.m_time);
-			elem.m_desc = values[1];
-			if (cfg_verbose) FB2K_console_print("Read desc", elem.m_desc.c_str());
-			elem.m_playlist = values[2];
-			if (cfg_verbose) FB2K_console_print("Read plName", elem.m_playlist.c_str());
-			elem.m_path = values[3];
-			if (cfg_verbose) FB2K_console_print("Read path", elem.m_path.c_str());
-			elem.m_subsong = pfc::string_to_float(values[4].c_str(), values[4].get_length());
-			if (cfg_verbose) FB2K_console_print("Read subsong", elem.m_subsong);
+            //construct bookmark_t
+            bookmark_t elem = bookmark_t();
+            elem.m_time = pfc::string_to_float(values[0].c_str(), values[0].get_length());
+            if (cfg_verbose) FB2K_console_print("Read a time: ", elem.m_time);
+            elem.m_desc = values[1];
+            if (cfg_verbose) FB2K_console_print("Read desc", elem.m_desc.c_str());
+            elem.m_playlist = values[2];
+            if (cfg_verbose) FB2K_console_print("Read playlist name", elem.m_playlist.c_str());
+            elem.m_guid_playlist = pfc::GUID_from_text(values[3]);
+            if (cfg_verbose) FB2K_console_print("Read playlist GUID", pfc::print_guid(elem.m_guid_playlist).c_str());
+            elem.m_path = values[4];
+            if (cfg_verbose) FB2K_console_print("Read path", elem.m_path.c_str());
+            elem.m_subsong = atoi(values[5].c_str()); // pfc::string_to_float(values[5].c_str(), values[5].get_length());
+            if (cfg_verbose) FB2K_console_print("Read subsong", elem.m_subsong);
 
-
-			temp_data.push_back(elem);	//save to vector
-		}
+            temp_data.push_back(elem);	//save to vector
+        }
 
 		//file->close() TODO: find out equivalent
+		file.release();
 
 		if (cfg_verbose) {
 			FB2K_console_print("file content:");
@@ -121,12 +152,12 @@ BOOL bookmark_persistence::readDataFile(std::vector<bookmark_t> & masterList) {
 }
 
 
-std::vector<pfc::string> bookmark_persistence::splitString(const char * str, char separator) {
-	std::vector<pfc::string> parts;
+std::vector<pfc::string8> bookmark_persistence::splitString(const char * str, char separator) {
+	std::vector<pfc::string8> parts;
 	std::stringstream ss(str);
 	std::string token;
 	while (std::getline(ss, token, separator)) {
-		parts.push_back(pfc::string(token.c_str()));
+		parts.push_back(pfc::string8(token.c_str()));
 	}
 	return parts;
 }
@@ -143,15 +174,12 @@ void bookmark_persistence::replaceMasterList(std::vector<bookmark_t>  &newConten
 }
 
 pfc::string bookmark_persistence::genFilePath() {
-	static std::string path;
+	static std::string8 path;
 
 	if (path.empty()) {
 		path = std::string(core_api::get_profile_path()).append("\\configuration\\").append(core_api::get_my_file_name()).append(".dll.dat").substr(7, std::string::npos);
 	}
 	//use configuration subdir, add own name, add .dll.dat, remove leading file://
-	return pfc::string(path.c_str());
+	return pfc::string8(path.c_str());
 }
 
-bookmark_persistence::~bookmark_persistence()
-{
-}
