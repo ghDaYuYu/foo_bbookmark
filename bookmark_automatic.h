@@ -2,7 +2,7 @@
 
 #include "bookmark_types.h"
 #include "bookmark_preferences.h"
-#include "CListControlBookmark.h"
+#include "bookmark_list_control.h"
 
 #include <vector>
 #include <list>

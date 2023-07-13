@@ -47,7 +47,7 @@
     <ClInclude Include="stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CListControlBookmark.h">
+    <ClInclude Include="bookmark_list_control.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="bookmark_types.h">

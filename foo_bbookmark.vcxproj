@@ -401,10 +401,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bookmark_automatic.h" />
-    <ClInclude Include="bookmark_play_callback.h" />
     <ClInclude Include="bookmark_worker.h" />
     <ClInclude Include="bookmark_types.h" />
-    <ClInclude Include="CListControlBookmark.h" />
+    <ClInclude Include="bookmark_list_control.h" />
     <ClInclude Include="bookmark_persistence.h" />
     <ClInclude Include="bookmark_preferences.h" />
     <ClInclude Include="resource.h" />

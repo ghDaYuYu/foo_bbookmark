@@ -44,17 +44,9 @@ public:
 	virtual bool listEditCanAdvanceHere(ctx_t, size_t item, size_t subItem, uint32_t whatHappened) { (void)item; (void)subItem, (void)whatHappened; return true; }
 };
 
-class IListControlBookmarkCells {
-public:
-	typedef const CListControlBookmark * cellsCtx_t;
-	virtual CListControl::cellType_t listCellType(cellsCtx_t, size_t item, size_t subItem) = 0;
-	virtual size_t listCellSpan(cellsCtx_t, size_t item, size_t subItem) { return 1; }
-	virtual bool listCellCheckState(cellsCtx_t, size_t item, size_t subItem) { return false; }
-	virtual void listCellSetCheckState(cellsCtx_t, size_t item, size_t subItem, bool state) {}
-};
 
 class CListControlBookmark : public CListControlComplete {	//TODO: use readonly clist instead
-	IListControlBookmarkSource * const m_host;
+
 public:
 
 	CListControlBookmark(IListControlBookmarkSource * h) : m_host(h) {}
@@ -154,6 +146,8 @@ private:
 		bool handled = m_host->listKeyUp(this, nChar, nRepCnt, nFlags);
 		SetMsgHandled(!!handled);
 	}
+private:
+	IListControlBookmarkSource * const m_host;
 };
 
 class CListControlBookmarkCells : public CListControlBookmark {

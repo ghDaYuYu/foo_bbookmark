@@ -1,12 +1,9 @@
 #include "stdafx.h"
 
 #include "resource.h"
-#include "bookmark_preferences.h"
-#include "CListControlBookmark.h"
-#include "bookmark_types.h"
+#include "bookmark_core.h"
 #include "bookmark_persistence.h"
 #include "bookmark_worker.h"
-#include "bookmark_automatic.h"
 
 #include <atltypes.h>
 #include <libPPUI/CListControlSimple.h>
@@ -26,14 +23,8 @@ namespace {
 	//~~~~~~~~~~~~~~~~~DEFINITIONS~~~~~~~~~~~~~~~~~~~
 	static const GUID guid_bookmarkDialog = { 0x5c20d8ca, 0x91be, 0x4ef2, { 0xae, 0x81, 0x32, 0x1f, 0x1c, 0x2d, 0x27, 0x23 } };
 
-	//The masterList, containing all bookmarks during runtime
-	static std::vector<bookmark_t> g_masterList = std::vector<bookmark_t>();
-	static std::list<CListControlBookmark *> g_guiLists;
-	static CListControlBookmark * g_primaryGuiList = NULL;
-
 	bookmark_persistence g_permStore;
 	bookmark_worker g_bmWorker;
-	bookmark_automatic g_bmAuto;
 
 	//Config
 	const enum colID {
@@ -52,7 +43,7 @@ namespace {
 		const ui_element_instance_callback::ptr m_callback;
 	public:
 		//---Dialog Setup---
-		CListControlBookmarkDialog(ui_element_config::ptr cfg, ui_element_instance_callback::ptr cb) : m_callback(cb), /*m_colWidths(parseApplyConfig(cfg)),*/ m_guiList(this) {
+		CListControlBookmarkDialog(ui_element_config::ptr cfg, ui_element_instance_callback::ptr cb) : m_callback(cb), m_guiList(this) {
 			parseConfig(cfg, m_colWidths, m_colActive);
 		}
 
