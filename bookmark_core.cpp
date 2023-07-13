@@ -45,7 +45,9 @@ namespace {
 	public:
 		//---Dialog Setup---
 		CListControlBookmarkDialog(ui_element_config::ptr cfg, ui_element_instance_callback::ptr cb) : m_callback(cb), m_guiList(this) {
-			parseConfig(cfg, m_colWidths, m_colActive);
+			m_colActive = defaultColActive;
+            m_colContent.resize(N_COLUMNS);
+            parseConfig(cfg, m_colWidths, m_colActive);
 		}
 
 		enum { IDD = IDD_BOOKMARK_DIALOG };
@@ -126,6 +128,7 @@ namespace {
 		CListControlBookmark m_guiList;
 		std::array<uint32_t, N_COLUMNS> m_colWidths;
 		std::array<bool, N_COLUMNS> m_colActive;
+		pfc::array_t<size_t> m_colContent;
 		fb2k::CDarkModeHooks m_dark;
 
 		//========================UI code===============================
@@ -168,7 +171,8 @@ namespace {
 		}
 		pfc::string8 listGetSubItemText(ctx_t, size_t item, size_t subItem) override {
 			auto & rec = g_masterList[item];
-			switch (subItem) {
+			auto subItemContent = m_colContent[subItem];
+			switch (subItemContent) {
 			case TIME_COL:
 			{
 				std::ostringstream conv;
@@ -268,8 +272,17 @@ namespace {
 
 						cmd = menu.TrackPopupMenuEx(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, descriptions, nullptr);
 					}
-					m_colActive[cmd - 1] = !m_colActive[cmd - 1]; //Toggle the state of the column whose menucommand was triggered
-					configToUI();
+					if (cmd) {
+                        m_colActive[cmd - 1] = !m_colActive[cmd - 1]; //Toggle the state of the column whose menucommand was triggered
+                        bool all_disabled = std::find(m_colActive.begin(), m_colActive.end(), true) == m_colActive.end();
+                        if (all_disabled) {
+                            //revert
+                            m_colActive[cmd - 1] = !m_colActive[cmd - 1];
+                        }
+                        else {
+                            configToUI();
+                        }
+                    }
 
 				} else {
 					//Contextmenu for listbody
@@ -356,12 +369,17 @@ namespace {
 		//get: Derive config from state; called at shutdown
 		ui_element_config::ptr get_configuration() {
 			if (cfg_bookmark_verbose) FB2K_console_print("get_configuration called.");
+
 			for (int i = 0; i < N_COLUMNS; i++) {
-				//do not accept 0; also prevents overwriting of inactive columns
-				int width = (int)m_guiList.GetColumnWidthF(i);
-				if (width != 0)
-					m_colWidths[i] = width;
-			}
+                auto col_ndx = m_colContent[i];
+                if (i < m_guiList.GetColumnCount()) {
+                    m_colWidths[col_ndx] = static_cast<int>(m_guiList.GetColumnWidthF(i));
+                }
+                else {
+                    //default
+                    m_colWidths[col_ndx] = defaultColWidths[col_ndx];
+                }
+            }
 
 			return makeConfig(m_colWidths, m_colActive);
 		}
@@ -414,12 +432,20 @@ namespace {
 			auto DPI = m_guiList.GetDPI();
 			m_guiList.DeleteColumns(pfc::bit_array_true(), false);
 
+			size_t ndx_tail = N_COLUMNS - 1;
 			for (int i = 0; i < N_COLUMNS; i++) {
-				if (cfg_bookmark_verbose) FB2K_console_print("configToUi: i is ", i, "; name: ", COLUMNNAMES[i], ", active: ", m_colActive[i], ", widths: ", m_colWidths[i]);
-				if (m_colActive[i]) {
-					int width = (m_colWidths[i] != 0) ? m_colWidths[i] : defaultColWidths[i];	//do not accept a width of 0, as the column would be invisible. Instead, defaults.
-					m_guiList.AddColumn(COLUMNNAMES[i], MulDiv(width, DPI.cx, 96));
-				}
+				if (cfg_bookmark_verbose) FB2K_console_print("configToUi: i is ", i, "; name: ", COLUMNNAMES[i], ", active: ", m_colActive[i], ", width: ", m_colWidths[i]);
+				
+				auto ndx_cont = !m_guiList.IsHeaderEnabled() ? 0 : m_guiList.GetColumnCount();
+                if (m_colActive[i]) {
+                    int width = (m_colWidths[i] != 0) ? m_colWidths[i] : defaultColWidths[i]; //use defaults instead of zero
+                    m_colContent[ndx_cont] = i;
+                    m_guiList.AddColumn(COLUMNNAMES[i], MulDiv(width, DPI.cx, 96));
+                }
+                else {
+                    //move to tail
+                    m_colContent[ndx_tail--] = i;
+                }
 			}
 		}
 	};
