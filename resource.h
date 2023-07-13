@@ -24,6 +24,7 @@
 #define IDC_COMBO1                      1034
 #define IDC_BUTTON1                     1035
 #define IDC_STATIC_DESC                 1036
+#define IDC_QUEUE_FLAG                  1037
 
 // Next default values for new objects
 // 
@@ -31,7 +32,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        111
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1036
+#define _APS_NEXT_CONTROL_VALUE         1038
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

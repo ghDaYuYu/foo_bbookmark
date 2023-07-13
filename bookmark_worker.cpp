@@ -82,24 +82,65 @@ void bookmark_worker::restore(std::vector<bookmark_t>& masterList, size_t index)
 		playback_control_ptr->get_now_playing(track_current); //Identify current track
 
 		if (track_bm != track_current) { //Skip if track is already playing					
-			size_t index_pl = playlist_manager_ptr->find_playlist(rec.m_playlist.c_str()); //TODO: Also check this initially
+			size_t index_pl;
+			if (core_version_info_v2::get()->test_version(2, 0, 0, 0)) {
+                index_pl = playlist_manager_v5::get()->find_playlist_by_guid(rec.m_guid_playlist);
+            }
+            else {
+			    index_pl = playlist_manager_ptr->find_playlist(rec.m_playlist.c_str()); //TODO: Also check this initially
+            }
 
 			if (index_pl == pfc_infinite) {	//Complain if no playlist of that name exists anymore 
 				console::complain("Bookmark Restoration partially failed", "Could not find Playlist");
+				if (track_bm.get_ptr()) {
+                	//Change track by way of the queue:
+                	playlist_manager_ptr->queue_flush();
+                	playlist_manager_ptr->queue_add_item(track_bm);
+                	//TODO: LOCK NEW TRACK
+                	playback_control_ptr->next();
+                    g_pendingSeek = rec.m_time;
+                }
 			}
 			else {
-				size_t index_item;
-				if (!playlist_manager_ptr->playlist_find_item(index_pl, track_bm, index_item)) {	//Complain if the track does not exist in that playlist
-					console::complain("Bookmark Restoration partially failed", "Could not find Track");
-				}
-				else {
-					//Change track by way of the queue:
-					playlist_manager_ptr->queue_flush();
-					playlist_manager_ptr->queue_add_item_playlist(index_pl, index_item);
+				if (cfg_queue_flag.get_value()) {
+                    //Change track by way of the queue:
+                    playlist_manager_ptr->queue_flush();
+                    //TODO: LOCK NEW TRACK
+                    playlist_manager_ptr->queue_add_item_playlist(index_pl, index_item);
 
-					playback_control_ptr->next();
-					g_pendingSeek = rec.m_time; //This will be applied by bmWorker_play_callback::on_playback_new_track once the change of track has gone through
-				}
+                    playback_control_ptr->next();
+                }
+                else {
+                    size_t plpos;
+                    if (!playlist_manager_ptr->playlist_find_item(index_pl, track_bm, plpos)) {
+                        console::complain("Bookmark Restoration partially failed", pfc::string_formatter() << "Could not find Track '" << track_bm->get_path() << "'");
+                    }
+                    else {
+	                    if (cfg_queue_flag.get_value()) {
+	                        //Change track by way of the queue:
+	                        playlist_manager_ptr->queue_flush();
+	                        //TODO: LOCK NEW TRACK
+	                        playlist_manager_ptr->queue_add_item_playlist(index_pl, index_item);
+	
+	                        playback_control_ptr->next();
+	                    }
+	                    else {
+	                        size_t plpos;
+	                        playlist_manager_ptr->playlist_find_item(index_pl, track_bm, plpos);
+	                        if (plpos != ~0) {
+	                            playlist_manager_ptr->set_active_playlist(index_pl);
+	                            playlist_manager_ptr->set_playing_playlist(index_pl);
+	                            playlist_manager_ptr->playlist_set_selection(index_pl, bit_array_true(), bit_array_false());
+	                            playlist_manager_ptr->playlist_set_selection_single(index_pl, plpos, true);
+	                            playlist_manager_ptr->playlist_set_focus_item(index_pl, plpos);
+								//TODO: LOCK NEW TRACK
+	                            playlist_manager_ptr->playlist_execute_default_action(index_pl, plpos);
+	                        }
+	                    }
+                        //This will be applied by bmWorker_play_callback::on_playback_new_track once the change of track has gone through
+                        g_pendingSeek = rec.m_time;                  
+                    }
+                }
 			}
 		}
 
@@ -108,7 +149,6 @@ void bookmark_worker::restore(std::vector<bookmark_t>& masterList, size_t index)
 			FB2K_console_print("Restoring time:", rec.m_time);
 			playback_control_ptr->playback_seek(rec.m_time);
 		}
-
 
 		//unpause
 		playback_control_ptr->pause(false);

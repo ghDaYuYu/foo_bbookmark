@@ -23,6 +23,8 @@ static const GUID guid_cfg_autosave_newTrackFilter = { 0x781424f7, 0x9ff9, 0x4f7
 
 static const GUID guid_cfg_verbose = { 0xe8342c32, 0xa1ac, 0x4c7d, { 0xbc, 0x20, 0x9, 0xec, 0x37, 0xab, 0x79, 0x66 } };
 
+static const GUID guid_cfg_queue_flag = { 0xa5f786c2, 0x2278, 0x42e1, { 0x89, 0x35, 0x3c, 0xdd, 0xd4, 0x3d, 0xf8, 0xa5 } };
+
 //--defaults---
 static const pfc::string8 default_cfg_desc_format = "%title%";
 static const pfc::string8 default_cfg_autosave_newtrack_playlists = "Podcatcher";
@@ -32,6 +34,8 @@ static const bool default_cfg_autosave_newTrackFilter = true;
 static const bool default_cfg_autosave_onClose = false;
 
 static const bool default_cfg_verbose = false;
+
+static const int default_cfg_queue_flag = 0;
 
 // ---CFG_VARS---
 cfg_string cfg_desc_format(guid_cfg_desc_format, default_cfg_desc_format.c_str());
@@ -43,10 +47,18 @@ cfg_bool cfg_autosave_on_quit(guid_cfg_autosave_onClose, default_cfg_autosave_on
 
 cfg_bool cfg_verbose(guid_cfg_verbose, default_cfg_verbose);
 
+cfg_int cfg_queue_flag(guid_cfg_queue_flag, default_cfg_queue_flag);
+
 struct boxAndBool_t {
 	int idc;
 	cfg_bool* cfg;
 	bool def;
+};
+
+struct boxAndInt_t {
+	int idc;
+	cfg_int* cfg;
+	int def;
 };
 
 struct ectrlAndString_t {
@@ -92,6 +104,8 @@ private:
 	boxAndBool_t bab_as_exit = { IDC_AUTOSAVE_EXIT, &cfg_autosave_on_quit, default_cfg_autosave_onClose };
 
 	boxAndBool_t bab_verbose = { IDC_VERBOSE, &cfg_verbose, default_cfg_verbose };
+
+	boxAndInt_t bai_queue_flag = { IDC_QUEUE_FLAG, &cfg_queue_flag, default_cfg_queue_flag };
 
 	void cfgToUi(boxAndBool_t bab) {
 		CCheckBox cb(GetDlgItem(bab.idc));
@@ -165,6 +179,8 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow wndCtl, LPARAM) {
 	cfgToUi(bab_as_newTrackFilter);
 
 	cfgToUi(bab_verbose);
+
+	cfgToUi(bai_queue_flag);
 
 	//populate the combo box with all currently existing playlists
 	size_t plCount = playlist_manager::get()->get_playlist_count();
@@ -261,12 +277,11 @@ t_uint32 CBookmarkPreferences::get_state() {
 void CBookmarkPreferences::reset() {
 	defToUi(eat_format);
 	defToUi(eat_as_newTrackPlaylists);
-
 	defToUi(bab_as_exit);
 	defToUi(bab_as_newTrack);
 	defToUi(bab_as_newTrackFilter);
-
 	defToUi(bab_verbose);
+	defToUi(bai_queue_flag);
 
 	OnChanged();
 }
@@ -280,7 +295,7 @@ void CBookmarkPreferences::apply() {
 	uiToCfg(bab_as_newTrack);
 	uiToCfg(bab_as_newTrackFilter);
 	uiToCfg(bab_verbose);
-
+	uiToCfg(bai_queue_flag);
 	OnChanged(); //our dialog content has not changed but the flags have - our currently shown values now match the settings so the apply button can be disabled
 }
 
@@ -295,6 +310,7 @@ bool CBookmarkPreferences::HasChanged() {
 	result |= isUiChanged(bab_as_newTrackFilter);
 
 	result |= isUiChanged(bab_verbose);
+	result |= isUiChanged(bai_queue_flag);
 
 	return result;
 }

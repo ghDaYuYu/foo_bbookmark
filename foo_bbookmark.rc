@@ -57,16 +57,17 @@ BEGIN
     LTEXT           "Description Format:",IDC_STATIC_DESC,7,25,37,8
     EDITTEXT        IDC_TITLEFORMAT,12,36,294,12,ES_AUTOHSCROLL
     LTEXT           "Preview of Formatstring",IDC_PREVIEW,7,54,318,8,NOT WS_GROUP
-    CONTROL         "Automatically create a bookmark on exit",IDC_AUTOSAVE_EXIT,
+    CONTROL         "Auto-Create bookmark on exit",IDC_AUTOSAVE_EXIT,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,79,141,10
-    CONTROL         "Automatically create a bookmark on track change",IDC_AUTOSAVE_TRACK,
+    CONTROL         "Auto-Create bookmark on track change",IDC_AUTOSAVE_TRACK,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,92,173,10
-    CONTROL         "Only do so in the following playlists (comma separated)",IDC_AUTOSAVE_TRACK_FILTER_CHECK,
+    CONTROL         "Auto-Create only in these playlists (comma separated)",IDC_AUTOSAVE_TRACK_FILTER_CHECK,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,105,186,10
     EDITTEXT        IDC_AUTOSAVE_TRACK_FILTER,12,119,294,14,ES_AUTOHSCROLL
     COMBOBOX        IDC_COMBO1,45,137,134,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "Add existing Playlist",IDC_BUTTON1,191,137,95,14
     CONTROL         "Verbose Console",IDC_VERBOSE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,172,69,10
+    CONTROL         "Restore bookmarks to queue",IDC_QUEUE_FLAG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,158,107,10
 END
 
 IDD_BOOKMARK_DIALOG DIALOGEX 0, 0, 191, 177

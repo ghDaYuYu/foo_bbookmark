@@ -7,3 +7,4 @@ extern cfg_bool cfg_autosave_filter_newtrack;
 extern cfg_bool cfg_autosave_on_quit;
 
 extern cfg_bool cfg_verbose;
+extern cfg_int cfg_queue_flag;
