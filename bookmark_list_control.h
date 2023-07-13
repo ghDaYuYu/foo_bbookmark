@@ -149,23 +149,3 @@ private:
 private:
 	IListControlBookmarkSource * const m_host;
 };
-
-class CListControlBookmarkCells : public CListControlBookmark {
-	IListControlBookmarkCells * const m_cells;
-public:
-	CListControlBookmarkCells(IListControlBookmarkSource * source, IListControlBookmarkCells * cells) : CListControlBookmark(source), m_cells(cells) {}
-
-	bool GetCellTypeSupported() const override { return true; }
-	bool GetCellCheckState(size_t item, size_t subItem) const override {
-		return m_cells->listCellCheckState(this, item, subItem);
-	}
-	void SetCellCheckState(size_t item, size_t subItem, bool value) override {
-		m_cells->listCellSetCheckState(this, item, subItem, value);
-	}
-	cellType_t GetCellType(size_t item, size_t subItem) const override {
-		return m_cells->listCellType(this, item, subItem);
-	}
-	size_t GetSubItemSpan(size_t row, size_t column) const override {
-		return m_cells->listCellSpan(this, row, column);
-	}
-};

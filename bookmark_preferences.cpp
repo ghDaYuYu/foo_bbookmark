@@ -1,14 +1,15 @@
 #include "stdafx.h"
 #include "resource.h"
-#include <helpers/atl-misc.h>
-
-#include "bookmark_preferences.h"
-
-#include <libPPUI/wtl-pp.h> // CCheckBox
 
 #include <vector>
 #include <list>
 #include <sstream>
+
+#include <helpers/atl-misc.h>
+#include <libPPUI/wtl-pp.h> // CCheckBox
+#include <helpers/DarkMode.h>
+
+#include "bookmark_preferences.h"
 
 static const int stringlength = 256;
 
@@ -146,6 +147,9 @@ private:
 
 	static_api_ptr_t<playback_control> m_playback_control;
 	const preferences_page_callback::ptr m_callback;
+	
+private:
+	fb2k::CDarkModeHooks m_dark;
 
 };
 
@@ -188,6 +192,9 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow wndCtl, LPARAM) {
 
 	comboBox.SetTopIndex(0);
 
+	//dark mode
+    m_dark.AddDialogWithControls(*this);
+	
 	return FALSE;
 }
 
@@ -246,7 +253,7 @@ void CBookmarkPreferences::OnCheckChange(UINT uNotifyCode, int nId, CWindow wndC
 }
 
 t_uint32 CBookmarkPreferences::get_state() {
-	t_uint32 state = preferences_state::resettable;
+	t_uint32 state = preferences_state::resettable | preferences_state::dark_mode_supported;
 	if (HasChanged()) state |= preferences_state::changed;
 	return state;
 }

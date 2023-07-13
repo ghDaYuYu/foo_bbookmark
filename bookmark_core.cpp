@@ -11,6 +11,7 @@
 #include <libPPUI/win32_op.h> // WIN32_OP()
 #include <helpers/atl-misc.h>
 #include <helpers/BumpableElem.h>
+#include <helpers/DarkMode.h>
 
 #include <algorithm>
 #include <array>
@@ -125,12 +126,17 @@ namespace {
 		CListControlBookmark m_guiList;
 		std::array<uint32_t, N_COLUMNS> m_colWidths;
 		std::array<bool, N_COLUMNS> m_colActive;
+		fb2k::CDarkModeHooks m_dark;
 
 		//========================UI code===============================
 		BOOL OnInitDialog(CWindow, LPARAM) {
 			// Create replacing existing windows list control
 			// automatically initialize position, font, etc
 			m_guiList.CreateInDialog(*this, IDC_BOOKMARKLIST);
+			
+			// darkmode
+            m_dark.AddDialogWithControls(*this);
+            
 			g_guiLists.emplace_back(&m_guiList);
 			if (g_primaryGuiList == NULL) {
 				g_primaryGuiList = &m_guiList;
