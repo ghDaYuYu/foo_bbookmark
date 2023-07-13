@@ -34,7 +34,7 @@ void bookmark_worker::store(std::vector<bookmark_t>& masterList) {
 	}
 	else {
 		titleformat_object::ptr desc_format;
-		static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(desc_format, cfg_bookmark_desc_format.c_str());
+		static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(desc_format, cfg_desc_format.c_str());
 
 		if (!dbHandle_item->format_title(NULL, songDesc, desc_format, NULL)) {
 			songDesc << "Could not generate Description.";

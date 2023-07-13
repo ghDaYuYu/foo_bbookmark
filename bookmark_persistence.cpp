@@ -19,7 +19,7 @@ void bookmark_persistence::write(std::vector<bookmark_t> & masterList) {
 	foobar2000_io::file_ptr file = foobar2000_io::fileOpenWriteNew(genFilePath().c_str(), fb2k::noAbort);
 
 	try {
-		if (cfg_bookmark_verbose) FB2K_console_print("Preparing Data for write.");
+		if (cfg_verbose) FB2K_console_print("Preparing Data for write.");
 
 		size_t n_entries = masterList.size();
 		pfc::string linebreak = "\n";
@@ -65,7 +65,7 @@ BOOL bookmark_persistence::readDataFile(std::vector<bookmark_t> & masterList) {
 
 		std::vector<pfc::string> lines = splitString(fullContent, '\n');
 		for (pfc::string line : lines) {
-			if (cfg_bookmark_verbose) FB2K_console_print("Found line: ", line.c_str());
+			if (cfg_verbose) FB2K_console_print("Found line: ", line.c_str());
 
 			if (line.get_length() == 0)
 				continue;
@@ -80,15 +80,15 @@ BOOL bookmark_persistence::readDataFile(std::vector<bookmark_t> & masterList) {
 			//construct bookmark_t
 			bookmark_t elem = bookmark_t();
 			elem.m_time = pfc::string_to_float(values[0].c_str(), values[0].get_length());
-			if (cfg_bookmark_verbose) FB2K_console_print("Read a time: ", elem.m_time);
+			if (cfg_verbose) FB2K_console_print("Read a time: ", elem.m_time);
 			elem.m_desc = values[1];
-			if (cfg_bookmark_verbose) FB2K_console_print("Read desc", elem.m_desc.c_str());
+			if (cfg_verbose) FB2K_console_print("Read desc", elem.m_desc.c_str());
 			elem.m_playlist = values[2];
-			if (cfg_bookmark_verbose) FB2K_console_print("Read plName", elem.m_playlist.c_str());
+			if (cfg_verbose) FB2K_console_print("Read plName", elem.m_playlist.c_str());
 			elem.m_path = values[3];
-			if (cfg_bookmark_verbose) FB2K_console_print("Read path", elem.m_path.c_str());
+			if (cfg_verbose) FB2K_console_print("Read path", elem.m_path.c_str());
 			elem.m_subsong = pfc::string_to_float(values[4].c_str(), values[4].get_length());
-			if (cfg_bookmark_verbose) FB2K_console_print("Read subsong", elem.m_subsong);
+			if (cfg_verbose) FB2K_console_print("Read subsong", elem.m_subsong);
 
 
 			temp_data.push_back(elem);	//save to vector
@@ -96,7 +96,7 @@ BOOL bookmark_persistence::readDataFile(std::vector<bookmark_t> & masterList) {
 
 		//file->close() TODO: find out equivalent
 
-		if (cfg_bookmark_verbose) {
+		if (cfg_verbose) {
 			FB2K_console_print("file content:");
 			for (size_t i = 0; i < temp_data.size(); ++i)
 				FB2K_console_print("time ", i, ": ", temp_data[i].m_time);
@@ -132,7 +132,7 @@ std::vector<pfc::string> bookmark_persistence::splitString(const char * str, cha
 }
 
 void bookmark_persistence::replaceMasterList(std::vector<bookmark_t>  &newContent, std::vector<bookmark_t> & masterList) {
-	if (cfg_bookmark_verbose) FB2K_console_print("Basic Bookmarks: Replacing Cache");
+	if (cfg_verbose) FB2K_console_print("Basic Bookmarks: Replacing Cache");
 
 	masterList.clear();
 	masterList.reserve(newContent.size());

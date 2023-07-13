@@ -101,7 +101,7 @@ namespace {
 				(*it)->OnItemsInserted(g_masterList.size(), 1, true);
 			}
 
-			if (cfg_bookmark_verbose) FB2K_console_print("Created Bookmark, saving to file now.");
+			if (cfg_verbose) FB2K_console_print("Created Bookmark, saving to file now.");
 			g_permStore.write(g_masterList);
 		}
 
@@ -116,7 +116,7 @@ namespace {
 		}
 
 		~CListControlBookmarkDialog() {
-			if (cfg_bookmark_verbose) FB2K_console_print("Destructor was called");
+			if (cfg_verbose) FB2K_console_print("Destructor was called");
 			if (g_primaryGuiList == &m_guiList) {
 				g_primaryGuiList = NULL;
 			}
@@ -368,7 +368,7 @@ namespace {
 		static ui_element_config::ptr g_get_default_configuration() { return ui_element_config::g_create_empty(g_get_guid()); }
 		//get: Derive config from state; called at shutdown
 		ui_element_config::ptr get_configuration() {
-			if (cfg_bookmark_verbose) FB2K_console_print("get_configuration called.");
+			if (cfg_verbose) FB2K_console_print("get_configuration called.");
 
 			for (int i = 0; i < N_COLUMNS; i++) {
                 auto col_ndx = m_colContent[i];
@@ -385,7 +385,7 @@ namespace {
 		}
 		//set: Apply config to class
 		void set_configuration(ui_element_config::ptr config) {
-			if (cfg_bookmark_verbose) FB2K_console_print("set_configuration called.");
+			if (cfg_verbose) FB2K_console_print("set_configuration called.");
 			parseConfig(config, m_colWidths, m_colActive);
 
 			configToUI();
@@ -393,7 +393,7 @@ namespace {
 	private:
 		//Reads a config into the supplied variables; Falls back to defaults if necessary
 		static void parseConfig(ui_element_config::ptr cfg, std::array<uint32_t, N_COLUMNS> &widths, std::array<bool, N_COLUMNS> &active) {
-			if (cfg_bookmark_verbose) FB2K_console_print("Parsing config");
+			if (cfg_verbose) FB2K_console_print("Parsing config");
 			for (int i = 0; i < N_COLUMNS; i++)
 				widths[i] = defaultColWidths[i];
 			for (int i = 0; i < N_COLUMNS; i++)
@@ -417,7 +417,7 @@ namespace {
 			if (sizeof(widths) / sizeof(uint32_t) != N_COLUMNS)
 				return makeConfig();
 
-			if (cfg_bookmark_verbose) FB2K_console_print("Making config from ", widths[0], " and ", widths[1]);
+			if (cfg_verbose) FB2K_console_print("Making config from ", widths[0], " and ", widths[1]);
 
 			ui_element_config_builder out;
 			for (int i = 0; i < N_COLUMNS; i++)
@@ -428,13 +428,13 @@ namespace {
 		}
 
 		void configToUI() {
-			if (cfg_bookmark_verbose) FB2K_console_print("Applying config to UI: ", m_colWidths[0], " and ", m_colWidths[1]);
+			if (cfg_verbose) FB2K_console_print("Applying config to UI: ", m_colWidths[0], " and ", m_colWidths[1]);
 			auto DPI = m_guiList.GetDPI();
 			m_guiList.DeleteColumns(pfc::bit_array_true(), false);
 
 			size_t ndx_tail = N_COLUMNS - 1;
 			for (int i = 0; i < N_COLUMNS; i++) {
-				if (cfg_bookmark_verbose) FB2K_console_print("configToUi: i is ", i, "; name: ", COLUMNNAMES[i], ", active: ", m_colActive[i], ", width: ", m_colWidths[i]);
+				if (cfg_verbose) FB2K_console_print("configToUi: i is ", i, "; name: ", COLUMNNAMES[i], ", active: ", m_colActive[i], ", width: ", m_colWidths[i]);
 				
 				auto ndx_cont = !m_guiList.IsHeaderEnabled() ? 0 : m_guiList.GetColumnCount();
                 if (m_colActive[i]) {
@@ -469,7 +469,7 @@ namespace {
 		void on_volume_change(float p_new_val) override {}
 
 		void on_playback_new_track(metadb_handle_ptr p_track) override {
-			if (!cfg_bookmark_autosave_newTrack)
+			if (!cfg_autosave_newtrack)
 				return;
 
 			if (g_bmAuto.upgradeDummy(g_masterList, g_guiLists))
@@ -494,7 +494,7 @@ namespace {
 		}
 
 		virtual void on_quit() {
-			if (cfg_bookmark_autosave_onQuit) {
+			if (cfg_autosave_on_quit) {
 				if (g_bmAuto.upgradeDummy(g_masterList, g_guiLists))
 					g_permStore.write(g_masterList);
 			}

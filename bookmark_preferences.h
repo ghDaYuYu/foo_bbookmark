@@ -1,9 +1,9 @@
 #pragma once
-extern cfg_string cfg_bookmark_desc_format;
-extern cfg_string cfg_bookmark_autosave_newTrack_playlists;
+extern cfg_string cfg_desc_format;
+extern cfg_string cfg_autosave_newtrack_playlists;
 
-extern cfg_bool cfg_bookmark_autosave_newTrack;
-extern cfg_bool cfg_bookmark_autosave_newTrackFilter;
-extern cfg_bool cfg_bookmark_autosave_onQuit;
+extern cfg_bool cfg_autosave_newtrack;
+extern cfg_bool cfg_autosave_filter_newtrack;
+extern cfg_bool cfg_autosave_on_quit;
 
-extern cfg_bool cfg_bookmark_verbose;
+extern cfg_bool cfg_verbose;

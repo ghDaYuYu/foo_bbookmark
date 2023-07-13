@@ -18,7 +18,7 @@ void bookmark_automatic::updateDummyTime() {
 		size_t index_playlist;
 		size_t index_item;
 		auto playlist_manager_ptr = playlist_manager::get();
-		if (cfg_bookmark_verbose) {
+		if (cfg_verbose) {
 			if (playlist_manager_ptr->get_playing_item_location(&index_playlist, &index_item)) {
 				FB2K_console_print("AutoBookmark: dummy update: Playlist index is ", index_playlist);
 				if (playlist_manager_ptr->playlist_get_name(index_playlist, playing_pl_name))
@@ -45,7 +45,7 @@ void bookmark_automatic::updateDummy() {
 	playback_control_ptr->get_now_playing(dbHandle_item);
 
 	titleformat_object::ptr desc_format;
-	static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(desc_format, cfg_bookmark_desc_format.c_str());
+	static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(desc_format, cfg_desc_format.c_str());
 
 	if (!dbHandle_item->format_title(NULL, songDesc, desc_format, NULL)) {
 		songDesc << "Could not generate Description.";
@@ -76,14 +76,14 @@ bool bookmark_automatic::upgradeDummy(std::vector<bookmark_t>& masterList, std::
 	}
 
 
-	if (cfg_bookmark_autosave_newTrackFilter) {
+	if (cfg_autosave_filter_newtrack) {
 		//Filter is active, check for a match:
 
-		if (cfg_bookmark_verbose) FB2K_console_print("AutoBookmark: The dummie's playlist is called ", dummy.m_playlist.c_str());
+		if (cfg_verbose) FB2K_console_print("AutoBookmark: The dummie's playlist is called ", dummy.m_playlist.c_str());
 
 		//Obtain individual names in the filter
 		std::vector<std::string> allowedPlaylists;
-		std::stringstream ss(cfg_bookmark_autosave_newTrack_playlists.c_str());
+		std::stringstream ss(cfg_autosave_newtrack_playlists.c_str());
 		std::string token;
 		while (std::getline(ss, token, ',')) {
 			allowedPlaylists.push_back(token);
@@ -97,15 +97,15 @@ bool bookmark_automatic::upgradeDummy(std::vector<bookmark_t>& masterList, std::
 		//compare the contents of the filter
 		bool matchFound = false;
 		for (std::string ap : allowedPlaylists) {
-			if (cfg_bookmark_verbose) FB2K_console_print("...comparing with filter: ", ap.c_str());
+			if (cfg_verbose) FB2K_console_print("...comparing with filter: ", ap.c_str());
 			if (strcmp(ap.c_str(), dummyPlaylist.c_str()) == 0) {
 				matchFound = true;
-				if (cfg_bookmark_verbose) FB2K_console_print("...matches.");
+				if (cfg_verbose) FB2K_console_print("...matches.");
 				break;
 			}
 		}
 		if (!matchFound) {
-			if (cfg_bookmark_verbose) FB2K_console_print("...no match.");
+			if (cfg_verbose) FB2K_console_print("...no match.");
 			return false;	//Filter is active and did not match, do not store a bookmark
 		}
 	}

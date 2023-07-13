@@ -14,34 +14,34 @@
 static const int stringlength = 256;
 
 //---GUIDs---
-static const GUID guid_cfg_bookmark_desc_format = { 0xb1cd9cbe, 0x4ee3, 0x4716, { 0x81, 0x7e, 0xbf, 0x5a, 0x91, 0x8b, 0x4c, 0x60 } };
-static const GUID guid_cfg_bookmark_autosave_newTrack_playlists = { 0x7928d881, 0xbc00, 0x44d7, { 0xbb, 0x8b, 0xd6, 0xa7, 0x1, 0x2b, 0x91, 0xa8 } };
+static const GUID guid_cfg_desc_format = { 0xb1cd9cbe, 0x4ee3, 0x4716, { 0x81, 0x7e, 0xbf, 0x5a, 0x91, 0x8b, 0x4c, 0x60 } };
+static const GUID guid_cfg_autosave_newtrack_playlists = { 0x7928d881, 0xbc00, 0x44d7, { 0xbb, 0x8b, 0xd6, 0xa7, 0x1, 0x2b, 0x91, 0xa8 } };
 
-static const GUID guid_cfg_bookmark_autosave_onClose = { 0x5d055347, 0xd9a9, 0x4829, { 0xb7, 0xc9, 0x62, 0x0, 0x76, 0x19, 0x10, 0xbc } };
-static const GUID guid_cfg_bookmark_autosave_newTrack = { 0xa687aaff, 0xf382, 0x473e, { 0xbf, 0x64, 0xf1, 0x4d, 0x30, 0x7, 0xf1, 0x45 } };
-static const GUID guid_cfg_bookmark_autosave_newTrackFilter = { 0x781424f7, 0x9ff9, 0x4f7a, { 0x8a, 0x3d, 0xe9, 0x1d, 0x75, 0xd2, 0x17, 0xb0 } };
+static const GUID guid_cfg_autosave_onClose = { 0x5d055347, 0xd9a9, 0x4829, { 0xb7, 0xc9, 0x62, 0x0, 0x76, 0x19, 0x10, 0xbc } };
+static const GUID guid_cfg_autosave_newTrack = { 0xa687aaff, 0xf382, 0x473e, { 0xbf, 0x64, 0xf1, 0x4d, 0x30, 0x7, 0xf1, 0x45 } };
+static const GUID guid_cfg_autosave_newTrackFilter = { 0x781424f7, 0x9ff9, 0x4f7a, { 0x8a, 0x3d, 0xe9, 0x1d, 0x75, 0xd2, 0x17, 0xb0 } };
 
-static const GUID guid_cfg_bookmark_verbose = { 0xe8342c32, 0xa1ac, 0x4c7d, { 0xbc, 0x20, 0x9, 0xec, 0x37, 0xab, 0x79, 0x66 } };
+static const GUID guid_cfg_verbose = { 0xe8342c32, 0xa1ac, 0x4c7d, { 0xbc, 0x20, 0x9, 0xec, 0x37, 0xab, 0x79, 0x66 } };
 
 //--defaults---
-static const pfc::string8 default_cfg_bookmark_desc_format = "%title%";
-static const pfc::string8 default_cfg_bookmark_autosave_newTrack_playlists = "Podcatcher";
+static const pfc::string8 default_cfg_desc_format = "%title%";
+static const pfc::string8 default_cfg_autosave_newtrack_playlists = "Podcatcher";
 
-static const bool default_cfg_bookmark_autosave_newTrack = false;
-static const bool default_cfg_bookmark_autosave_newTrackFilter = true;
-static const bool default_cfg_bookmark_autosave_onClose = false;
+static const bool default_cfg_autosave_newTrack = false;
+static const bool default_cfg_autosave_newTrackFilter = true;
+static const bool default_cfg_autosave_onClose = false;
 
-static const bool default_cfg_bookmark_verbose = false;
+static const bool default_cfg_verbose = false;
 
 // ---CFG_VARS---
-cfg_string cfg_bookmark_desc_format(guid_cfg_bookmark_desc_format, default_cfg_bookmark_desc_format.c_str());
-cfg_string cfg_bookmark_autosave_newTrack_playlists(guid_cfg_bookmark_autosave_newTrack_playlists, default_cfg_bookmark_autosave_newTrack_playlists.c_str());
+cfg_string cfg_desc_format(guid_cfg_desc_format, default_cfg_desc_format.c_str());
+cfg_string cfg_autosave_newtrack_playlists(guid_cfg_autosave_newtrack_playlists, default_cfg_autosave_newtrack_playlists.c_str());
 
-cfg_bool cfg_bookmark_autosave_newTrack(guid_cfg_bookmark_autosave_newTrack, default_cfg_bookmark_autosave_newTrack);
-cfg_bool cfg_bookmark_autosave_newTrackFilter(guid_cfg_bookmark_autosave_newTrackFilter, default_cfg_bookmark_autosave_newTrackFilter);
-cfg_bool cfg_bookmark_autosave_onQuit(guid_cfg_bookmark_autosave_onClose, default_cfg_bookmark_autosave_onClose);
+cfg_bool cfg_autosave_newtrack(guid_cfg_autosave_newTrack, default_cfg_autosave_newTrack);
+cfg_bool cfg_autosave_filter_newtrack(guid_cfg_autosave_newTrackFilter, default_cfg_autosave_newTrackFilter);
+cfg_bool cfg_autosave_on_quit(guid_cfg_autosave_onClose, default_cfg_autosave_onClose);
 
-cfg_bool cfg_bookmark_verbose(guid_cfg_bookmark_verbose, default_cfg_bookmark_verbose);
+cfg_bool cfg_verbose(guid_cfg_verbose, default_cfg_verbose);
 
 struct boxAndBool_t {
 	int idc;
@@ -84,14 +84,14 @@ private:
 	void OnChanged();
 
 	//TODO: group all these, then use for loops
-	ectrlAndString_t eat_format = { IDC_TITLEFORMAT, &cfg_bookmark_desc_format, default_cfg_bookmark_desc_format };
-	ectrlAndString_t eat_as_newTrackPlaylists = { IDC_AUTOSAVE_TRACK_FILTER, &cfg_bookmark_autosave_newTrack_playlists, default_cfg_bookmark_autosave_newTrack_playlists };
+	ectrlAndString_t eat_format = { IDC_TITLEFORMAT, &cfg_desc_format, default_cfg_desc_format };
+	ectrlAndString_t eat_as_newTrackPlaylists = { IDC_AUTOSAVE_TRACK_FILTER, &cfg_autosave_newtrack_playlists, default_cfg_autosave_newtrack_playlists };
 
-	boxAndBool_t bab_as_newTrack = { IDC_AUTOSAVE_TRACK, &cfg_bookmark_autosave_newTrack, default_cfg_bookmark_autosave_newTrack };
-	boxAndBool_t bab_as_newTrackFilter = { IDC_AUTOSAVE_TRACK_FILTER_CHECK, &cfg_bookmark_autosave_newTrackFilter, default_cfg_bookmark_autosave_newTrackFilter };
-	boxAndBool_t bab_as_exit = { IDC_AUTOSAVE_EXIT, &cfg_bookmark_autosave_onQuit, default_cfg_bookmark_autosave_onClose };
+	boxAndBool_t bab_as_newTrack = { IDC_AUTOSAVE_TRACK, &cfg_autosave_newtrack, default_cfg_autosave_newTrack };
+	boxAndBool_t bab_as_newTrackFilter = { IDC_AUTOSAVE_TRACK_FILTER_CHECK, &cfg_autosave_filter_newtrack, default_cfg_autosave_newTrackFilter };
+	boxAndBool_t bab_as_exit = { IDC_AUTOSAVE_EXIT, &cfg_autosave_on_quit, default_cfg_autosave_onClose };
 
-	boxAndBool_t bab_verbose = { IDC_VERBOSE, &cfg_bookmark_verbose, default_cfg_bookmark_verbose };
+	boxAndBool_t bab_verbose = { IDC_VERBOSE, &cfg_verbose, default_cfg_verbose };
 
 	void cfgToUi(boxAndBool_t bab) {
 		CCheckBox cb(GetDlgItem(bab.idc));
@@ -217,7 +217,7 @@ void CBookmarkPreferences::OnCheckChange(UINT uNotifyCode, int nId, CWindow wndC
 			newName.replace_char(',', '.');
 
 			//check if the cfg already contains this name
-			std::stringstream ss(cfg_bookmark_autosave_newTrack_playlists.c_str());
+			std::stringstream ss(cfg_autosave_newtrack_playlists.c_str());
 			std::string token;
 			while (std::getline(ss, token, ',')) {
 				if (strcmp(token.c_str(), newName.c_str()) == 0) {
