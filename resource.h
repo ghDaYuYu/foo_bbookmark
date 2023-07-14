@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by foo_bbookmark.rc
+// Used by foo_vbookmark.rc
 //
 #define IDI_ICON1                       109
 #define IDI_SCROLL                      109
