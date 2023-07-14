@@ -2,9 +2,6 @@
 
 #include "bookmark_types.h"
 
-#define SZ_DAT_VER_1 5 //5 fields
-#define SZ_DAT_VER_2 6 //+ playlist guid
-
 class bookmark_persistence {
 private:
 	const bool noisy = true;
@@ -22,6 +19,6 @@ private:
 	static void replaceMasterList(std::vector<bookmark_t>& newContent, std::vector<bookmark_t>& masterList);
 	std::vector<pfc::string8> splitString(const char * str, char separator);
 
-	pfc::string genFilePath();
+	pfc::string8 genFilePath();
 };
 

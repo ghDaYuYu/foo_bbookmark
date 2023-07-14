@@ -6,48 +6,67 @@
 #include <sstream>
 
 #include <helpers/atl-misc.h>
-#include <libPPUI/wtl-pp.h> // CCheckBox
 #include <helpers/DarkMode.h>
+// CCheckBox
+#include <libPPUI/wtl-pp.h>
 
+#include "header_static.h"
 #include "bookmark_preferences.h"
+
+#include "bookmark_core.h"
 
 static const int stringlength = 256;
 
-//---GUIDs---
-static const GUID guid_cfg_desc_format = { 0xb1cd9cbe, 0x4ee3, 0x4716, { 0x81, 0x7e, 0xbf, 0x5a, 0x91, 0x8b, 0x4c, 0x60 } };
-static const GUID guid_cfg_autosave_newtrack_playlists = { 0x7928d881, 0xbc00, 0x44d7, { 0xbb, 0x8b, 0xd6, 0xa7, 0x1, 0x2b, 0x91, 0xa8 } };
+// preference page
+static const GUID guid_bookmark_pref_page = { 0x49e82acf, 0x4954, 0x4274, { 0x80, 0xe8, 0xff, 0x74, 0xf3, 0x71, 0x1e, 0x5f } };
 
-static const GUID guid_cfg_autosave_onClose = { 0x5d055347, 0xd9a9, 0x4829, { 0xb7, 0xc9, 0x62, 0x0, 0x76, 0x19, 0x10, 0xbc } };
-static const GUID guid_cfg_autosave_newTrack = { 0xa687aaff, 0xf382, 0x473e, { 0xbf, 0x64, 0xf1, 0x4d, 0x30, 0x7, 0xf1, 0x45 } };
-static const GUID guid_cfg_autosave_newTrackFilter = { 0x781424f7, 0x9ff9, 0x4f7a, { 0x8a, 0x3d, 0xe9, 0x1d, 0x75, 0xd2, 0x17, 0xb0 } };
+static const GUID guid_cfg_desc_format = { 0xa13f4068, 0xa177, 0x4cc0, { 0x9b, 0x5f, 0x4c, 0xe4, 0x85, 0x58, 0xba, 0xfc } };
+static const GUID guid_cfg_autosave_newtrack_playlists = { 0x6c5226bc, 0x92a8, 0x4ae8, { 0x85, 0xde, 0xb, 0x58, 0xe3, 0x2b, 0x6e, 0x70 } };
 
-static const GUID guid_cfg_verbose = { 0xe8342c32, 0xa1ac, 0x4c7d, { 0xbc, 0x20, 0x9, 0xec, 0x37, 0xab, 0x79, 0x66 } };
+static const GUID guid_cfg_autosave_on_quit = { 0xbce06bc, 0x1d6a, 0x4bc2, { 0xbd, 0xe1, 0x64, 0x91, 0x31, 0x9f, 0xb6, 0xcf } };
+static const GUID guid_cfg_autosave_newtrack = { 0x6fc02f38, 0xfd74, 0x4352, { 0xab, 0x8f, 0xac, 0xdd, 0x10, 0x12, 0xb, 0x8f } };
+static const GUID guid_cfg_autosave_filter_newtrack = { 0x75728bc2, 0x6955, 0x4ea6, { 0x95, 0xe5, 0xf3, 0xb2, 0xfc, 0xef, 0x3c, 0x8c } };
 
-static const GUID guid_cfg_queue_flag = { 0xa5f786c2, 0x2278, 0x42e1, { 0x89, 0x35, 0x3c, 0xdd, 0xd4, 0x3d, 0xf8, 0xa5 } };
+static const GUID guid_cfg_verbose = { 0x354baaa6, 0x7bbb, 0x40df, { 0xbf, 0xb8, 0x8b, 0x76, 0xc, 0xbd, 0x9d, 0xd0 } };
 
-//--defaults---
-static const pfc::string8 default_cfg_desc_format = "%title%";
+// {E0B79D39-269C-49ED-8892-ED46DD5F3445}
+static const GUID guid_cfg_queue_flag = { 0xe0b79d39, 0x269c, 0x49ed, { 0x88, 0x92, 0xed, 0x46, 0xdd, 0x5f, 0x34, 0x45 } };
+
+// {3B8608CE-F964-463D-9011-41999D4E0DD9}
+static const GUID guid_cfg_status_flag = { 0x3b8608ce, 0xf964, 0x463d, { 0x90, 0x11, 0x41, 0x99, 0x9d, 0x4e, 0xd, 0xd9 } };
+
+// {452AC946-F849-4C79-9868-01C60F0421E6}
+static const GUID guid_cfg_misc_flag = { 0x452ac946, 0xf849, 0x4c79, { 0x98, 0x68, 0x1, 0xc6, 0xf, 0x4, 0x21, 0xe6 } };
+
+// defaults
+
+static const pfc::string8 default_cfg_bookmark_desc_format = "%title%";
 static const pfc::string8 default_cfg_autosave_newtrack_playlists = "Podcatcher";
 
-static const bool default_cfg_autosave_newTrack = false;
-static const bool default_cfg_autosave_newTrackFilter = true;
-static const bool default_cfg_autosave_onClose = false;
+static const bool default_cfg_autosave_newtrack = false;
+static const bool default_cfg_autosave_filter_newtrack = true;
+static const bool default_cfg_autosave_on_quit = false;
 
 static const bool default_cfg_verbose = false;
 
 static const int default_cfg_queue_flag = 0;
+static const int default_cfg_status_flag = 0;
+static const int default_cfg_misc_flag = 0;
 
-// ---CFG_VARS---
-cfg_string cfg_desc_format(guid_cfg_desc_format, default_cfg_desc_format.c_str());
+// cfg_var
+
+cfg_string cfg_desc_format(guid_cfg_desc_format, default_cfg_bookmark_desc_format.c_str());
 cfg_string cfg_autosave_newtrack_playlists(guid_cfg_autosave_newtrack_playlists, default_cfg_autosave_newtrack_playlists.c_str());
 
-cfg_bool cfg_autosave_newtrack(guid_cfg_autosave_newTrack, default_cfg_autosave_newTrack);
-cfg_bool cfg_autosave_filter_newtrack(guid_cfg_autosave_newTrackFilter, default_cfg_autosave_newTrackFilter);
-cfg_bool cfg_autosave_on_quit(guid_cfg_autosave_onClose, default_cfg_autosave_onClose);
+cfg_bool cfg_autosave_newtrack(guid_cfg_autosave_newtrack, default_cfg_autosave_newtrack);
+cfg_bool cfg_autosave_filter_newtrack(guid_cfg_autosave_filter_newtrack, default_cfg_autosave_filter_newtrack);
+cfg_bool cfg_autosave_on_quit(guid_cfg_autosave_on_quit, default_cfg_autosave_on_quit);
 
 cfg_bool cfg_verbose(guid_cfg_verbose, default_cfg_verbose);
 
 cfg_int cfg_queue_flag(guid_cfg_queue_flag, default_cfg_queue_flag);
+cfg_int cfg_status_flag(guid_cfg_status_flag, default_cfg_status_flag);
+cfg_int cfg_misc_flag(guid_cfg_misc_flag, default_cfg_misc_flag);
 
 struct boxAndBool_t {
 	int idc;
@@ -68,162 +87,206 @@ struct ectrlAndString_t {
 };
 
 
-
 class CBookmarkPreferences : public CDialogImpl<CBookmarkPreferences>, public preferences_page_instance {
+
 public:
-	CBookmarkPreferences(preferences_page_callback::ptr callback) : m_callback(callback) {}
-	std::vector<pfc::string8> m_currentPlNames;
 
-	//dialog resource ID
+	CBookmarkPreferences(preferences_page_callback::ptr callback) : m_callback(callback) {
+		//..
+	}
+
+	~CBookmarkPreferences() { 
+		g_wnd_bookmark_pref = NULL;
+		m_staticPrefHeader.Detach();
+	}
+
 	enum { IDD = IDD_BOOKMARK_PREFERENCES };
-	// preferences_page_instance methods (not all of them - get_wnd() is supplied by preferences_page_impl helpers)
-	t_uint32 get_state();
-	void apply();
-	void reset();
 
-	//WTL message map
+	t_uint32 get_state() override;
+	void apply() override;
+	void reset() override;
+
 	BEGIN_MSG_MAP_EX(CBookmarkPreferences)
 		MSG_WM_INITDIALOG(OnInitDialog)
 		COMMAND_CODE_HANDLER_EX(EN_CHANGE, OnEditChange)
 		COMMAND_CODE_HANDLER_EX(BN_CLICKED, OnCheckChange)
-		END_MSG_MAP()
+		MESSAGE_HANDLER_SIMPLE(UMSG_NEW_TRACK, OnNewTrackMessage)
+		MESSAGE_HANDLER_SIMPLE(UMSG_PAUSED, OnPaused)
+	END_MSG_MAP()
 
 private:
+
 	BOOL OnInitDialog(CWindow, LPARAM);
 	void OnEditChange(UINT uNotifyCode, int nId, CWindow wndCtl);
 	void OnCheckChange(UINT uNotifyCode, int nId, CWindow wndCtl);
+
 	bool HasChanged();
 	void OnChanged();
 
-	//TODO: group all these, then use for loops
-	ectrlAndString_t eat_format = { IDC_TITLEFORMAT, &cfg_desc_format, default_cfg_desc_format };
-	ectrlAndString_t eat_as_newTrackPlaylists = { IDC_AUTOSAVE_TRACK_FILTER, &cfg_autosave_newtrack_playlists, default_cfg_autosave_newtrack_playlists };
+	LRESULT OnNewTrackMessage() { OnChanged(); return 0; }
 
-	boxAndBool_t bab_as_newTrack = { IDC_AUTOSAVE_TRACK, &cfg_autosave_newtrack, default_cfg_autosave_newTrack };
-	boxAndBool_t bab_as_newTrackFilter = { IDC_AUTOSAVE_TRACK_FILTER_CHECK, &cfg_autosave_filter_newtrack, default_cfg_autosave_newTrackFilter };
-	boxAndBool_t bab_as_exit = { IDC_AUTOSAVE_EXIT, &cfg_autosave_on_quit, default_cfg_autosave_onClose };
+	LRESULT OnPaused() { cfgToUi(bai_status_flag); HasChanged(); return 0; }
 
-	boxAndBool_t bab_verbose = { IDC_VERBOSE, &cfg_verbose, default_cfg_verbose };
-
-	boxAndInt_t bai_queue_flag = { IDC_QUEUE_FLAG, &cfg_queue_flag, default_cfg_queue_flag };
+	// boxAndBool_t
 
 	void cfgToUi(boxAndBool_t bab) {
 		CCheckBox cb(GetDlgItem(bab.idc));
 		cb.SetCheck(*(bab.cfg));
 	}
+
+	void uiToCfg(boxAndBool_t & bab) {
+		CCheckBox cb(GetDlgItem(bab.idc));
+		bab.cfg->set((bool)cb.GetCheck());
+	}
+
 	void defToUi(boxAndBool_t bab) {
 		CCheckBox cb(GetDlgItem(bab.idc));
 		cb.SetCheck(bab.def);
 	}
-	void uiToCfg(boxAndBool_t bab) {
-		CCheckBox cb(GetDlgItem(bab.idc));
-		*(bab.cfg) = (bool)cb.GetCheck();
-	}
+
 	bool isUiChanged(boxAndBool_t bab) {
 		CCheckBox cb(GetDlgItem(bab.idc));
 		return *(bab.cfg) != (bool)cb.GetCheck();
 	}
 
+	// boxAndInt_t
+
+	void cfgToUi(boxAndInt_t bai) {
+		CCheckBox cb(GetDlgItem(bai.idc));
+		cb.SetCheck((bool) (bai.cfg->get_value()));
+	}
+
+	void uiToCfg(boxAndInt_t & bai) {
+		CCheckBox cb(GetDlgItem(bai.idc));
+		bai.cfg->set(cb.GetCheck());
+	}
+
+	void defToUi(boxAndInt_t bai) {
+		CCheckBox cb(GetDlgItem(bai.idc));
+		cb.SetCheck(bai.def);
+	}
+
+	bool isUiChanged(boxAndInt_t bai) {
+		CCheckBox cb(GetDlgItem(bai.idc));
+		return *(bai.cfg) != cb.GetCheck();
+	}
+
+	// ectrlAndString_t
+
 	void cfgToUi(ectrlAndString_t eat) {
-		pfc::string8 cfgS = *(eat.cfg);
-		wchar_t wideS[stringlength];
-		size_t outSize;
-		mbstowcs_s(&outSize, wideS, stringlength, cfgS.c_str(), stringlength - 1);
-		SetDlgItemText(eat.idc, wideS);
+
+		uSetDlgItemText(m_hWnd, eat.idc, eat.cfg->get_value().c_str());
 	}
+
+	void uiToCfg(ectrlAndString_t & eat) {
+
+		pfc::string8 buffer = uGetDlgItemText(m_hWnd, eat.idc);
+		eat.cfg->set(buffer.c_str());
+	}
+
 	void defToUi(ectrlAndString_t eat) {
-		wchar_t wideString[stringlength];
-		size_t outSize;
-		mbstowcs_s(&outSize, wideString, stringlength, eat.def.c_str(), stringlength - 1);
-		SetDlgItemText(eat.idc, wideString);
-	}
-	void uiToCfg(ectrlAndString_t eat) {
-		//Convert editBox content into a cfg_string compatible format
-		TCHAR fieldContent[stringlength];
-		GetDlgItemTextW(eat.idc, (LPTSTR)fieldContent, stringlength);
 
-		char convertedContent[stringlength];
-		size_t outSize;
-		wcstombs_s(&outSize, convertedContent, fieldContent, stringlength - 1);
-
-		*eat.cfg = convertedContent;
+		uSetDlgItemText(m_hWnd, eat.idc, eat.def.c_str());
 	}
+
 	bool isUiChanged(ectrlAndString_t eat) {
-		TCHAR fieldContent[stringlength];
-		GetDlgItemTextW(eat.idc, (LPTSTR)fieldContent, stringlength);
 
-		char convertedContent[stringlength];
-		size_t outSize;
-		wcstombs_s(&outSize, convertedContent, fieldContent, stringlength - 1);
-
-		return strcmp(convertedContent, *eat.cfg);
+		pfc::string8 buffer = uGetDlgItemText(m_hWnd, eat.idc);
+		return !buffer.equals(eat.cfg->get_value());
 	}
+
+
+public:
+
+	std::vector<pfc::string8> m_currentPlNames;
+
+private:
+
+	HeaderStatic m_staticPrefHeader;
+	fb2k::CDarkModeHooks m_dark;
 
 	static_api_ptr_t<playback_control> m_playback_control;
 	const preferences_page_callback::ptr m_callback;
-	
-private:
-	fb2k::CDarkModeHooks m_dark;
+
+	//TODO: group all these, then use for loops
+	ectrlAndString_t eat_format = { IDC_TITLEFORMAT, &cfg_desc_format, default_cfg_bookmark_desc_format };
+	ectrlAndString_t eat_as_newtrack_playlists = { IDC_AUTOSAVE_TRACK_FILTER, &cfg_autosave_newtrack_playlists, default_cfg_autosave_newtrack_playlists };
+
+	boxAndBool_t bab_as_newtrack = { IDC_AUTOSAVE_TRACK, &cfg_autosave_newtrack, default_cfg_autosave_newtrack };
+	boxAndBool_t bab_as_filter_newtrack = { IDC_AUTOSAVE_TRACK_FILTER_CHECK, &cfg_autosave_filter_newtrack, default_cfg_autosave_filter_newtrack };
+	boxAndBool_t bab_as_exit = { IDC_AUTOSAVE_EXIT, &cfg_autosave_on_quit, default_cfg_autosave_on_quit };
+
+	boxAndBool_t bab_verbose = { IDC_VERBOSE, &cfg_verbose, default_cfg_verbose };
+
+	boxAndInt_t bai_queue_flag = { IDC_QUEUE_FLAG, &cfg_queue_flag, default_cfg_queue_flag };
+	boxAndInt_t bai_status_flag = { IDC_STATUS_FLAG, &cfg_status_flag, default_cfg_status_flag };
+	boxAndInt_t bai_misc_flag = { IDC_MISC_FLAG, &cfg_misc_flag, default_cfg_misc_flag };
 
 };
 
-
-
 BOOL CBookmarkPreferences::OnInitDialog(CWindow wndCtl, LPARAM) {
-	//Push cfg_vars to UI
+
+	g_wnd_bookmark_pref = m_hWnd;
+
 	cfgToUi(eat_format);
-	cfgToUi(eat_as_newTrackPlaylists);
+	cfgToUi(eat_as_newtrack_playlists);
 
 	cfgToUi(bab_as_exit);
-	cfgToUi(bab_as_newTrack);
-	cfgToUi(bab_as_newTrackFilter);
+	cfgToUi(bab_as_newtrack);
+	cfgToUi(bab_as_filter_newtrack);
 
 	cfgToUi(bab_verbose);
 
 	cfgToUi(bai_queue_flag);
+	cfgToUi(bai_status_flag);
+	cfgToUi(bai_misc_flag);
 
-	//populate the combo box with all currently existing playlists
-	size_t plCount = playlist_manager::get()->get_playlist_count();
+	//static header
+
+	HWND wndStaticHeader = uGetDlgItem(IDC_STATIC_PREF_HEADER);
+	m_staticPrefHeader.SubclassWindow(wndStaticHeader);
+	m_staticPrefHeader.PaintGradientHeader();
+
+	//fill playlist combo
+
 	m_currentPlNames.clear();
-	//m_currentPlNames.resize(plCount);
-	CWindow comboBoxWindow = GetDlgItem(IDC_COMBO1);
-	CComboBox comboBox = (CComboBox) comboBoxWindow;
+	size_t plCount = playlist_manager::get()->get_playlist_count();
+	CComboBox comboBox = GetDlgItem(IDC_CMB_PLAYLISTS);
+	
 	for (size_t i = 0; i < plCount; i++) {
-		//get playlist name
+
 		pfc::string8 plName;
 		playlist_manager::get()->playlist_get_name(i, plName);
 		FB2K_console_print("found playlist called ", plName.c_str());
 		m_currentPlNames.emplace_back(plName);
 
-		//convert pl name
-		wchar_t wideString[stringlength];
 		size_t outSize;
+		wchar_t wideString[stringlength];
 		mbstowcs_s(&outSize, wideString, stringlength, plName.c_str(), stringlength - 1);
 
-		//write pl name
 		SendMessage(comboBox, CB_ADDSTRING, 0, (LPARAM)wideString);
 	}
 	SendMessage(comboBox, CB_SETCURSEL, 0, 0);
-	
 
 	comboBox.SetTopIndex(0);
 
 	//dark mode
-    m_dark.AddDialogWithControls(*this);
-	
+	m_dark.AddDialogWithControls(*this);
+
 	return FALSE;
 }
 
 void CBookmarkPreferences::OnEditChange(UINT uNotifyCode, int nId, CWindow wndCtl) {
-	// not much to do here
+
 	OnChanged();
 }
 
 void CBookmarkPreferences::OnCheckChange(UINT uNotifyCode, int nId, CWindow wndCtl) {
-	if (nId == IDC_BUTTON1) {
+
+	if (nId == IDC_BTN_ADD_EXISTING_PLAYLIST) {
+
 		//Todo: add currently selected playlist to the filter edit control
-		CWindow comboBoxWindow = GetDlgItem(IDC_COMBO1);
-		CComboBox comboBox = (CComboBox)comboBoxWindow;
+		CComboBox comboBox = GetDlgItem(IDC_CMB_PLAYLISTS);
 		int selected = comboBox.GetCurSel();
 
 		if (selected >= 0 && selected < m_currentPlNames.size()) {
@@ -232,12 +295,12 @@ void CBookmarkPreferences::OnCheckChange(UINT uNotifyCode, int nId, CWindow wndC
 			//replace all commas with dots (because of the comma-seperated list)
 			newName.replace_char(',', '.');
 
-			//check if the cfg already contains this name
-			std::stringstream ss(cfg_autosave_newtrack_playlists.c_str());
+			//check if name already exists
+			std::stringstream ss(cfg_autosave_newtrack_playlists.get_value().c_str());
 			std::string token;
 			while (std::getline(ss, token, ',')) {
 				if (strcmp(token.c_str(), newName.c_str()) == 0) {
-					//We already know that name, fizzle 
+					//skip
 					return;
 				}
 			}
@@ -264,94 +327,106 @@ void CBookmarkPreferences::OnCheckChange(UINT uNotifyCode, int nId, CWindow wndC
 		}
 
 	} else {
+
 		OnChanged();
 	}
 }
 
 t_uint32 CBookmarkPreferences::get_state() {
+
 	t_uint32 state = preferences_state::resettable | preferences_state::dark_mode_supported;
+	
 	if (HasChanged()) state |= preferences_state::changed;
 	return state;
 }
 
 void CBookmarkPreferences::reset() {
+
 	defToUi(eat_format);
-	defToUi(eat_as_newTrackPlaylists);
+	defToUi(eat_as_newtrack_playlists);
+
 	defToUi(bab_as_exit);
-	defToUi(bab_as_newTrack);
-	defToUi(bab_as_newTrackFilter);
+	defToUi(bab_as_newtrack);
+	defToUi(bab_as_filter_newtrack);
+
 	defToUi(bab_verbose);
+
 	defToUi(bai_queue_flag);
+	defToUi(bai_status_flag);
+	defToUi(bai_misc_flag);
 
 	OnChanged();
 }
 
 void CBookmarkPreferences::apply() {
-	uiToCfg(eat_format);
-	uiToCfg(eat_as_newTrackPlaylists);
 
-	//Read the checkboxes:
+	uiToCfg(eat_format);
+	uiToCfg(eat_as_newtrack_playlists);
+
 	uiToCfg(bab_as_exit);
-	uiToCfg(bab_as_newTrack);
-	uiToCfg(bab_as_newTrackFilter);
+	uiToCfg(bab_as_newtrack);
+
+	//refresh dummy
+	if (bab_as_newtrack.cfg->get()) {
+		g_bmAuto.updateDummy();
+	}
+
+	uiToCfg(bab_as_filter_newtrack);
 	uiToCfg(bab_verbose);
+
 	uiToCfg(bai_queue_flag);
-	OnChanged(); //our dialog content has not changed but the flags have - our currently shown values now match the settings so the apply button can be disabled
+	uiToCfg(bai_status_flag);
+	uiToCfg(bai_misc_flag);
+
+	OnChanged();
 }
 
 bool CBookmarkPreferences::HasChanged() {
-	//returns whether our dialog content is different from the current configuration (whether the apply button should be enabled or not)
+
 	bool result = false;
 	result |= isUiChanged(eat_format);
-	result |= isUiChanged(eat_as_newTrackPlaylists);
+	result |= isUiChanged(eat_as_newtrack_playlists);
 
 	result |= isUiChanged(bab_as_exit);
-	result |= isUiChanged(bab_as_newTrack);
-	result |= isUiChanged(bab_as_newTrackFilter);
+	result |= isUiChanged(bab_as_newtrack);
+	result |= isUiChanged(bab_as_filter_newtrack);
 
 	result |= isUiChanged(bab_verbose);
+
 	result |= isUiChanged(bai_queue_flag);
+
+	result |= isUiChanged(bai_status_flag);
+	result |= isUiChanged(bai_misc_flag);
 
 	return result;
 }
+
 void CBookmarkPreferences::OnChanged() {
-	//console::formatter() << "GetCheck currently returns " << ((CCheckBox)GetDlgItem(IDC_AUTOSAVE_EXIT)).GetCheck();
 
-	//Generate the format string preview:
-	//1. Obtain current field value
-	TCHAR fieldContent[stringlength];
-	GetDlgItemTextW(IDC_TITLEFORMAT, (LPTSTR)fieldContent, stringlength);
-
-	char convertedContent[stringlength];
-	size_t outSize;
-	wcstombs_s(&outSize, convertedContent, fieldContent, stringlength - 1);
-
-	//2. Apply to current song
+	titleformat_object::ptr p_script;
+	pfc::string8 titleformat = uGetDlgItemText(m_hWnd, IDC_TITLEFORMAT);
+	static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(p_script, titleformat);
+	
 	pfc::string_formatter songDesc;
-	titleformat_object::ptr desc_format;
-	static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(desc_format, convertedContent);
-	if (!m_playback_control->playback_format_title(NULL, songDesc, desc_format, NULL, playback_control::display_level_all)) {
-		songDesc << "Could not generate Description.";
+	if (!m_playback_control->playback_format_title(NULL, songDesc, p_script, NULL, playback_control::display_level_all)) {
+		songDesc << "Resume playback to generate track description.";
 	}
-	//3. Output to Textfield
-	wchar_t wideString[stringlength];
-	mbstowcs_s(&outSize, wideString, stringlength, songDesc.c_str(), stringlength - 1);
-	SetDlgItemTextW(IDC_PREVIEW, wideString);
 
-	//tell the host that our state has changed to enable/disable the apply button appropriately.
+	const pfc::stringcvt::string_os_from_utf8 os_tag_name(songDesc);
+
+	SetDlgItemTextW(IDC_PREVIEW, os_tag_name);
+
+	//enable/disable the apply button
 	m_callback->on_state_changed();
 }
 
 class preferences_page_myimpl : public preferences_page_impl<CBookmarkPreferences> {
-	// preferences_page_impl<> helper deals with instantiation of our dialog; inherits from preferences_page_v3.
+
 public:
-	const char * get_name() { return "Basic Bookmark"; }
-	GUID get_guid() {
-		// This is our GUID. Replace with your own when reusing the code.
-		static const GUID guid = { 0x44604655, 0x45c, 0x4dc5, { 0xbf, 0x2e, 0xe7, 0xf4, 0x48, 0x82, 0x5, 0x30 } };
-		return guid;
-	}
-	GUID get_parent_guid() { return guid_tools; }
+
+	const char * get_name() override { return COMPONENT_NAME_HC; }
+	GUID get_guid() override { return guid_bookmark_pref_page; }
+	GUID get_parent_guid() override { return guid_tools; }
 };
 
 static preferences_page_factory_t<preferences_page_myimpl> g_preferences_page_myimpl_factory;

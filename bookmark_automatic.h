@@ -17,6 +17,9 @@ public:
 	bookmark_automatic();
 	~bookmark_automatic();
 
+	bool checkDummy() {
+		return (bool)dummy.m_desc.get_length();
+	}
 	void updateDummyTime();
 	void updateDummy();
 	bool upgradeDummy(std::vector<bookmark_t> & masterList, std::list<CListControlBookmark *> & guiLists);
