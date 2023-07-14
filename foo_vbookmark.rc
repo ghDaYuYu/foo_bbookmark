@@ -1,0 +1,146 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include <windows.h>
+#ifndef IDC_STATIC
+#define IDC_STATIC -1
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (United States) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include <windows.h>\r\n"
+    "#ifndef IDC_STATIC\r\n"
+    "#define IDC_STATIC -1\r\n"
+    "#endif\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_BOOKMARK_PREFERENCES DIALOGEX 0, 0, 332, 288
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "Microsoft Sans Serif", 400, 0, 0x0
+BEGIN
+    LTEXT           "Vital Bookmarks settings",IDC_STATIC_PREF_HEADER,7,7,318,12
+    LTEXT           "Description Format:",IDC_STATIC,7,29,37,8
+    EDITTEXT        IDC_TITLEFORMAT,12,40,294,12,ES_AUTOHSCROLL
+    LTEXT           "Preview of Formatstring",IDC_PREVIEW,14,58,291,8,NOT WS_GROUP
+    CONTROL         "Pause Bookmark creation",IDC_STATUS_FLAG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,78,97,10
+    CONTROL         "Auto-Create bookmark on exit",IDC_AUTOSAVE_EXIT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,92,109,10
+    CONTROL         "Auto-Create bookmark on track change",IDC_AUTOSAVE_TRACK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,105,141,10
+    CONTROL         "Auto-Create only in these playlists (comma separated)",IDC_AUTOSAVE_TRACK_FILTER_CHECK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,118,183,10
+    EDITTEXT        IDC_AUTOSAVE_TRACK_FILTER,12,132,294,14,ES_AUTOHSCROLL
+    COMBOBOX        IDC_CMB_PLAYLISTS,45,150,134,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Add existing Playlist",IDC_BTN_ADD_EXISTING_PLAYLIST,191,150,95,14
+    CONTROL         "Restore bookmarks to queue",IDC_QUEUE_FLAG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,171,107,10
+    CONTROL         "Verbose Console",IDC_VERBOSE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,185,69,10
+    CONTROL         "Misc flag",IDC_MISC_FLAG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,199,44,10
+END
+
+IDD_BOOKMARK_DIALOG DIALOGEX 0, 0, 192, 176
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_VISIBLE
+EXSTYLE WS_EX_TRANSPARENT
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_BOOKMARKLIST,"SysListView32",LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SHAREIMAGELISTS | NOT WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN | WS_TABSTOP,0,23,192,153
+    LTEXT           "Multiple UI elements not supported\n ",IDC_STATIC_UI_UNSUPPORTED,11,6,64,25
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_BOOKMARK_PREFERENCES, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 325
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 281
+    END
+
+    IDD_BOOKMARK_DIALOG, DIALOG
+    BEGIN
+        HORZGUIDE, 162
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_BOOKMARK_PREFERENCES AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_BOOKMARK_DIALOG AFX_DIALOG_LAYOUT
+BEGIN
+    0,
+    0, 0, 1, 0,
+    0, 0, 0, 0
+END
+
+#endif    // English (United States) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+

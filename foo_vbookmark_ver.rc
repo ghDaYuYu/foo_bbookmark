@@ -1,0 +1,50 @@
+#include "windows.h" //include needed to replace dll info
+#include "version.h"
+
+
+/////////////////////////////////////////////////////////////////////////////
+// Neutral (Default) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_NEUD)
+LANGUAGE LANG_NEUTRAL, SUBLANG_DEFAULT
+#pragma code_page(1252)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION DLL_VERSION_NUMERIC
+PRODUCTVERSION DLL_VERSION_NUMERIC
+FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+FILEFLAGS 0x1L
+#else
+FILEFLAGS 0x0L
+#endif
+FILEOS 0x40004L
+FILETYPE 0x0L
+FILESUBTYPE 0x0L
+BEGIN
+BLOCK "StringFileInfo"
+BEGIN
+BLOCK "000904b0"
+BEGIN
+VALUE "CompanyName", "dayuyu"
+VALUE "FileDescription", "A plugin for foobar2000 to manage song bookmarks"
+VALUE "FileVersion", DLL_VERSION_STRING "\0"
+VALUE "InternalName", COMPONENT_NAME
+VALUE "LegalCopyright", "GPL-3.0 license " COMPONENT_YEAR "\0"
+VALUE "OriginalFilename", COMPONENT_NAME_DLL
+VALUE "ProductName", COMPONENT_NAME "\0"
+VALUE "ProductVersion", DLL_VERSION_STRING "\0"
+END
+END
+BLOCK "VarFileInfo"
+BEGIN
+VALUE "Translation", 0x9, 1200
+END
+END
+
+#endif
