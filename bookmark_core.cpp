@@ -454,54 +454,6 @@ namespace {
 	class clist_control_bookmark_impl : public ui_element_impl_withpopup<CListControlBookmarkDialog> {};
 	static service_factory_t< clist_control_bookmark_impl > g_CListControlBookmarkDialog_factory;
 
-
-	//=====================Callback Classes========================
-	//---Play Callback---
-	class bmCore_play_callback : public play_callback_static {
-	public:
-		/* play_callback methods go here */
-		void on_playback_starting(play_control::t_track_command p_command, bool p_paused) override {}
-		void on_playback_stop(play_control::t_stop_reason p_reason) override {}
-		void on_playback_pause(bool p_state) override {}
-		void on_playback_edited(metadb_handle_ptr p_track) override {}
-		void on_playback_dynamic_info(const file_info & p_info) override {}
-		void on_playback_dynamic_info_track(const file_info & p_info) override {}
-		void on_volume_change(float p_new_val) override {}
-
-		void on_playback_new_track(metadb_handle_ptr p_track) override {
-			if (!cfg_autosave_newtrack)
-				return;
-
-			if (g_bmAuto.upgradeDummy(g_masterList, g_guiLists))
-				g_permStore.writeDataFile(g_masterList);
-			g_bmAuto.updateDummy();
-		}
-		void on_playback_seek(double p_time) override { g_bmAuto.updateDummyTime(); }
-		void on_playback_time(double p_time) override { g_bmAuto.updateDummyTime(); }
-
-		/* The play_callback_manager enumerates play_callback_static services and registers them automatically. We only have to provide the flags indicating which callbacks we want. */
-		virtual unsigned get_flags() {
-			return flag_on_playback_new_track | flag_on_playback_seek | flag_on_playback_time;
-		}
-	};
-
-	static service_factory_single_t<bmCore_play_callback> g_play_callback_static_factory;
-
-	//---Init/Quit Callback---
-	class initquit_bbookmark : public initquit {
-		virtual void on_init() {
-			g_permStore.readDataFile(g_masterList);
-		}
-
-		virtual void on_quit() {
-			if (cfg_autosave_on_quit) {
-				if (g_bmAuto.upgradeDummy(g_masterList, g_guiLists))
-					g_permStore.writeDataFile(g_masterList);
-			}
-		}
-	};
-	static initquit_factory_t< initquit_bbookmark > g_bookmark_initquit;
-
 } //anonymous namespace
 
 //==================Hooks for main menu=======================
