@@ -3,7 +3,7 @@
 #include "bookmark_core.h"
 #include "bookmark_list_dialog.h"
 
-use namespace dlg;
+using namespace dlg;
 
 namespace {
 

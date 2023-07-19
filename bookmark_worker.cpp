@@ -1,4 +1,6 @@
 #include "stdafx.h"
+#include "bookmark_core.h"
+
 #include "bookmark_persistence.h"
 #include "bookmark_preferences.h"
 #include "bookmark_worker.h"

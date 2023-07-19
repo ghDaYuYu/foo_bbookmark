@@ -1,8 +1,9 @@
 #include "stdafx.h"
 
 #include "bookmark_core.h"
-#include "bookmark_playlist_callback.h"
 
+#include "bookmark_list_control.h"
+#include "bookmark_playlist_callback.h"
 
 unsigned bookmark_playlist_callback::get_flags() {
 	return flag_playlist_ops;
@@ -27,17 +28,17 @@ void bookmark_playlist_callback::on_playlist_renamed(t_size p_index, const char*
 		bit_array_bittable changeMask(bit_array_false(), g_primaryGuiList->GetItemCount());
 
 		auto & found_it = std::find_if(g_masterList.begin(), g_masterList.end(), [&](const bookmark_t& elem) {
-			return (pfc::guid_equal(plguid, elem.m_guid_playlist));
+			return (pfc::guid_equal(plguid, elem.guid_playlist));
 			});
 
 		while (found_it != g_masterList.end()) {
 			bchanged = true;
-			found_it->m_playlist = pfc::string8(p_new_name).c_str();
+			found_it->playlist = pfc::string8(p_new_name).c_str();
 			auto pos = std::distance(g_masterList.begin(), found_it);
 			changeMask.set(pos, true);
 
 			found_it = std::find_if(found_it+1, g_masterList.end(), [&](const bookmark_t& elem) {
-				return (pfc::guid_equal(plguid, elem.m_guid_playlist));
+				return (pfc::guid_equal(plguid, elem.guid_playlist));
 				});
 		}
 		if (bchanged) {

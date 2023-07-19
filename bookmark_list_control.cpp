@@ -18,7 +18,7 @@ namespace dlg {
 
 		auto& rec = g_masterList[item];
 
-		CListControlBookmark* pdlg = static_cast<CListControlBookmark*>(ctx);
+		CListControlBookmark* pdlg = (CListControlBookmark*)(ctx);
 
 		auto subItemContent = pdlg->GetColContent(subItem);
 
@@ -38,6 +38,10 @@ namespace dlg {
 			return rec.desc.c_str();
 		case PLAYLIST_COL:
 			return rec.playlist.c_str();
+		case ELU_COL:
+			return rec.comment.c_str();
+		case DATE_COL:
+			return rec.date.c_str();
 		default:
 			return "";
 		}
@@ -56,6 +60,8 @@ namespace dlg {
 
 		pfc::remove_mask_t(g_masterList, mask); //remove from global list
 
+		//Update all guiLists
+
 		for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
 			if ((*it) != ctx) {
 				(*it)->OnItemsRemoved(mask, oldCount);
@@ -71,4 +77,36 @@ namespace dlg {
 		CListCtrlMarkDialog::restoreBookmark(item);
 	}
 
+	uint32_t ILOD_BookmarkSource::listGetEditFlags(ctx_t ctx, size_t item, size_t subItem) {
+		return listIsColumnEditable(ctx, subItem) ? 0 : InPlaceEdit::KFlagReadOnly;
+	}
+
+	bool ILOD_BookmarkSource::listIsColumnEditable(ctx_t ctx, size_t subItem) {
+		if (!is_cfg_Bookmarking()) {
+			CListControlBookmark* pdlg = (CListControlBookmark*)(ctx);
+			auto subItemContent = pdlg->GetColContent(subItem);
+			if (subItemContent == ELU_COL) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	void ILOD_BookmarkSource::listSubItemClicked(ctx_t ctx, size_t item, size_t subItem)
+	{
+		if (listIsColumnEditable(ctx, subItem)) {
+			CListControlBookmark* pdlg = (CListControlBookmark*)(ctx);
+			pdlg->TableEdit_Start(item, subItem);
+		}
+	}
+
+	pfc::string8 ILOD_BookmarkSource::listGetEditField(ctx_t ctx, size_t item, size_t subItem, size_t& lineCount) {
+		lineCount = 1; return listGetSubItemText(ctx, item, subItem);
+	}
+
+	void ILOD_BookmarkSource::listSetEditField(ctx_t ctx, size_t item, size_t subItem, const char* val) {
+		auto& rec = g_masterList[item];
+		rec.comment = pfc::string8(val);
+		g_permStore.writeDataFileJSON(g_masterList);
+	}
 }

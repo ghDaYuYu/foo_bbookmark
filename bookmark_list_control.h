@@ -13,6 +13,8 @@ namespace dlg {
 		TIME_COL = 0,
 		DESC_COL,
 		PLAYLIST_COL,
+		ELU_COL,
+		DATE_COL,
 		N_COLUMNS
 	};
 
@@ -30,8 +32,11 @@ namespace dlg {
 		bool listReorderItems(ctx_t, const size_t*, size_t) override;
 		bool listRemoveItems(ctx_t, pfc::bit_array const&) override;
 		void listItemAction(ctx_t, size_t) override;
-
-		bool listIsColumnEditable(ctx_t, size_t) override { return false; }
+		bool listIsColumnEditable(ctx_t, size_t) override;
+		void listSubItemClicked(ctx_t, size_t, size_t) override;
+		uint32_t listGetEditFlags(ctx_t ctx, size_t item, size_t subItem) override;
+		pfc::string8 listGetEditField(ctx_t ctx, size_t item, size_t subItem, size_t& lineCount) override;
+		void listSetEditField(ctx_t ctx, size_t item, size_t subItem, const char* val) override;
 
 	public:
 
@@ -61,24 +66,15 @@ namespace dlg {
 			CHAIN_MSG_MAP(TParent)
 		END_MSG_MAP()
 
-		void Initialize(HWND hparent, HFONT hdlgFont, pfc::array_t<size_t>* pcolContent) {
+		void Initialize(HWND hparent, pfc::array_t<size_t>* pcolContent) {
 
 			m_pcolContent = pcolContent;
 
 			SetPlaylistStyle();
+			SetWantReturn(true);
 
-			if (m_cui) {
-			
+			::SetWindowLongPtr(m_hWnd, GWL_EXSTYLE, 0);
 
-				//TODO:
-
-				
-			}
-			else {
-				SetHeaderFont(hdlgFont);
-				SetFont(hdlgFont);
-				SetWantReturn(true);
-			}
 		}
 
 		size_t GetColContent(size_t icol) {
