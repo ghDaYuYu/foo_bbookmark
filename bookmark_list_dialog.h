@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "resource.h"
 
@@ -14,29 +14,20 @@
 #include "bookmark_persistence.h"
 #include "bookmark_worker.h"
 
+#include "style_manager_dui.h"
+#include "style_manager_cui.h"
+
+using namespace glb;
+
 namespace dlg {
 
-	//~~~~~~~~~~~~~~~~~DEFINITIONS~~~~~~~~~~~~~~~~~~~
-	static const GUID guid_bookmarkDialog = { 0x5c20d8ca, 0x91be, 0x4ef2, { 0xae, 0x81, 0x32, 0x1f, 0x1c, 0x2d, 0x27, 0x23 } };
+	static const char* COLUMNNAMES[] = { "Time", "Bookmark", "Playlist", "Comment", "Date"};
 
-	bookmark_persistence g_permStore;
-	bookmark_worker g_bmWorker;
+	static const std::array<uint32_t, N_COLUMNS> defaultColWidths = { 40, 150, 110, 150, 150 };
+	static const std::array<bool, N_COLUMNS> defaultColActive = { true, true, false, false, false };
 
-	//Config
-	const enum colID {
-		TIME_COL = 0,
-		DESC_COL,
-		PLAYLIST_COL,
-		N_COLUMNS
-	};
-	static const char* COLUMNNAMES[] = { "Time", "Description", "Playlist" };
-	static const std::array<uint32_t, N_COLUMNS> defaultColWidths = { 40, 150, 110 };
-	static const std::array<bool, N_COLUMNS> defaultColActive = { true, true, false };
+	class CListCtrlMarkDialog : public CDialogImpl<CListCtrlMarkDialog>, private ILOD_BookmarkSource {
 
-	class CListControlBookmarkDialog : public CDialogImpl<CListControlBookmarkDialog>, public ui_element_instance,
-		private IListControlBookmarkSource {
-	protected:
-		const ui_element_instance_callback::ptr m_callback;
 	public:
 		//---Dialog Setup---
 		CListControlBookmarkDialog(ui_element_config::ptr cfg, ui_element_instance_callback::ptr cb) : m_callback(cb), m_guiList(this) {
@@ -47,94 +38,104 @@ namespace dlg {
 
 		enum { IDD = IDD_BOOKMARK_DIALOG };
 
-		BEGIN_MSG_MAP_EX(CListControlBookmarkDialog)
+		BEGIN_MSG_MAP_EX(CListCtrlMarkDialog)
 			MSG_WM_INITDIALOG(OnInitDialog)
 			MSG_WM_SIZE(OnSize)
 			MSG_WM_CONTEXTMENU(OnContextMenu)
 			END_MSG_MAP()
 
-		void initialize_window(HWND parent) { WIN32_OP(Create(parent) != NULL); }
-		HWND get_wnd() { return m_hWnd; }
+		void initialize_window(HWND parent) {
 
-		static GUID g_get_guid() {
-			return guid_bookmarkDialog;
+			WIN32_OP(Create(parent) != NULL);
 		}
 
-		static GUID g_get_subclass() { return ui_element_subclass_utility; }
-		static void g_get_name(pfc::string_base & out) { out = "Basic Bookmarks"; }
-		static const char * g_get_description() { return "Provides basic bookmark functionality."; }
+		//not overriding - serves cui_bmark
+		HWND get_wnd() const { return m_hWnd; }
 
+		// Restore Bookmarks
 
-		// ---(Re)store Bookmarks---
-		//Restores the bookmark currently focused by the first-born instance
 		static void restoreFocusedBookmark() {
+
 			if (g_guiLists.empty()) {	//fall back to 0 if there is no list, and hence no selected bookmark
-				FB2K_console_print("Global Bookmark Restore: No bookmark UI found, falling back to first bookmark");
+				FB2K_console_print_v("Global Bookmark Restore: No bookmark UI found, falling back to first bookmark");
 				restoreBookmark(0);
 				return;
 			}
 
 			size_t focused;
 			if (g_primaryGuiList != NULL) {
-				FB2K_console_print("Global Bookmark Restore: No primary UI found, falling back to firstborn UI.");
 				focused = g_primaryGuiList->GetFocusItem();
-			} else {
+			}
+			else {
+				FB2K_console_print_v("Global Bookmark Restore: No primary UI found, falling back to firstborn UI.");
 				auto it = g_guiLists.begin();
 				focused = (*it)->GetFocusItem();
 			}
 			restoreBookmark(focused);
 		}
 
-		//Restores the bookmark identified by index
-		static void restoreBookmark(size_t index) { g_bmWorker.restore(g_masterList, index); }
+		// Restore bookmark by index
 
-		//Creates new bookmarks, updates all UIs, writes to file
-		static void storeBookmark() {
-			g_bmWorker.store(g_masterList);
-
-			for (std::list<CListControlBookmark *>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
-				(*it)->OnItemsInserted(g_masterList.size(), 1, true);
-			}
-
-			if (cfg_verbose) FB2K_console_print("Created Bookmark, saving to file now.");
-			g_permStore.writeDataFile(g_masterList);
+		static void restoreBookmark(size_t index) {
+			bookmark_worker bmWorker;
+			bmWorker.restore(g_masterList, index);
 		}
 
-		//Deletes all bookmarks, updates all UIs, writes to file
+		static void addBookmark() {
+			bookmark_worker bmWorker;
+			bmWorker.store(g_masterList);
+
+			for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
+				(*it)->OnItemsInserted(g_masterList.size() - 1, 1, true);
+			}
+
+			FB2K_console_print_v("Created Bookmark, saving to file now.");
+			g_permStore.writeDataFileJSON(g_masterList);
+
+		}
+
 		static void clearBookmarks() {
 			size_t oldCount = g_masterList.size();
 			g_masterList.clear();
-			for (std::list<CListControlBookmark *>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
+			for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
 				(*it)->OnItemsRemoved(pfc::bit_array_true(), oldCount);
 			}
-			g_permStore.writeDataFile(g_masterList);
+			g_permStore.writeDataFileJSON(g_masterList);
 		}
 
-		~CListControlBookmarkDialog() {
-			if (cfg_verbose) FB2K_console_print("Destructor was called");
-			if (g_primaryGuiList == &m_guiList) {
-				g_primaryGuiList = NULL;
-			}
-			g_guiLists.remove(&m_guiList);
+		static bool canStore() {
+
+			return play_control::get()->is_playing();
 		}
 
-	private:
-		// ==================================members====================
-		CListControlBookmark m_guiList;
-		std::array<uint32_t, N_COLUMNS> m_colWidths;
-		std::array<bool, N_COLUMNS> m_colActive;
-		pfc::array_t<size_t> m_colContent;
-		fb2k::CDarkModeHooks m_dark;
+		static bool canRestore() {
+			return g_primaryGuiList && g_primaryGuiList->GetSingleSel() != ~0;
+		}
+
+		static bool canClear() {
+			return g_primaryGuiList && (bool)g_primaryGuiList->GetItemCount();
+		}
 
 		//========================UI code===============================
+
 		BOOL OnInitDialog(CWindow, LPARAM) {
-			// Create replacing existing windows list control
-			// automatically initialize position, font, etc
+
+			if (g_guiLists.size() > 1) {
+				::ShowWindow(GetDlgItem(IDC_STATIC_UI_UNSUPPORTED), SW_SHOW);
+				::ShowWindow(GetDlgItem(IDC_BOOKMARKLIST), SW_HIDE);
+				return FALSE;
+			}
+
+			::ShowWindow(GetDlgItem(IDC_STATIC_UI_UNSUPPORTED), SW_HIDE);
+			::ShowWindow(GetDlgItem(IDC_BOOKMARKLIST), SW_SHOW);
+
 			m_guiList.CreateInDialog(*this, IDC_BOOKMARKLIST);
-			
-			// darkmode
-            m_dark.AddDialogWithControls(*this);
-            
+
+			m_guiList.Initialize(m_hWnd, &m_colContent);
+
+
+			m_dark.AddDialogWithControls(*this);
+
 			g_guiLists.emplace_back(&m_guiList);
 			if (g_primaryGuiList == NULL) {
 				g_primaryGuiList = &m_guiList;
@@ -144,19 +145,24 @@ namespace dlg {
 			CListViewCtrl wndList(hwndBookmarkList);
 			wndList.SetParent(m_hWnd);
 
-			configToUI();
 			ShowWindow(SW_SHOW);
 
 			return true; // system should set focus
 		}
 
 		void OnSize(UINT, CSize s) {
-			m_guiList.ResizeClient(s.cx - 2, s.cy - 1, 1);
-			//Making the guilist very slightly undersized makes it a bit easier to grab unto the column seperator when it's at the right edge
 
-			//TODO: attempt to move m_guiList to the top left by one pixel to slim down its border
-			//Cpoint newPos = Cpoint(0, 0);
-			//m_guiList.MoveViewOrigin(newPos);
+			CRect recUI;
+			CRect recList;
+
+			if (m_guiList.m_hWnd) {
+				::GetWindowRect(m_hWnd, &recUI);
+				::GetWindowRect(m_guiList.m_hWnd, &recList);
+
+				::MoveWindow(m_guiList.m_hWnd, 0, 0, recUI.Width(), recUI.Height(), 1);
+			}
+			
+			return;
 		}
 
 		//===========Overrides for CListControlBookmark================
@@ -357,92 +363,125 @@ namespace dlg {
 			}
 		};
 
-
-		// =================================config code=======================================
 	public:
-		static ui_element_config::ptr g_get_default_configuration() { return ui_element_config::g_create_empty(g_get_guid()); }
-		//get: Derive config from state; called at shutdown
-		ui_element_config::ptr get_configuration() {
-			if (cfg_verbose) FB2K_console_print("get_configuration called.");
+
+		ui_element_config::ptr get_configuration(GUID ui_guid) {
+
+			FB2K_console_print_v("get_configuration called.");
 
 			for (int i = 0; i < N_COLUMNS; i++) {
-                auto col_ndx = m_colContent[i];
-                if (i < m_guiList.GetColumnCount()) {
-                    m_colWidths[col_ndx] = static_cast<int>(m_guiList.GetColumnWidthF(i));
-                }
-                else {
-                    //default
-                    m_colWidths[col_ndx] = defaultColWidths[col_ndx];
-                }
-            }
+				auto col_ndx = m_colContent[i];
+				if (i < static_cast<int>(m_guiList.GetColumnCount())) {
+					m_colWidths[col_ndx] = static_cast<int>(m_guiList.GetColumnWidthF(i));
+				}
+				else {
+					//default
+					m_colWidths[col_ndx] = defaultColWidths[col_ndx];
+				}
+			}
 
-			return makeConfig(m_colWidths, m_colActive);
+			return makeConfig(ui_guid, m_colWidths, m_colActive);
 		}
-		//set: Apply config to class
+
+		// host to dlg
+
 		void set_configuration(ui_element_config::ptr config) {
-			if (cfg_verbose) FB2K_console_print("set_configuration called.");
+			FB2K_console_print_v("set_configuration called.");
 			parseConfig(config, m_colWidths, m_colActive);
 
 			configToUI();
 		}
 	private:
-		//Reads a config into the supplied variables; Falls back to defaults if necessary
-		static void parseConfig(ui_element_config::ptr cfg, std::array<uint32_t, N_COLUMNS> &widths, std::array<bool, N_COLUMNS> &active) {
-			if (cfg_verbose) FB2K_console_print("Parsing config");
-			for (int i = 0; i < N_COLUMNS; i++)
-				widths[i] = defaultColWidths[i];
-			for (int i = 0; i < N_COLUMNS; i++)
-				active[i] = defaultColActive[i];
+
+		// read dui config
+		static void parseConfig(ui_element_config::ptr cfg, std::array<uint32_t, N_COLUMNS>& widths, std::array<bool, N_COLUMNS>& active) {
+
+			FB2K_console_print_v("Parsing config");
+			widths = defaultColWidths;
+			active = defaultColActive;
+
+			if (!cfg.get_ptr()) {
+				//todo: cui
+				return;
+			}
 
 			try {
 				::ui_element_config_parser configParser(cfg);
 				//read from config:
 				for (int i = 0; i < N_COLUMNS; i++)
 					configParser >> widths[i];
-				for (int i = 0; i < N_COLUMNS; i++)
+				for (int i = 0; i < N_COLUMNS; i++) {
 					configParser >> active[i];
-			} catch (exception_io_data_truncation e) {
-				console::complain("Failed to parse configuration", e);
-			} catch (exception_io_data e) {
-				console::complain("Failed to parse configuration", e);
+				}
+			}
+			catch (exception_io_data_truncation e) {
+				FB2K_console_print_v("Failed to parse configuration", e);
+			}
+			catch (exception_io_data e) {
+				FB2K_console_print_v("Failed to parse configuration", e);
 			}
 		}
 
-		static ui_element_config::ptr makeConfig(std::array<uint32_t, N_COLUMNS> widths = defaultColWidths, std::array<bool, N_COLUMNS> active = defaultColActive) {
+		static ui_element_config::ptr makeConfig(GUID ui_guid, std::array<uint32_t, N_COLUMNS> widths = defaultColWidths, const std::array<bool, N_COLUMNS> active = defaultColActive) {
 			if (sizeof(widths) / sizeof(uint32_t) != N_COLUMNS)
-				return makeConfig();
+				return makeConfig(ui_guid);
 
-			if (cfg_verbose) FB2K_console_print("Making config from ", widths[0], " and ", widths[1]);
+			FB2K_console_print_v("Making config from ",widths[0]," and ",widths[1]);
 
 			ui_element_config_builder out;
 			for (int i = 0; i < N_COLUMNS; i++)
 				out << widths[i];
 			for (int i = 0; i < N_COLUMNS; i++)
 				out << active[i];
-			return out.finish(g_get_guid());
+			return out.finish(ui_guid);
 		}
 
 		void configToUI() {
-			if (cfg_verbose) FB2K_console_print("Applying config to UI: ", m_colWidths[0], " and ", m_colWidths[1]);
+
+			FB2K_console_print_v("Applying config to UI: ", m_colWidths[0], " and ", m_colWidths[1]);
 			auto DPI = m_guiList.GetDPI();
-			m_guiList.DeleteColumns(pfc::bit_array_true(), false);
+
+			if (m_guiList.GetHeaderCtrl() != NULL && m_guiList.GetHeaderCtrl().GetItemCount()) {
+				m_guiList.DeleteColumns(pfc::bit_array_true(), false);
+			}
 
 			size_t ndx_tail = N_COLUMNS - 1;
 			for (int i = 0; i < N_COLUMNS; i++) {
-				if (cfg_verbose) FB2K_console_print("configToUi: i is ", i, "; name: ", COLUMNNAMES[i], ", active: ", m_colActive[i], ", width: ", m_colWidths[i]);
-				
+				FB2K_console_print_v("Config to UI: i is ", i, "; name: ", COLUMNNAMES[i], ", active: ", m_colActive[i], ", width: ", m_colWidths[i]);
+
 				auto ndx_cont = !m_guiList.IsHeaderEnabled() ? 0 : m_guiList.GetColumnCount();
-                if (m_colActive[i]) {
-                    int width = (m_colWidths[i] != 0) ? m_colWidths[i] : defaultColWidths[i]; //use defaults instead of zero
-                    m_colContent[ndx_cont] = i;
-                    m_guiList.AddColumn(COLUMNNAMES[i], MulDiv(width, DPI.cx, 96));
-                }
-                else {
-                    //move to tail
-                    m_colContent[ndx_tail--] = i;
-                }
+				if (m_colActive[i]) {
+					int width = (m_colWidths[i] != 0 && m_colWidths[i] != ~0) ? m_colWidths[i] : defaultColWidths[i];	//use defaults instead of zero
+					width = (std::min)(width, 1000);
+					m_colContent[ndx_cont] = i;
+					m_guiList.AddColumn(COLUMNNAMES[i], MulDiv(width, DPI.cx, 96));
+				}
+				else {
+					//move to tail
+					m_colContent[ndx_tail--] = i;
+				}
 			}
 		}
-	};
 
+	protected:
+
+		const ui_element_instance_callback::ptr m_callback;
+		const ui_element_config::ptr m_cfg;
+
+		StyleManager* m_cust_stylemanager = nullptr;
+		CListControlBookmark m_guiList;
+
+	private:
+
+		bool m_cui = false;
+
+		fb2k::CDarkModeHooks m_dark;
+		
+		std::array<uint32_t, N_COLUMNS> m_colWidths;
+
+		std::array<bool, N_COLUMNS> m_colActive;
+		pfc::array_t<size_t> m_colContent;
+
+		friend class CListControlBookmark;
+	};
 }
