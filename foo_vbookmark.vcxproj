@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug UnitTests|Win32">
@@ -154,7 +154,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
-      <AdditionalIncludeDirectories>.;..;../..;$(WTL_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;..;../..;$(WTL_PATH);jansson;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Precise</FloatingPointModel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ForcedIncludeFiles>StdAfx.h</ForcedIncludeFiles>
@@ -186,7 +186,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <TreatSpecificWarningsAsErrors>4715</TreatSpecificWarningsAsErrors>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
-      <AdditionalIncludeDirectories>.;..;../..;$(WTL_PATH);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;..;../..;$(WTL_PATH);jansson%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <FloatingPointModel>Precise</FloatingPointModel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ForcedIncludeFiles>StdAfx.h</ForcedIncludeFiles>
@@ -277,7 +277,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <StringPooling>true</StringPooling>
       <OmitFramePointers>true</OmitFramePointers>
-      <AdditionalIncludeDirectories>.;..;../..;$(WTL_PATH);</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;..;../..;$(WTL_PATH);jansson</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ForcedIncludeFiles>StdAfx.h</ForcedIncludeFiles>
@@ -291,7 +291,7 @@
       <DataExecutionPrevention>
       </DataExecutionPrevention>
       <TargetMachine>MachineX86</TargetMachine>
-      <AdditionalDependencies>../shared/shared-$(Platform).lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>../shared/shared-$(Platform).lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;$(SolutionDir)$(Platform)\$(Configuration)\jansson.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(FOO_COMP_WD)" &amp; copy "$(TargetPath)" "$(FOO_COMP_WD)"</Command>
@@ -312,7 +312,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <StringPooling>true</StringPooling>
       <OmitFramePointers>true</OmitFramePointers>
-      <AdditionalIncludeDirectories>.;..;../..;$(WTL_PATH);</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;..;../..;$(WTL_PATH);jansson</AdditionalIncludeDirectories>
       <FloatingPointModel>Fast</FloatingPointModel>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <ForcedIncludeFiles>StdAfx.h</ForcedIncludeFiles>
@@ -325,7 +325,7 @@
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
-      <AdditionalDependencies>../shared/shared-$(Platform).lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>../shared/shared-$(Platform).lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;$(SolutionDir)$(Platform)\$(Configuration)\jansson.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(FOO_COMP_WD)" &amp; copy "$(TargetPath)" "$(FOO_COMP_WD)"</Command>
@@ -402,8 +402,10 @@
   <ItemGroup>
     <ClCompile Include="bookmark_automatic.cpp" />
     <ClCompile Include="bookmark_core.cpp" />
+    <ClCompile Include="bookmark_list_control.cpp" />
     <ClCompile Include="bookmark_menu.cpp" />
     <ClCompile Include="bookmark_playlist_callback.cpp" />
+    <ClCompile Include="bookmark_play_callback.cpp" />
     <ClCompile Include="bookmark_worker.cpp" />
     <ClCompile Include="cui_bmark.cpp" />
     <ClCompile Include="dui_bmark.cpp" />
@@ -426,13 +428,16 @@
   <ItemGroup>
     <ClInclude Include="bookmark_automatic.h" />
     <ClInclude Include="bookmark_core.h" />
-    <ClInclude Include="bookmark_list_dlg.h" />
+    <ClInclude Include="bookmark_list_dialog.h" />
     <ClInclude Include="bookmark_playlist_callback.h" />
+    <ClInclude Include="bookmark_play_callback.h" />
     <ClInclude Include="bookmark_worker.h" />
     <ClInclude Include="bookmark_types.h" />
     <ClInclude Include="bookmark_list_control.h" />
     <ClInclude Include="bookmark_persistence.h" />
     <ClInclude Include="bookmark_preferences.h" />
+    <ClInclude Include="style_manager_cui.h" />
+    <ClInclude Include="style_manager_dui.h" />
     <ClInclude Include="header_static.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />
@@ -459,6 +464,9 @@
     </ProjectReference>
     <ProjectReference Include="..\foobar2000_component_client\foobar2000_component_client.vcxproj">
       <Project>{71ad2674-065b-48f5-b8b0-e1f9d3892081}</Project>
+    </ProjectReference>
+    <ProjectReference Include="..\foo_vbookmark libs\jansson-2.14\build\jansson.vcxproj">
+      <Project>{a0033952-f97c-3594-a9a1-4abaf51af144}</Project>
     </ProjectReference>
     <ProjectReference Include="..\helpers\foobar2000_sdk_helpers.vcxproj">
       <Project>{ee47764e-a202-4f85-a767-abdab4aff35f}</Project>
