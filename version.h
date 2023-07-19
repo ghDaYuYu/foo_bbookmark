@@ -1,20 +1,20 @@
 ﻿#pragma once
-#define COMPONENT_NAME_H "vbookmarks"
-#define COMPONENT_NAME_HC "vBookmarks"
+#define COMPONENT_NAME_H "Vital bookmarks"
+#define COMPONENT_NAME_HC "Vital Bookmarks"
 #define COMPONENT_NAME "foo_vbookmark"
 #define COMPONENT_NAME_DLL COMPONENT_NAME ".dll"
 #define COMPONENT_YEAR "2023"
 
 #define SZ_DAT_VER_1 5
-#define SZ_DAT_VER_2 8
+#define SZ_DAT_VER_2 6
 
 #define COMPONENT_VERSION_MAJOR 1
 #define COMPONENT_VERSION_MINOR 0
 #define COMPONENT_VERSION_PATCH 0
-#define COMPONENT_VERSION_SUB_PATCH 0
+#define COMPONENT_VERSION_SUB_PATCH 2
 
 #define MAKE_STRING(text) #text
-#define MAKE_COMPONENT_VERSION(major,minor,patch) MAKE_STRING(major) "." MAKE_STRING(minor)
+#define MAKE_COMPONENT_VERSION(major,minor,patch) MAKE_STRING(major) "." MAKE_STRING(minor) ".beta.3"
 #define MAKE_DLL_VERSION(major,minor,patch,subpatch) MAKE_STRING(major) "." MAKE_STRING(minor) "." MAKE_STRING(patch) "." MAKE_STRING(subpatch)
 #define MAKE_API_SDK_VERSION(sdk_ver, sdk_target) MAKE_STRING(sdk_ver) " " MAKE_STRING(sdk_target)
 
