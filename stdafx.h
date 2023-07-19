@@ -12,3 +12,5 @@
 #define FOOBAR2000_TARGET_VERSION 81
 #include <helpers/foobar2000+atl.h>
 #include "version.h"
+
+#define FB2K_console_print_v(...) if (cfg_verbose) ::console::print("(", COMPONENT_NAME_H, ") ", __VA_ARGS__)
