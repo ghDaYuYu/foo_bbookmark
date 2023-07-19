@@ -29,11 +29,109 @@ namespace dlg {
 	class CListCtrlMarkDialog : public CDialogImpl<CListCtrlMarkDialog>, private ILOD_BookmarkSource {
 
 	public:
-		//---Dialog Setup---
-		CListControlBookmarkDialog(ui_element_config::ptr cfg, ui_element_instance_callback::ptr cb) : m_callback(cb), m_guiList(this) {
+
+		// cust style manager callback
+
+		void on_style_change() {
+
+			//todo: rev DUI/CUI fonts, etc
+
+			//rev bulky
+			const LOGFONT lfh = m_cust_stylemanager->getTitleFont();
+			HFONT hOldFontHeader = m_guiList.GetHeaderCtrl().GetFont();
+			HFONT hFontHeader = CreateFontIndirect(&lfh);
+			m_guiList.SetHeaderFont(hFontHeader);
+			//todo: rev already managed (CFont)?
+			if (hOldFontHeader != hFontHeader) {
+				::DeleteObject(hOldFontHeader);
+			}
+
+			const LOGFONT lf = m_cust_stylemanager->getListFont();
+			HFONT hOldFont = m_guiList.GetFont();
+			HFONT hFont = CreateFontIndirect(&lf);
+			m_guiList.SetFont(hFont);
+			//todo: rev not managed (CFontHandle)?
+			if (hOldFont != hFont) {
+				::DeleteObject(hOldFont);
+			}
+
+			m_guiList.Invalidate();
+		}
+
+		//todo: rev cui
+		void applyDark() {
+			t_ui_color color = 0;
+			if (m_callback->query_color(ui_color_darkmode, color)) {
+				m_dark.SetDark(color == 0);
+			}
+		}
+
+		// DUI constructor
+
+		CListCtrlMarkDialog(HWND parent, ui_element_config::ptr cfg, ui_element_instance_callback::ptr cb)
+			: m_cfg(cfg.get_ptr()), m_callback(cb), m_cust_stylemanager(new DuiStyleManager(cb)), m_guiList(this, false)
+		{
+
+			m_cui = false;
+
 			m_colActive = defaultColActive;
-            m_colContent.resize(N_COLUMNS);
-            parseConfig(cfg, m_colWidths, m_colActive);
+			m_colContent.resize(N_COLUMNS);
+
+			parseConfig(cfg, m_colWidths, m_colActive);
+
+			m_cust_stylemanager->setChangeHandler([&] { this->on_style_change(); });
+
+			// initiale (create)
+
+			initialize_window(parent);
+
+		}
+
+		// CUI constructor
+
+		CListCtrlMarkDialog(HWND parent, std::array<uint32_t, N_COLUMNS> colWidths, std::array<bool, N_COLUMNS> colActive)
+			: m_colWidths(colWidths), m_colActive(colActive), m_guiList(this, true), m_cust_stylemanager(new CuiStyleManager())
+		{
+
+			m_cui = true;
+
+			if (!colWidths.size()) {
+				m_colActive = defaultColActive;
+			}
+
+			m_colContent.resize(N_COLUMNS);
+			
+			parseConfig(nullptr, m_colWidths, m_colActive);
+
+			m_cust_stylemanager->setChangeHandler([&] { this->on_style_change(); });
+
+			// initiale (create)
+
+			initialize_window(parent);
+
+		}
+
+		// Destructor
+
+		~CListCtrlMarkDialog() {
+			
+			if (m_guiList.TableEdit_IsActive()) {
+				m_guiList.TableEdit_Abort(true);
+			}
+
+			m_colContent.resize(0);
+			FB2K_console_print_v("Destructor was called");
+			
+			if (g_primaryGuiList == &m_guiList) {
+				g_primaryGuiList = NULL;
+			}
+
+			g_guiLists.remove(&m_guiList);
+
+			if (m_cust_stylemanager) {
+
+				delete m_cust_stylemanager;
+			}
 		}
 
 		enum { IDD = IDD_BOOKMARK_DIALOG };
@@ -133,7 +231,6 @@ namespace dlg {
 
 			m_guiList.Initialize(m_hWnd, &m_colContent);
 
-
 			m_dark.AddDialogWithControls(*this);
 
 			g_guiLists.emplace_back(&m_guiList);
@@ -141,9 +238,9 @@ namespace dlg {
 				g_primaryGuiList = &m_guiList;
 			}
 
-			HWND hwndBookmarkList = GetDlgItem(IDC_BOOKMARKLIST);
-			CListViewCtrl wndList(hwndBookmarkList);
-			wndList.SetParent(m_hWnd);
+			configToUI();
+
+			on_style_change();
 
 			ShowWindow(SW_SHOW);
 
@@ -467,6 +564,42 @@ namespace dlg {
 
 			configToUI();
 		}
+
+		void CUI_gets_config(stream_writer* p_writer, abort_callback& p_abort) const {
+
+			std::array<uint32_t, N_COLUMNS> colWidths = m_colWidths;
+
+			for (int i = 0; i < N_COLUMNS; i++) {
+				auto col_ndx = m_colContent[i];
+				if (i < static_cast<int>(m_guiList.GetColumnCount())) {
+					colWidths[col_ndx] = static_cast<int>(m_guiList.GetColumnWidthF(i));
+				}
+				else {
+					//default
+					colWidths[col_ndx] = defaultColWidths[col_ndx];
+				}
+			}
+
+			stream_writer_formatter<false> writer(*p_writer, p_abort);
+			for (int i = 0; i < N_COLUMNS; i++) {
+				writer << colWidths[i];
+			}
+			for (int i = 0; i < N_COLUMNS; i++) {
+				writer << m_colActive[i];
+			}
+		}
+
+		void CUI_sets_config(stream_reader* p_reader, abort_callback& p_abort) const {
+
+			stream_reader_formatter<false> reader(*p_reader, p_abort);
+			for (int i = 0; i < N_COLUMNS; i++) {
+				reader >> (t_uint32)m_colWidths[i];
+			}
+			for (int i = 0; i < N_COLUMNS; i++) {
+				reader >> (bool)m_colActive[i];
+			}
+		}
+
 	private:
 
 		// read dui config
