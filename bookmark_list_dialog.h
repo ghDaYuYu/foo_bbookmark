@@ -223,8 +223,10 @@ namespace dlg {
 		bool listIsColumnEditable(ctx_t, size_t subItem) override { return false; }
 
 		void OnContextMenu(CWindow wnd, CPoint point) {
+
 			try {
-				if (m_callback->is_edit_mode_enabled()) {
+				//todo: rev
+				if (!m_guiList.m_hWnd || (!m_cui && m_callback->is_edit_mode_enabled())) {
 					SetMsgHandled(false);
 					return;
 				}
@@ -241,16 +243,20 @@ namespace dlg {
 
 				CRect headerRct;
 				m_guiList.GetHeaderCtrl().GetWindowRect(headerRct);
+
 				if (headerRct.PtInRect(point)) {
-					//Contextmenu for Headers: (Dis-)able columns
+
+					//Header columns
 					const int stringlength = 25;
 					for (uint32_t i = 0; i < N_COLUMNS; i++) {
+
 						//Need to convert to UI friendly stringformat first:
 						wchar_t wideString[stringlength];
 						size_t outSize;
 						mbstowcs_s(&outSize, wideString, stringlength, COLUMNNAMES[i], stringlength - 1);
 
-						//The + 1 and - 1 below ensure that the 0-Index (which cmd is set to when clicking outside of the context menu) remains unused
+						//The + 1 and - 1 below to ensure cmd = 0 remains unused
+
 						auto flags = MF_STRING;
 						if (m_colActive[i])
 							flags |= MF_CHECKED;
@@ -262,50 +268,71 @@ namespace dlg {
 
 					int cmd;
 					{
-						// Callback object to show menu command descriptions in the status bar.
+						// status bar command descriptions
 						// it's actually a hidden window, needs a parent HWND, where we feed our control's HWND
 						CMenuDescriptionMap descriptions(m_hWnd);
 
 						// Set descriptions of all our items
-						descriptions.Set(TIME_COL + 1, "Timestamp");
-						descriptions.Set(DESC_COL + 1, "Custom Description");
+						descriptions.Set(TIME_COL + 1, "Playback timestamp");
+						descriptions.Set(DESC_COL + 1, "Custom bookmark description");
 						descriptions.Set(PLAYLIST_COL + 1, "Playlist");
+						descriptions.Set(ELU_COL + 1, "Comment");
+						descriptions.Set(DATE_COL + 1, "Bookmark date");
 
 						cmd = menu.TrackPopupMenuEx(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, descriptions, nullptr);
 					}
-					if (cmd) {
-                        m_colActive[cmd - 1] = !m_colActive[cmd - 1]; //Toggle the state of the column whose menucommand was triggered
-                        bool all_disabled = std::find(m_colActive.begin(), m_colActive.end(), true) == m_colActive.end();
-                        if (all_disabled) {
-                            //revert
-                            m_colActive[cmd - 1] = !m_colActive[cmd - 1];
-                        }
-                        else {
-                            configToUI();
-                        }
-                    }
 
-				} else {
+					if (cmd) {
+						size_t colndx = static_cast<size_t>(cmd) - 1;
+						m_colActive[colndx] = !m_colActive[colndx]; // toggle column state whose menucommand was triggered
+						bool all_disabled = std::find(m_colActive.begin(), m_colActive.end(), true) == m_colActive.end();
+						if (all_disabled) {
+							//revert
+							m_colActive[colndx] = !m_colActive[colndx];
+						}
+						else {
+							configToUI();
+						}
+					}
+
+				}
+				else {
+
+					bool bupdatable = (!playback_control_v3::get()->is_playing() || playback_control_v3::get()->is_paused()) || !is_cfg_Bookmarking() || !cfg_autosave_newtrack.get();
+
+					auto selmask = m_guiList.GetSelectionMask();
+					auto isel = m_guiList.GetSingleSel();
+
+					size_t csel = m_guiList.GetSelectedCount();
+					bool blist_empty = !(bool)m_guiList.GetItemCount();
+					bool bsinglesel = m_guiList.GetSingleSel() != ~0;
+					bool bresetable = false;
+					
+					if (bsinglesel) {
+						bresetable = g_masterList.at(isel).time != 0;
+					}
+
 					//Contextmenu for listbody
-					enum { ID_STORE = 1, ID_RESTORE, ID_DEL, ID_CLEAR, ID_SELECTALL, ID_SELECTNONE, ID_INVERTSEL, ID_MAKEPRIME };
-					menu.AppendMenu(MF_STRING, ID_STORE, L""Add Bookmark"");
-					menu.AppendMenu(MF_STRING, ID_RESTORE, L"Restore Bookmark");
-					menu.AppendMenu(MF_STRING, ID_DEL, L"Delete Selected Bookmarks");
+					enum { ID_STORE = 1, ID_RESTORE, ID_RESET_TIME, ID_DEL, ID_CLEAR, ID_COPY, ID_SELECTALL, ID_SELECTNONE, ID_INVERTSEL, ID_MAKEPRIME, ID_PAUSE_BOOKMARKS, ID_PREF_PAGE };
+					menu.AppendMenu(MF_STRING | (!CListCtrlMarkDialog::canStore() ? MF_DISABLED | MF_GRAYED : 0), ID_STORE, L"&Add Bookmark");
+					menu.AppendMenu(MF_STRING | (!bupdatable || !bresetable ? MF_DISABLED | MF_GRAYED : 0), ID_RESET_TIME, L"Reset &time");
+					menu.AppendMenu(MF_STRING | (!bsinglesel ? MF_DISABLED | MF_GRAYED : 0), ID_RESTORE, L"&Restore\tENTER");
+					menu.AppendMenu(MF_STRING | (!bupdatable || !(bool)csel ? MF_DISABLED | MF_GRAYED : 0), ID_DEL, L"&Delete\tDel");
 					menu.AppendMenu(MF_SEPARATOR);
-					menu.AppendMenu(MF_STRING, ID_CLEAR, L"Clear Bookmarks");
+					menu.AppendMenu(MF_STRING | (!bupdatable || blist_empty ? MF_DISABLED | MF_GRAYED : 0), ID_CLEAR, L"C&lear All");
 					menu.AppendMenu(MF_SEPARATOR);
+					if (bsinglesel) {
+						menu.AppendMenu(MF_STRING, ID_COPY, L"&Copy");
+						menu.AppendMenu(MF_SEPARATOR);
+					}
 					// Note: Ctrl+A handled automatically by CListControl, no need for us to catch it
-					menu.AppendMenu(MF_STRING, ID_SELECTALL, L"Select all\tCtrl+A");
-					menu.AppendMenu(MF_STRING, ID_SELECTNONE, L"Select none");
-					menu.AppendMenu(MF_STRING, ID_INVERTSEL, L"Invert selection");
+					menu.AppendMenu(MF_STRING | (blist_empty ? MF_DISABLED | MF_GRAYED : 0), ID_SELECTALL, L"&Select all\tCtrl+A");
+					menu.AppendMenu(MF_STRING | (blist_empty ? MF_DISABLED | MF_GRAYED : 0), ID_SELECTNONE, L"Select &none");
+					menu.AppendMenu(MF_STRING | (!(bool)csel ? MF_DISABLED | MF_GRAYED : 0), ID_INVERTSEL, L"&Invert selection");
 					menu.AppendMenu(MF_SEPARATOR);
-					//Determine whether to set the checkmark:
-					auto flags = MF_STRING;
-					if (g_primaryGuiList == &m_guiList)
-						flags |= MF_CHECKED;
-					else
-						flags |= MF_UNCHECKED;
-					menu.AppendMenu(flags, ID_MAKEPRIME, L"Primary UI");
+
+					menu.AppendMenu(MF_STRING | (is_cfg_Bookmarking() ? MF_UNCHECKED : MF_CHECKED), ID_PAUSE_BOOKMARKS, L"&Pause Bookmarking");
+					menu.AppendMenu(MF_STRING, ID_PREF_PAGE, L"Con&figuration...");
 
 					int cmd;
 					{
@@ -324,16 +351,40 @@ namespace dlg {
 					}
 					switch (cmd) {
 					case ID_STORE:
-						storeBookmark();
+						addBookmark();
 						break;
 					case ID_RESTORE:
 						restoreFocusedBookmark();
+						break;
+					case  ID_RESET_TIME:
+						g_masterList.at(isel).time = 0;
+						m_guiList.ReloadItem(isel);
+						m_guiList.UpdateItem(isel);
 						break;
 					case ID_DEL:
 						m_guiList.RequestRemoveSelection();
 						break;
 					case ID_CLEAR:
 						clearBookmarks();
+						break;
+					case ID_COPY:
+						if (m_colActive[1]) {
+							pfc::string8 coltext;
+							for (auto i = 0; i < static_cast<int>(m_guiList.GetColumnCount()); i++) {
+								m_guiList.GetColumnText(i, coltext);
+								if (coltext.equals(COLUMNNAMES[1])) {
+									pfc::string8 bookmark;
+									m_guiList.GetSubItemText(m_guiList.GetSingleSel(), i, bookmark);
+
+									ClipboardHelper::OpenScope scope;
+									scope.Open(core_api::get_main_window(), true);
+									ClipboardHelper::SetString(bookmark);
+									scope.Close();
+
+									break;
+								}
+							}
+						}
 						break;
 					case ID_SELECTALL:
 						m_guiList.SelectAll();
@@ -343,23 +394,48 @@ namespace dlg {
 						break;
 					case ID_INVERTSEL:
 					{
-						auto mask = m_guiList.GetSelectionMask();
+						auto selmask = m_guiList.GetSelectionMask();
 						m_guiList.SetSelection(
 							// Items which we alter - all of them
 							pfc::bit_array_true(),
 							// Selection values - inverted original selection mask
-							pfc::bit_array_not(mask)
+							pfc::bit_array_not(selmask)
 						);
 					}
 					break;
 					case ID_MAKEPRIME:
 						g_primaryGuiList = &m_guiList;
 						break;
-					}
-				}//Contextmenu for listbody
 
-			} catch (std::exception const & e) {
-				console::complain("Context menu failure", e); //rare
+					case ID_PAUSE_BOOKMARKS: {
+
+						if (m_guiList.TableEdit_IsActive()) {
+							m_guiList.TableEdit_Abort(true);
+						}
+
+						auto res = cfg_status_flag.get_value();
+						res  ^= STATUS_PAUSED_FLAG;
+						cfg_status_flag.set(res);
+						if (g_wnd_bookmark_pref) {
+							SendMessage(g_wnd_bookmark_pref, UMSG_PAUSED, NULL, NULL);
+						}
+						break;
+					}
+					case ID_PREF_PAGE: {
+						if (::IsWindow(g_wnd_bookmark_pref)) {
+							::SetFocus(g_wnd_bookmark_pref);
+						}
+						else {
+							static_api_ptr_t<ui_control>()->show_preferences(g_get_prefs_guid());
+						}
+						break;
+					}
+					}
+				}// contextmenu
+
+			}
+			catch (std::exception const& e) {
+				FB2K_console_print_v("Context menu failure", e); //??
 			}
 		};
 
