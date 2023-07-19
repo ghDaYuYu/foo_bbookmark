@@ -1,67 +1,15 @@
 #include "stdafx.h"
 #include <optional>
 
-#include "bookmark_core.h" //(1)
-#include "bookmark_list_dlg.h"
+#include "bookmark_core.h"
+#include "bookmark_list_dialog.h"
 #include "style_manager.h"
-
-#include "../columns_ui-sdk/ui_extension.h" //(2)
 
 static const GUID guid_cui_bmark = { 0x70b26ed8, 0x710, 0x4d36, { 0xb8, 0xfe, 0xf7, 0xcf, 0x83, 0x41, 0x7, 0x62 } };
 
+using namespace dlg;
+
 namespace {
-
-	class CuiStyleCallback : public columns_ui::colours::common_callback,
-		public columns_ui::fonts::common_callback {
-
-		static_api_ptr_t<cui::colours::manager> colorManager;
-		static_api_ptr_t<cui::fonts::manager> fontManager;
-		std::function<void()> callback = nullptr;
-
-	public:
-
-		CuiStyleCallback(std::function<void()> callback) : callback(callback) {
-			colorManager->register_common_callback(this);
-			fontManager->register_common_callback(this);
-		}
-
-		~CuiStyleCallback() {
-			colorManager->deregister_common_callback(this);
-			fontManager->deregister_common_callback(this);
-		}
-
-		virtual void on_colour_changed(uint32_t changed_items_mask) const { callback(); }
-		virtual void on_bool_changed(uint32_t changed_items_mask) const final { callback(); }
-		virtual void on_font_changed(uint32_t changed_items_mask) const final { callback(); }
-
-	};
-
-	class CuiStyleManager : public StyleManager {
-
-		CuiStyleCallback callback;
-
-	public:
-
-		CuiStyleManager() : callback([&] { this->onChange(); }) { updateCache(); }
-
-		virtual COLORREF defaultTitleColor() final {
-			return columns_ui::colours::helper(GUID{}).get_colour(
-				columns_ui::colours::colour_text);
-		}
-		virtual LOGFONT defaultTitleFont() final {
-			LOGFONT font;
-			static_api_ptr_t<cui::fonts::manager> fontManager;
-			fontManager->get_font(columns_ui::fonts::font_type_items, font);
-			return font;
-		}
-		virtual COLORREF defaultBgColor() final {
-			return columns_ui::colours::helper(GUID{}).get_colour(
-				columns_ui::colours::colour_background);
-		}
-
-	protected:
-		//..
-	};
 
 	// CUI element class
 
@@ -69,7 +17,6 @@ namespace {
 
 		ui_extension::window_host_ptr m_host;
 		std::optional<CListCtrlMarkDialog> window;
-		std::optional<CuiStyleManager> style_manager;
 
 	public:
 
@@ -100,11 +47,7 @@ namespace {
 
 					// create dlg
 
-					if (!style_manager) {
-						style_manager.emplace();
-					}
-					// dui interface
-					window.emplace(wnd_parent, *style_manager, hosted_colWidths, hosted_colActive);
+					window.emplace(wnd_parent, hosted_colWidths, hosted_colActive);
 
 				}
 				catch (std::exception& e) {
@@ -142,7 +85,7 @@ namespace {
 			stream_reader_formatter<false> reader(*p_reader, p_abort);
 
 			for (int i = 0; i < N_COLUMNS; i++) {
-				reader >> (t_uint32)hosted_colWidths[i];				
+				reader >> (t_uint32)hosted_colWidths[i];
 			}
 			for (int i = 0; i < N_COLUMNS; i++) {
 				reader >> (bool)hosted_colActive[i];
@@ -159,8 +102,8 @@ namespace {
 
 		void destroy_window() final {
 
-			window.reset();
-			m_host.release();
+			//..
+
 		}
 
 	private:
@@ -171,4 +114,5 @@ namespace {
 	};
 
 	static service_factory_single_t<cui_bmark> cui_bmark_instance;
+
 }

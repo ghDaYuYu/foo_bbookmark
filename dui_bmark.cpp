@@ -1,8 +1,10 @@
 #include "stdafx.h"
 
-#include "bookmark_list_dlg.h"
+#include "bookmark_list_dialog.h"
 
 static const GUID guid_bookmark_ui = { 0xadaa758c, 0xc2c2, 0x4f3b, { 0x83, 0x12, 0x39, 0x86, 0x63, 0xbb, 0x67, 0x36 } };
+
+using namespace dlg;
 
 namespace {
 
@@ -39,15 +41,13 @@ namespace {
 				applyDark();
 			}
 
-			if (p_what == ui_element_notify_colors_changed ) {
+			if (p_what == ui_element_notify_colors_changed) {
 
-				m_guiList.Set_tfts();
-
-				m_dui_stylemanager.onChange();
+				m_cust_stylemanager->onChange();
 				Invalidate();
 			}
 			else if (p_what == ui_element_notify_font_changed) {
-				m_dui_stylemanager.onChange();
+				m_cust_stylemanager->onChange();
 				Invalidate();
 			}
 			else if (p_what == ui_element_notify_visibility_changed) {
