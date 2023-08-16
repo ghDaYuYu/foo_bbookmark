@@ -19,6 +19,10 @@ void bookmark_playlist_callback::on_playlists_removed(const bit_array& p_mask, t
 
 void bookmark_playlist_callback::on_playlist_renamed(t_size p_index, const char* p_new_name, t_size p_new_name_len) {
 
+	if (g_guiLists.empty()) {
+		return;
+	}
+	
 	bool bchanged = false;
 
 	if (core_version_info_v2::get()->test_version(2, 0, 0, 0)) {
