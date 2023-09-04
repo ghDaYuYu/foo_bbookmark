@@ -4,6 +4,7 @@
 #include <vector>
 #include <list>
 #include <sstream>
+#include "atlframe.h"
 
 #include <helpers/atl-misc.h>
 #include <helpers/DarkMode.h>
@@ -87,7 +88,9 @@ struct ectrlAndString_t {
 };
 
 
-class CBookmarkPreferences : public CDialogImpl<CBookmarkPreferences>, public preferences_page_instance {
+class CBookmarkPreferences : public CDialogImpl<CBookmarkPreferences>,
+	public CDialogResize<CBookmarkPreferences>,
+	public preferences_page_instance {
 
 public:
 
@@ -112,7 +115,19 @@ public:
 		COMMAND_CODE_HANDLER_EX(BN_CLICKED, OnCheckChange)
 		MESSAGE_HANDLER_SIMPLE(UMSG_NEW_TRACK, OnNewTrackMessage)
 		MESSAGE_HANDLER_SIMPLE(UMSG_PAUSED, OnPaused)
+		CHAIN_MSG_MAP(CDialogResize<CBookmarkPreferences>)
 	END_MSG_MAP()
+
+	BEGIN_DLGRESIZE_MAP(CPreviewLeadingTagDialog)
+		DLGRESIZE_CONTROL(IDC_STATIC_PREF_HEADER, DLSZ_SIZE_X)
+		DLGRESIZE_CONTROL(IDC_TITLEFORMAT, DLSZ_SIZE_X)
+		DLGRESIZE_CONTROL(IDC_PREVIEW, DLSZ_SIZE_X)
+		DLGRESIZE_CONTROL(IDC_AUTOSAVE_TRACK_FILTER, DLSZ_SIZE_X)
+	END_DLGRESIZE_MAP()
+
+	void DlgResize_UpdateLayout(int cxWidth, int cyHeight) {
+		CDialogResize<CBookmarkPreferences>::DlgResize_UpdateLayout(cxWidth, cyHeight);
+	}
 
 private:
 
@@ -225,6 +240,8 @@ private:
 };
 
 BOOL CBookmarkPreferences::OnInitDialog(CWindow wndCtl, LPARAM) {
+
+	DlgResize_Init(false, true);
 
 	g_wnd_bookmark_pref = m_hWnd;
 
@@ -409,7 +426,7 @@ void CBookmarkPreferences::OnChanged() {
 	
 	pfc::string_formatter songDesc;
 	if (!m_playback_control->playback_format_title(NULL, songDesc, p_script, NULL, playback_control::display_level_all)) {
-		songDesc << "Resume playback to generate track description.";
+		songDesc << "(resume playback to generate track description)";
 	}
 
 	const pfc::stringcvt::string_os_from_utf8 os_tag_name(songDesc);
