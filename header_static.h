@@ -23,7 +23,7 @@ private:
 	}
 
 protected:
-	int m_iLeftSpacing;
+	int	m_iLeftSpacing;
 	COLORREF m_clrText;
 	CFont m_newFont;
 

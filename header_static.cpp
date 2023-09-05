@@ -1,8 +1,7 @@
 #include "stdafx.h"
-#include "header_static.h"
-
 #include "libPPUI/PaintUtils.h"
 #include "libPPUI/wtl-pp.h"
+#include "header_static.h"
 
 using PaintUtils::PaintSeparatorControl;
 
