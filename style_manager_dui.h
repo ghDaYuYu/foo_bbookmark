@@ -19,8 +19,7 @@ public:
 		//..
 	}
 
-	~DuiStyleManager() {
-		hwnd = nullptr;
+	virtual ~DuiStyleManager() final {
 		instance_callback = nullptr;
 	}
 

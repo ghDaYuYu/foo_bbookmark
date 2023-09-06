@@ -53,7 +53,7 @@ public:
 		updateCache();
 	}
 
-	~CuiStyleManager() {
+	virtual ~CuiStyleManager() final {
 	
 		//..
 	}

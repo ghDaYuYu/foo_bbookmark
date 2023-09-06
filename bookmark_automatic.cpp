@@ -39,6 +39,22 @@ void bookmark_automatic::updateDummyTime() {
 		if (core_version_info_v2::get()->test_version(2, 0, 0, 0)) {
 			dummy.guid_playlist = playlist_manager_ptr->playlist_get_guid(index_playlist);
 		}
+
+		if (!m_updatePlaylist) {
+            //update last item
+            //todo: delay insertion - add instead of update.
+            bit_array_bittable changeMask(bit_array_false(), glb::g_primaryGuiList->GetItemCount());
+            changeMask.set(glb::g_primaryGuiList->GetItemCount() - 1, true);
+            auto& last = glb::g_masterList.at(glb::g_primaryGuiList->GetItemCount() - 1);
+            last.playlist = dummy.playlist;
+            last.guid_playlist = dummy.guid_playlist;
+
+            for (auto gui : glb::g_guiLists) {
+                gui->ReloadItems(changeMask);
+            }
+            //
+        }
+
 		gimme_time(dummy.date);
 	}
 }
@@ -59,6 +75,8 @@ void bookmark_automatic::updateDummy() {
 		}
 
 		m_updatePlaylist = true;	//We can't read the PlName right after the track was changed
+		dummy.playlist = "";
+		dummy.guid_playlist = pfc::guid_null;
 
 		pfc::string8 songPath = dbHandle_item->get_path();
 

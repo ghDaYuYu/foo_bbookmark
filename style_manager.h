@@ -12,7 +12,7 @@ namespace {
 
 	public:
 
-		~StyleManager() {
+		virtual ~StyleManager() {
 			setChangeHandler([] {});
 		}
 
