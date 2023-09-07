@@ -111,17 +111,10 @@ namespace dlg {
 
 		}
 
-		// Destructor
+		// DESTRUCTOR
 
 		~CListCtrlMarkDialog() {
-			
-			if (m_guiList.TableEdit_IsActive()) {
-				m_guiList.TableEdit_Abort(true);
-			}
 
-			m_colContent.resize(0);
-			FB2K_console_print_v("Destructor was called");
-			
 			if (g_primaryGuiList == &m_guiList) {
 				g_primaryGuiList = NULL;
 			}
@@ -129,7 +122,6 @@ namespace dlg {
 			g_guiLists.remove(&m_guiList);
 
 			if (m_cust_stylemanager) {
-
 				delete m_cust_stylemanager;
 			}
 		}
@@ -154,9 +146,9 @@ namespace dlg {
 
 		static void restoreFocusedBookmark() {
 
-			if (g_guiLists.empty()) {	//fall back to 0 if there is no list, and hence no selected bookmark
-				FB2K_console_print_v("Global Bookmark Restore: No bookmark UI found, falling back to first bookmark");
-				restoreBookmark(0);
+			if (g_guiLists.empty() || (g_primaryGuiList && g_primaryGuiList->GetFocusItem() != pfc_infinite)) {
+				FB2K_console_print_v("Global Bookmark Restore: No bookmark UI found, falling back to last bookmark");
+				restoreBookmark(g_masterList.size() -1);
 				return;
 			}
 
@@ -193,10 +185,10 @@ namespace dlg {
 		}
 
 		static void clearBookmarks() {
-			size_t oldCount = g_masterList.size();
+
 			g_masterList.clear();
 			for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
-				(*it)->OnItemsRemoved(pfc::bit_array_true(), oldCount);
+				(*it)->OnItemsRemoved(pfc::bit_array_true(),g_masterList.size());
 			}
 			g_permStore.writeDataFileJSON(g_masterList);
 		}
@@ -207,11 +199,13 @@ namespace dlg {
 		}
 
 		static bool canRestore() {
-			return g_primaryGuiList && g_primaryGuiList->GetSingleSel() != ~0;
+			return (g_primaryGuiList && g_primaryGuiList->GetSingleSel() != ~0)
+				|| g_masterList.size();
 		}
 
 		static bool canClear() {
-			return g_primaryGuiList && (bool)g_primaryGuiList->GetItemCount();
+			return (g_primaryGuiList && (bool)g_primaryGuiList->GetItemCount())
+				|| g_masterList.size();
 		}
 
 		//========================UI code===============================
@@ -228,8 +222,7 @@ namespace dlg {
 			::ShowWindow(GetDlgItem(IDC_BOOKMARKLIST), SW_SHOW);
 
 			m_guiList.CreateInDialog(*this, IDC_BOOKMARKLIST);
-
-			m_guiList.Initialize(m_hWnd, &m_colContent);
+			m_guiList.Initialize(&m_colContent);
 
 			m_dark.AddDialogWithControls(*this);
 
@@ -239,9 +232,7 @@ namespace dlg {
 			}
 
 			configToUI();
-
 			on_style_change();
-
 			ShowWindow(SW_SHOW);
 
 			return true; // system should set focus
@@ -255,74 +246,14 @@ namespace dlg {
 			if (m_guiList.m_hWnd) {
 				::GetWindowRect(m_hWnd, &recUI);
 				::GetWindowRect(m_guiList.m_hWnd, &recList);
-
 				::MoveWindow(m_guiList.m_hWnd, 0, 0, recUI.Width(), recUI.Height(), 1);
 			}
-			
-			return;
 		}
-
-		//===========Overrides for CListControlBookmark================
-		size_t listGetItemCount(ctx_t ctx) override {
-			PFC_ASSERT(ctx == &m_list); // ctx is a pointer to the object calling us
-			return g_masterList.size();
-		}
-		pfc::string8 listGetSubItemText(ctx_t, size_t item, size_t subItem) override {
-			auto & rec = g_masterList[item];
-			auto subItemContent = m_colContent[subItem];
-			switch (subItemContent) {
-			case TIME_COL:
-			{
-				std::ostringstream conv;
-				int hours = (int)rec.m_time / 3600;
-				int minutes = (int)std::fmod(rec.m_time, 3600) / 60;
-				int seconds = (int)std::fmod(rec.m_time, 60);
-				if (hours != 0)
-					conv << hours << ":";
-				conv << std::setfill('0') << std::setw(2) << minutes << ":" << std::setfill('0') << std::setw(2) << seconds;
-				return conv.str().c_str();
-			}
-			case DESC_COL:
-				return rec.m_desc.c_str();
-			case PLAYLIST_COL:
-				return rec.m_playlist.c_str();
-			default:
-				return "";
-			}
-
-		}
-		bool listCanReorderItems(ctx_t) override { return true; }
-		bool listReorderItems(ctx_t, const size_t* order, size_t count) override {
-			PFC_ASSERT(count == g_masterList.size());
-			pfc::reorder_t(g_masterList, order, count);
-			g_permStore.writeDataFile(g_masterList);
-			return true;
-		}
-		bool listRemoveItems(ctx_t, pfc::bit_array const & mask) override {
-			size_t oldCount = g_masterList.size();
-
-			pfc::remove_mask_t(g_masterList, mask); //remove from global list
-
-			//Update all guiLists
-			for (std::list<CListControlBookmark *>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
-				if ((*it) != &m_guiList) {
-					(*it)->OnItemsRemoved(mask, oldCount);
-				}
-			}
-
-			g_permStore.writeDataFile(g_masterList);	//Write to file
-			return true;
-		}
-		void listItemAction(ctx_t, size_t item) override { restoreBookmark(item); }
-
-		void listSubItemClicked(ctx_t, size_t item, size_t subItem) override { return; }
-		void listSetEditField(ctx_t ctx, size_t item, size_t subItem, const char * val) override { return; }	//We don't want to allow edits		
-		bool listIsColumnEditable(ctx_t, size_t subItem) override { return false; }
 
 		void OnContextMenu(CWindow wnd, CPoint point) {
 
 			try {
-				//todo: rev
+
 				if (!m_guiList.m_hWnd || (!m_cui && m_callback->is_edit_mode_enabled())) {
 					SetMsgHandled(false);
 					return;
@@ -336,7 +267,6 @@ namespace dlg {
 				// WIN32_OP_D() : debug build only return value check
 				// Used to check for obscure errors in debug builds, does nothing (ignores errors) in release build
 				WIN32_OP_D(menu.CreatePopupMenu());
-
 
 				CRect headerRct;
 				m_guiList.GetHeaderCtrl().GetWindowRect(headerRct);
@@ -395,19 +325,15 @@ namespace dlg {
 				}
 				else {
 
-					bool bupdatable = (!playback_control_v3::get()->is_playing() || playback_control_v3::get()->is_paused()) || !is_cfg_Bookmarking() || !cfg_autosave_newtrack.get();
+					bool bupdatable = /*!(playback_control_v3::get()->is_playing() || playback_control_v3::get()->is_paused()) &&*/ !is_cfg_Bookmarking() /*&& !cfg_autosave_newtrack.get()*/;
 
 					auto selmask = m_guiList.GetSelectionMask();
 					auto isel = m_guiList.GetSingleSel();
-
+					size_t icount = m_guiList.GetItemCount();
 					size_t csel = m_guiList.GetSelectedCount();
-					bool blist_empty = !(bool)m_guiList.GetItemCount();
+
 					bool bsinglesel = m_guiList.GetSingleSel() != ~0;
-					bool bresetable = false;
-					
-					if (bsinglesel) {
-						bresetable = g_masterList.at(isel).time != 0;
-					}
+					bool bresetable = (bool)icount && bsinglesel && g_masterList.at(isel).time != 0;
 
 					//Contextmenu for listbody
 					enum { ID_STORE = 1, ID_RESTORE, ID_RESET_TIME, ID_DEL, ID_CLEAR, ID_COPY, ID_SELECTALL, ID_SELECTNONE, ID_INVERTSEL, ID_MAKEPRIME, ID_PAUSE_BOOKMARKS, ID_PREF_PAGE };
@@ -416,15 +342,15 @@ namespace dlg {
 					menu.AppendMenu(MF_STRING | (!bsinglesel ? MF_DISABLED | MF_GRAYED : 0), ID_RESTORE, L"&Restore\tENTER");
 					menu.AppendMenu(MF_STRING | (!bupdatable || !(bool)csel ? MF_DISABLED | MF_GRAYED : 0), ID_DEL, L"&Delete\tDel");
 					menu.AppendMenu(MF_SEPARATOR);
-					menu.AppendMenu(MF_STRING | (!bupdatable || blist_empty ? MF_DISABLED | MF_GRAYED : 0), ID_CLEAR, L"C&lear All");
+					menu.AppendMenu(MF_STRING | (!bupdatable || !(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_CLEAR, L"C&lear All");
 					menu.AppendMenu(MF_SEPARATOR);
 					if (bsinglesel) {
 						menu.AppendMenu(MF_STRING, ID_COPY, L"&Copy");
 						menu.AppendMenu(MF_SEPARATOR);
 					}
 					// Note: Ctrl+A handled automatically by CListControl, no need for us to catch it
-					menu.AppendMenu(MF_STRING | (blist_empty ? MF_DISABLED | MF_GRAYED : 0), ID_SELECTALL, L"&Select all\tCtrl+A");
-					menu.AppendMenu(MF_STRING | (blist_empty ? MF_DISABLED | MF_GRAYED : 0), ID_SELECTNONE, L"Select &none");
+					menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_SELECTALL, L"&Select all\tCtrl+A");
+					menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_SELECTNONE, L"Select &none");
 					menu.AppendMenu(MF_STRING | (!(bool)csel ? MF_DISABLED | MF_GRAYED : 0), ID_INVERTSEL, L"&Invert selection");
 					menu.AppendMenu(MF_SEPARATOR);
 
@@ -532,7 +458,7 @@ namespace dlg {
 
 			}
 			catch (std::exception const& e) {
-				FB2K_console_print_v("Context menu failure", e); //??
+				FB2K_console_print_e("Context menu failure", e); //??
 			}
 		};
 
@@ -606,8 +532,14 @@ namespace dlg {
 		static void parseConfig(ui_element_config::ptr cfg, std::array<uint32_t, N_COLUMNS>& widths, std::array<bool, N_COLUMNS>& active) {
 
 			FB2K_console_print_v("Parsing config");
-			widths = defaultColWidths;
-			active = defaultColActive;
+
+			if (!widths.size()) {
+				widths = defaultColWidths;
+				active = defaultColActive;
+			}
+			else {
+				//..
+			}
 
 			if (!cfg.get_ptr()) {
 				//todo: cui
@@ -624,10 +556,10 @@ namespace dlg {
 				}
 			}
 			catch (exception_io_data_truncation e) {
-				FB2K_console_print_v("Failed to parse configuration", e);
+				FB2K_console_print_e("Failed to parse configuration", e);
 			}
 			catch (exception_io_data e) {
-				FB2K_console_print_v("Failed to parse configuration", e);
+				FB2K_console_print_e("Failed to parse configuration", e);
 			}
 		}
 
@@ -635,7 +567,7 @@ namespace dlg {
 			if (sizeof(widths) / sizeof(uint32_t) != N_COLUMNS)
 				return makeConfig(ui_guid);
 
-			FB2K_console_print_v("Making config from ",widths[0]," and ",widths[1]);
+			FB2K_console_print_v("Making config from ", widths[0], " and ", widths[1]);
 
 			ui_element_config_builder out;
 			for (int i = 0; i < N_COLUMNS; i++)
@@ -648,22 +580,33 @@ namespace dlg {
 		void configToUI() {
 
 			FB2K_console_print_v("Applying config to UI: ", m_colWidths[0], " and ", m_colWidths[1]);
+
 			auto DPI = m_guiList.GetDPI();
 
 			if (m_guiList.GetHeaderCtrl() != NULL && m_guiList.GetHeaderCtrl().GetItemCount()) {
 				m_guiList.DeleteColumns(pfc::bit_array_true(), false);
 			}
 
+			auto fit = std::find(m_colActive.begin(), m_colActive.end(), true);
+			if (fit == m_colActive.end()) {
+				m_colActive[0] = true;
+				m_colActive[1] = true;
+			}
+
 			size_t ndx_tail = N_COLUMNS - 1;
 			for (int i = 0; i < N_COLUMNS; i++) {
-				FB2K_console_print_v("Config to UI: i is ", i, "; name: ", COLUMNNAMES[i], ", active: ", m_colActive[i], ", width: ", m_colWidths[i]);
+
+				if (cfg_verbose) {
+					FB2K_console_print_v("Config to UI: i is ", i, "; name: ", COLUMNNAMES[i], ", active: ", m_colActive[i], ", width: ", m_colWidths[i]);
+				}
 
 				auto ndx_cont = !m_guiList.IsHeaderEnabled() ? 0 : m_guiList.GetColumnCount();
 				if (m_colActive[i]) {
-					int width = (m_colWidths[i] != 0 && m_colWidths[i] != ~0) ? m_colWidths[i] : defaultColWidths[i];	//use defaults instead of zero
-					width = (std::min)(width, 1000);
+					//use defaults instead of zero
+					size_t width = (m_colWidths[i] != 0 && m_colWidths[i] != pfc_infinite) ? m_colWidths[i] : defaultColWidths[i];
+					width = pfc::min_t<size_t>(width, 1000);
 					m_colContent[ndx_cont] = i;
-					m_guiList.AddColumn(COLUMNNAMES[i], MulDiv(width, DPI.cx, 96));
+					m_guiList.AddColumn(COLUMNNAMES[i], MulDiv(static_cast<int>(width), DPI.cx, 96));
 				}
 				else {
 					//move to tail
@@ -685,8 +628,8 @@ namespace dlg {
 		bool m_cui = false;
 
 		fb2k::CDarkModeHooks m_dark;
-		
-		std::array<uint32_t, N_COLUMNS> m_colWidths;
+
+		std::array<uint32_t, N_COLUMNS> m_colWidths = {0};
 
 		std::array<bool, N_COLUMNS> m_colActive;
 		pfc::array_t<size_t> m_colContent;

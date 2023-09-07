@@ -1,5 +1,4 @@
 #include "bookmark_core.h"
-
 #include "bookmark_list_control.h"
 
 using namespace glb;
@@ -19,15 +18,17 @@ namespace {
 
 		virtual void on_quit() {
 
-			if (cfg_autosave_on_quit.get()) {
+			if (is_cfg_Bookmarking() && cfg_autosave_on_quit.get() && g_bmAuto.checkDummy()) {
 
 				if (g_bmAuto.upgradeDummy(g_masterList, g_guiLists)) {
-					g_permStore.writeDataFileJSON(g_masterList);
+					//..
 				}
-
 			}
+			g_permStore.writeDataFileJSON(g_masterList);
 		}
 	};
+
+	// S T A T I C   I N I T / Q U I T
 
 	static initquit_factory_t< initquit_bbookmark > g_bookmark_initquit;
 }

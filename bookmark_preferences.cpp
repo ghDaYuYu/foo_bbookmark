@@ -16,6 +16,7 @@
 #include "bookmark_preferences.h"
 
 #include "bookmark_core.h"
+#include "bookmark_automatic.h"
 
 static const int stringlength = 256;
 
@@ -243,6 +244,10 @@ private:
 
 };
 
+void ConvertString8(const pfc::string8 orig, wchar_t* out, size_t max) {
+	pfc::stringcvt::convert_utf8_to_wide(out, max, orig.get_ptr(), orig.length());
+}
+
 BOOL CBookmarkPreferences::OnInitDialog(CWindow wndCtl, LPARAM) {
 
 	DlgResize_Init(false, true);
@@ -276,18 +281,17 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow wndCtl, LPARAM) {
 	
 	for (size_t i = 0; i < plCount; i++) {
 
-		pfc::string8 plName;
-		playlist_manager::get()->playlist_get_name(i, plName);
-		FB2K_console_print("found playlist called ", plName.c_str());
-		m_currentPlNames.emplace_back(plName);
+        pfc::string8 plName;
+        playlist_manager::get()->playlist_get_name(i, plName);
 
-		size_t outSize;
-		wchar_t wideString[stringlength];
-		mbstowcs_s(&outSize, wideString, stringlength, plName.c_str(), stringlength - 1);
+        m_currentPlNames.emplace_back(plName);
 
-		SendMessage(comboBox, CB_ADDSTRING, 0, (LPARAM)wideString);
-	}
-	SendMessage(comboBox, CB_SETCURSEL, 0, 0);
+        WCHAR wstr[1024];
+        ConvertString8(plName, wstr, 1024 - 1);
+
+        uSendMessage(comboBox, CB_ADDSTRING, 0, (LPARAM)wstr);
+    }
+    SendMessage(comboBox, CB_SETCURSEL, 0, 0);
 
 	comboBox.SetTopIndex(0);
 
@@ -330,11 +334,13 @@ void CBookmarkPreferences::OnCheckChange(UINT uNotifyCode, int nId, CWindow wndC
 		CComboBox comboBox = GetDlgItem(IDC_CMB_PLAYLISTS);
 		int selected = comboBox.GetCurSel();
 
-		if (selected >= 0 && selected < m_currentPlNames.size()) {
-			pfc::string8 newName;
-			newName += m_currentPlNames[selected];
-			//replace all commas with dots (because of the comma-seperated list)
-			newName.replace_char(',', '.');
+		if (selected >= 0 && static_cast<size_t>(selected) < m_currentPlNames.size()) {
+
+            pfc::string8 newName;
+            newName += m_currentPlNames[selected];
+
+            //replace all commas with dots (because of the comma-seperated list)
+            newName.replace_char(',', '.');
 
 			//check if name already exists
 			std::stringstream ss(cfg_autosave_newtrack_playlists.get_value().c_str());
@@ -346,26 +352,23 @@ void CBookmarkPreferences::OnCheckChange(UINT uNotifyCode, int nId, CWindow wndC
 				}
 			}
 
-			FB2K_console_print("adding to auto-bookmarking playlists: ", newName);
+            //Add newName to the ui:
+            wchar_t fieldContent[1 + (stringlength * 2)];
+            GetDlgItemTextW(IDC_AUTOSAVE_TRACK_FILTER, (LPTSTR)fieldContent, stringlength);
 
-			//Add newName to the ui:			
-			wchar_t fieldContent[1 + (stringlength * 2)];
-			GetDlgItemTextW(IDC_AUTOSAVE_TRACK_FILTER, (LPTSTR)fieldContent, stringlength);
+            if (fieldContent[0] != L"\0"[0]) {
+                wcscat_s(fieldContent, L",");
+            }
+            
+            WCHAR wstr[1024];
+            ConvertString8(newName, wstr, 1024 - 1);
 
-			wchar_t newEntry[stringlength];
-			size_t outSize;
-			mbstowcs_s(&outSize, newEntry, stringlength, newName.c_str(), stringlength - 1);
+            wcscat_s(fieldContent, wstr);
 
-			if (fieldContent[0] != L"\0"[0]) {
-				wcscat_s(fieldContent, L",");
-				//FB2K_console_print("fc was determined to not be empty");
-			}
-			wcscat_s(fieldContent, newEntry);
-			
-			SetDlgItemText(IDC_AUTOSAVE_TRACK_FILTER, fieldContent);
+            SetDlgItemText(IDC_AUTOSAVE_TRACK_FILTER, fieldContent);
 
-			return; 
-		}
+            return; 
+        }
 
 	} else {
 

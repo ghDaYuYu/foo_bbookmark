@@ -11,10 +11,10 @@
 #define COMPONENT_VERSION_MAJOR 1
 #define COMPONENT_VERSION_MINOR 0
 #define COMPONENT_VERSION_PATCH 0
-#define COMPONENT_VERSION_SUB_PATCH 6
+#define COMPONENT_VERSION_SUB_PATCH 8
 
 #define MAKE_STRING(text) #text
-#define MAKE_COMPONENT_VERSION(major,minor,patch) MAKE_STRING(major) "." MAKE_STRING(minor) " beta 6"
+#define MAKE_COMPONENT_VERSION(major,minor,patch) MAKE_STRING(major) "." MAKE_STRING(minor) " beta 8"
 #define MAKE_DLL_VERSION(major,minor,patch,subpatch) MAKE_STRING(major) "." MAKE_STRING(minor) "." MAKE_STRING(patch) "." MAKE_STRING(subpatch)
 #define MAKE_API_SDK_VERSION(sdk_ver, sdk_target) MAKE_STRING(sdk_ver) " " MAKE_STRING(sdk_target)
 

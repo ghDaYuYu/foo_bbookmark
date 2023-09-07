@@ -35,6 +35,8 @@ namespace dlg {
 			return (bool)dummy.desc.get_length();
 		}
 
+		bool CheckAutoFilter();
+
 		void updateDummyTime();
 		void updateDummy();
 		bool upgradeDummy(std::vector<bookmark_t>& masterList, std::list< dlg::CListControlBookmark*> guiList);

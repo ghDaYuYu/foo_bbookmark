@@ -3,12 +3,16 @@
 #include "SDK/playback_control.h"
 #include "SDK/playlist.h"
 
+//update playlist
+#include "bookmark_core.h"
+
 #include "bookmark_automatic.h"
 #include "bookmark_list_control.h"
 #include "bookmark_preferences.h"
 
 void bookmark_automatic::updateDummyTime() {
 
+	auto oldtime = dummy.time;
 	dummy.time = playback_control::get()->playback_get_position();
 
 	if (m_updatePlaylist) {
@@ -19,15 +23,13 @@ void bookmark_automatic::updateDummyTime() {
 		size_t index_item;
 		auto playlist_manager_ptr = playlist_manager_v5::get();
 
-		if (cfg_verbose) {
-			if (playlist_manager_ptr->get_playing_item_location(&index_playlist, &index_item)) {
-				FB2K_console_print_v("AutoBookmark: dummy update: Playlist index is ", index_playlist);
-				if (playlist_manager_ptr->playlist_get_name(index_playlist, playing_pl_name))
-					FB2K_console_print_v("AutoBookmark: dummy update: Playlist name is ", playing_pl_name);
-			}
-			else {
-				FB2K_console_print_v("AutoBookmark: dummy update: couldn't find playlist index");
-			}
+		if (playlist_manager_ptr->get_playing_item_location(&index_playlist, &index_item)) {
+			FB2K_console_print_v("AutoBookmark: dummy update: Playlist index is ", index_playlist);
+			if (playlist_manager_ptr->playlist_get_name(index_playlist, playing_pl_name))
+				FB2K_console_print_v("AutoBookmark: dummy update: Playlist name is ", playing_pl_name);
+		}
+		else {
+			FB2K_console_print_v("AutoBookmark: dummy update: couldn't find playlist index");
 		}
 
 		//Set the flag back to true if either operation fails
@@ -40,20 +42,35 @@ void bookmark_automatic::updateDummyTime() {
 			dummy.guid_playlist = playlist_manager_ptr->playlist_get_guid(index_playlist);
 		}
 
-		if (!m_updatePlaylist) {
-            //update last item
-            //todo: delay insertion - add instead of update.
-            bit_array_bittable changeMask(bit_array_false(), glb::g_primaryGuiList->GetItemCount());
-            changeMask.set(glb::g_primaryGuiList->GetItemCount() - 1, true);
-            auto& last = glb::g_masterList.at(glb::g_primaryGuiList->GetItemCount() - 1);
-            last.playlist = dummy.playlist;
-            last.guid_playlist = dummy.guid_playlist;
+		bool canBookmark = is_cfg_Bookmarking();
+		canBookmark &= (cfg_autosave_newtrack.get() || (core_api::is_shutting_down() && cfg_autosave_on_quit.get()));
+		canBookmark &= CheckAutoFilter();
 
-            for (auto gui : glb::g_guiLists) {
-                gui->ReloadItems(changeMask);
-            }
-            //
-        }
+		if (!m_updatePlaylist && canBookmark ) {
+			//update last item
+			//todo: delay insertion - add instead of update.
+			auto cMastList = glb::g_masterList.size();
+			bit_array_bittable changeMask(bit_array_false(), cMastList);
+			
+			auto& last = cMastList ? glb::g_masterList.at(cMastList - 1) : bookmark_t();
+			if (!cMastList || last.playlist.get_length()) {
+				//(list was empty/filtered playlist)
+				//if the last bookmark's playlist was assigned, add new item
+				dummy.time = oldtime;
+				glb::g_masterList.emplace_back(dummy);
+				changeMask.resize(glb::g_masterList.size());
+			}
+			else {
+				//item was waiting for playlist details
+				last.playlist = dummy.playlist;
+				last.guid_playlist = dummy.guid_playlist;
+			}
+			changeMask.set(glb::g_masterList.size() - 1, true);
+			for (auto gui : glb::g_guiLists) {
+				gui->ReloadItems(changeMask);
+			}
+			//
+		}
 
 		gimme_time(dummy.date);
 	}
@@ -96,11 +113,37 @@ void bookmark_automatic::updateDummy() {
 	}
 }
 
+bool bookmark_automatic::CheckAutoFilter() {
+	if (cfg_autosave_filter_newtrack.get()) {
+		//filter is active
+
+		//Obtain individual names in the filter
+		std::vector<std::string> allowedPlaylists;
+		std::stringstream ss(cfg_autosave_newtrack_playlists.get_value().c_str());
+		std::string token;
+		while (std::getline(ss, token, ',')) {
+			allowedPlaylists.push_back(token);
+		}
+
+		//replace chars in the current playlist names
+		pfc::string8 dummyPlaylist = dummy.playlist.c_str();
+		dummyPlaylist.replace_char(',', '.');
+
+		auto find_it = std::find(allowedPlaylists.begin(), allowedPlaylists.end(), dummyPlaylist.c_str());
+		if (find_it == allowedPlaylists.end()) {
+			// nothing to do
+			return false;
+		}
+	}
+	return true;
+}
 bool bookmark_automatic::upgradeDummy(std::vector<bookmark_t>& masterList, std::list< dlg::CListControlBookmark*> guiLists) {
 
 	if (dummy.desc.length() == 0) {
 		// nothing to do
 		return false;
+	}
+
 	//TODO: what if there is no valid song name?
 
 	metadb_handle_ptr track_bm;
@@ -116,7 +159,6 @@ bool bookmark_automatic::upgradeDummy(std::vector<bookmark_t>& masterList, std::
 		track_bm = metadb_ptr->handle_create(dummy.path.c_str(), dummy.subsong);
 	}
 
-	//track ending ?
 	auto track_length = track_bm->get_length();
 	bool bsamepath = pfc::string8(track_bm->get_path()).equals(dummy.path);
 	if (bsamepath) {
@@ -129,34 +171,10 @@ bool bookmark_automatic::upgradeDummy(std::vector<bookmark_t>& masterList, std::
 		updateDummy();
 	}
 
-	if (cfg_autosave_filter_newtrack.get()) {
-		//active filter
-
-		FB2K_console_print_v("AutoBookmark: The dummie's playlist is called ", dummy.playlist.c_str());
-
-		//Obtain individual names in the filter
-		std::vector<std::string> allowedPlaylists;
-		std::stringstream ss(cfg_autosave_newtrack_playlists.get_value().c_str());
-		std::string token;
-		while (std::getline(ss, token, ',')) {
-			allowedPlaylists.push_back(token);
-		}
-
-		//replace chars in playlist names
-		pfc::string8 dummyPlaylist = dummy.playlist.c_str();
-		dummyPlaylist.replace_char(',', '.');
-
-		auto find_it = std::find(allowedPlaylists.begin(), allowedPlaylists.end(), dummyPlaylist.c_str());
-		if (find_it == allowedPlaylists.end()) {
-			
-			FB2K_console_print_v("...no match.");
-			// nothing to do
-			return false;
-
-		}
+	if (!CheckAutoFilter()) {
+		FB2K_console_print_v("Filter is active and did not match, do not store a bookmark.");
+		return false;
 	}
-
-	FB2K_console_print_v("...matches.");
 
 	double timeFuzz = 1.0;
 
@@ -194,7 +212,7 @@ bool bookmark_automatic::upgradeDummy(std::vector<bookmark_t>& masterList, std::
 		if (!core_api::is_shutting_down()) {
 			for (auto it = guiLists.begin(); it != guiLists.end(); ++it) {
 				dlg::CListControlBookmark* lc = *it;
-				lc->OnItemsInserted(masterList.size(), 1, true);				
+				lc->OnItemsInserted(masterList.size(), 1, true);
 			}
 		}
 	}

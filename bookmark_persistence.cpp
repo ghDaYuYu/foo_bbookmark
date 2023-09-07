@@ -69,7 +69,7 @@ void add_rec(std::vector<json_t*> &vjson, const std::vector<pfc::string8>& vlbl,
 void bookmark_persistence::writeDataFileJSON(std::vector<bookmark_t>& masterList) {
 
 	if (core_api::is_quiet_mode_enabled()) {
-		FB2K_console_print_v("Quiet mode, will not write bookmarks to file");
+		FB2K_console_print_e("Quiet mode, will not write bookmarks to file");
 		return;
 	}
 
@@ -89,7 +89,7 @@ void bookmark_persistence::writeDataFileJSON(std::vector<bookmark_t>& masterList
 		size_t n_entries = masterList.size();
 
 		std::vector<json_t*> vjson;
-		std::vector<pfc::string8> vlbl = { "time", "desc", "playlist", "guid", "path", "subsong", "comment", "date"};
+		std::vector<pfc::string8> vlbl = { "time", "desc", "playlist", "guid", "path", "subsong", "comment", "date" };
 
 		//first pass
 
@@ -121,12 +121,11 @@ void bookmark_persistence::writeDataFileJSON(std::vector<bookmark_t>& masterList
 		FB2K_console_print_v("Wrote ", std::to_string(n_entries).c_str(), " bookmarks to file");
 	}
 	catch (foobar2000_io::exception_io e) {
-		FB2K_console_print_v("Could not write bookmarks to file", e);
+		FB2K_console_print_e("Could not write bookmarks to file", e);
 	}
 	catch (...) {
-		FB2K_console_print_v("Could not write bookmarks to file", "Unhandled Exception");
+		FB2K_console_print_e("Could not write bookmarks to file", "Unhandled Exception");
 	}
-
 }
 
 //restore masterList from persistent storage
@@ -259,13 +258,14 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 				for (size_t i = 0; i < temp_data.size(); ++i)
 					FB2K_console_print_v("time ", i, ": ", temp_data[i].time);
 			}
+
 		}
 		catch (foobar2000_io::exception_io e) {
-			FB2K_console_print_v("Reading data from file failed", e);
+			FB2K_console_print_e("Reading data from file failed", e);
 			return false;
 		}
 		catch (...) {
-			FB2K_console_print_v("Reading data from file failed", "Unhandled Exception");
+			FB2K_console_print_e("Reading data from file failed", "Unhandled Exception");
 			return false;
 		}
 

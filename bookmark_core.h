@@ -28,7 +28,9 @@ namespace glb {
 
 	inline dlg::CListControlBookmark* g_primaryGuiList = NULL;
 
-	inline dlg::CListControlBookmark* GetPrimaryGuiList() { return g_primaryGuiList; }
+	inline dlg::CListControlBookmark* GetPrimaryGuiList() {
+		return g_primaryGuiList;
+	}
 
 	inline std::mutex g_mtx_restoring;
 	inline bool g_restoring = false;

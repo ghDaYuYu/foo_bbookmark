@@ -1,6 +1,5 @@
 #include "stdafx.h"
 #include "bookmark_core.h"
-
 #include "bookmark_persistence.h"
 #include "bookmark_preferences.h"
 #include "bookmark_worker.h"
@@ -27,7 +26,7 @@ void bookmark_worker::store(std::vector<bookmark_t>& masterList) {
 	auto playback_control_ptr = playback_control::get();
 	if (!playback_control_ptr->get_now_playing(dbHandle_item)) {
 		//We can not obtain the currently playing item - fizzle out
-		FB2K_console_print_v("Get_now_playing failed, can only store time.");
+		FB2K_console_print_e("Get_now_playing failed, can only store time.");
 		songDesc << "Could not find playing song info.";
 
 		newMark.time = playback_control_ptr->playback_get_position();
@@ -95,10 +94,6 @@ void bookmark_worker::restore(std::vector<bookmark_t>& masterList, size_t index)
 		auto playback_control_ptr = playback_control::get();
 
 		metadb_handle_ptr track_bm = metadb_ptr->handle_create(rec.path.c_str(), rec.subsong);	//Identify track to restore
-
-		metadb_handle_ptr track_current;
-		playback_control_ptr->get_now_playing(track_current); //Identify current track
-
 
 		//if (track_bm != track_current) { //Skip if track is already playing
 			size_t index_pl = ~0;
@@ -179,16 +174,14 @@ void bookmark_worker::restore(std::vector<bookmark_t>& masterList, size_t index)
 					playback_control_ptr->playback_seek(rec.time);
 				}
 
-
 				//unpause
 				playback_control_ptr->pause(false);
-			
+
 			}
 		}
-
 	}
-	else {	//Index invalid, fall back to the 0th entry
-		restore(masterList, 0);
+	else {	//Index invalid, fall back to the last entry
+		restore(masterList, masterList.size() - 1);
 		return;
 	}
 }
