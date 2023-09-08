@@ -16,6 +16,7 @@ namespace {
 			setChangeHandler([] {});
 		}
 
+		virtual bool isDark() const = 0;
 		virtual COLORREF getTitleColor() const = 0;
 		virtual COLORREF getBgColor() const = 0;
 		virtual COLORREF getSelColor() const = 0;
@@ -28,11 +29,15 @@ namespace {
 			changeHandler = handler;
 		};
 
-		void onChange() {
+		void onChange(uint32_t chg = 0) {
+			if (glb::g_guiLists.empty()) {
+				return;
+			}
+
 			updateCache();
 			if (changeHandler)
 				changeHandler();
-		};
+		}
 
 	protected:
 	
@@ -40,6 +45,7 @@ namespace {
 		virtual COLORREF defaultBgColor() = 0;
 		virtual COLORREF defaultSelColor() = 0;
 		virtual COLORREF defaultHighColor() = 0;
+		virtual COLORREF defaultHotColor() = 0;
 		virtual LOGFONT defaultTitleFont() = 0;
 		virtual LOGFONT defaultListFont() = 0;
 		virtual LOGFONT defaultPlaylistFont() = 0;
@@ -49,6 +55,7 @@ namespace {
 			cachedBgColor = defaultBgColor();
 			cachedSelColor = defaultSelColor();
 			cachedHighColor = defaultHighColor();
+			cachedHotColor = defaultHotColor();
 			cachedTitleFont = defaultTitleFont();
 			cachedListFont = defaultListFont();
 			cachedPlaylistFont = defaultPlaylistFont();
@@ -60,6 +67,7 @@ namespace {
 		COLORREF cachedBgColor{};
 		COLORREF cachedSelColor{};
 		COLORREF cachedHighColor{};
+		COLORREF cachedHotColor{};
 		LOGFONT cachedTitleFont{};
 		LOGFONT cachedListFont{};
 		LOGFONT cachedPlaylistFont{};

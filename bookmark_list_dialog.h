@@ -16,6 +16,7 @@
 
 #include "style_manager_dui.h"
 #include "style_manager_cui.h"
+#include "guids.h"
 
 using namespace glb;
 
@@ -68,7 +69,7 @@ namespace dlg {
 
 		// DUI constructor
 
-		CListCtrlMarkDialog(HWND parent, ui_element_config::ptr cfg, ui_element_instance_callback::ptr cb)
+		CListCtrlMarkDialog(ui_element_config::ptr cfg, ui_element_instance_callback::ptr cb)
 			: m_cfg(cfg.get_ptr()), m_callback(cb), m_cust_stylemanager(new DuiStyleManager(cb)), m_guiList(this, false)
 		{
 
@@ -80,11 +81,6 @@ namespace dlg {
 			parseConfig(cfg, m_colWidths, m_colActive);
 
 			m_cust_stylemanager->setChangeHandler([&] { this->on_style_change(); });
-
-			// initiale (create)
-
-			initialize_window(parent);
-
 		}
 
 		// CUI constructor
@@ -139,8 +135,10 @@ namespace dlg {
 			WIN32_OP(Create(parent) != NULL);
 		}
 
-		//not overriding - serves cui_bmark
-		HWND get_wnd() const { return m_hWnd; }
+		//see ImplementBumpableElem<TImpl> - ui_element_impl_withpopup<`anonymous-namespace'::dui_tour,ui_element_v2>
+		static ui_element_config::ptr g_get_default_configuration() {
+			return makeConfig(guid_dui_bmark);
+		}
 
 		// Restore Bookmarks
 
@@ -194,7 +192,6 @@ namespace dlg {
 		}
 
 		static bool canStore() {
-
 			return play_control::get()->is_playing();
 		}
 
@@ -222,7 +219,9 @@ namespace dlg {
 			::ShowWindow(GetDlgItem(IDC_BOOKMARKLIST), SW_SHOW);
 
 			m_guiList.CreateInDialog(*this, IDC_BOOKMARKLIST);
+
 			m_guiList.Initialize(&m_colContent);
+			configToUI(false);
 
 			m_dark.AddDialogWithControls(*this);
 
@@ -231,7 +230,6 @@ namespace dlg {
 				g_primaryGuiList = &m_guiList;
 			}
 
-			configToUI();
 			on_style_change();
 			ShowWindow(SW_SHOW);
 
@@ -318,7 +316,7 @@ namespace dlg {
 							m_colActive[colndx] = !m_colActive[colndx];
 						}
 						else {
-							configToUI();
+							configToUI(true);
 						}
 					}
 
@@ -400,7 +398,7 @@ namespace dlg {
 									m_guiList.GetSubItemText(m_guiList.GetSingleSel(), i, bookmark);
 
 									ClipboardHelper::OpenScope scope;
-									scope.Open(core_api::get_main_window(), true);
+									scope.Open(core_api::get_main_window()/*, true*/);
 									ClipboardHelper::SetString(bookmark);
 									scope.Close();
 
@@ -488,7 +486,7 @@ namespace dlg {
 			FB2K_console_print_v("set_configuration called.");
 			parseConfig(config, m_colWidths, m_colActive);
 
-			configToUI();
+			configToUI(false);
 		}
 
 		void CUI_gets_config(stream_writer* p_writer, abort_callback& p_abort) const {
@@ -577,14 +575,14 @@ namespace dlg {
 			return out.finish(ui_guid);
 		}
 
-		void configToUI() {
+		void configToUI(bool breload) {
 
 			FB2K_console_print_v("Applying config to UI: ", m_colWidths[0], " and ", m_colWidths[1]);
 
 			auto DPI = m_guiList.GetDPI();
 
 			if (m_guiList.GetHeaderCtrl() != NULL && m_guiList.GetHeaderCtrl().GetItemCount()) {
-				m_guiList.DeleteColumns(pfc::bit_array_true(), false);
+				m_guiList.ResetColumns(false);
 			}
 
 			auto fit = std::find(m_colActive.begin(), m_colActive.end(), true);
@@ -606,12 +604,16 @@ namespace dlg {
 					size_t width = (m_colWidths[i] != 0 && m_colWidths[i] != pfc_infinite) ? m_colWidths[i] : defaultColWidths[i];
 					width = pfc::min_t<size_t>(width, 1000);
 					m_colContent[ndx_cont] = i;
-					m_guiList.AddColumn(COLUMNNAMES[i], MulDiv(static_cast<int>(width), DPI.cx, 96));
+					m_guiList.AddColumn(COLUMNNAMES[i], MulDiv(static_cast<int>(width), DPI.cx, 96), LVCFMT_LEFT, false);
 				}
 				else {
 					//move to tail
 					m_colContent[ndx_tail--] = i;
 				}
+			}
+			if (breload) {
+				m_guiList.ReloadItems(bit_array_true());
+				m_guiList.Invalidate(1);
 			}
 		}
 

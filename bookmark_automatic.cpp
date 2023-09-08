@@ -51,9 +51,10 @@ void bookmark_automatic::updateDummyTime() {
 			//todo: delay insertion - add instead of update.
 			auto cMastList = glb::g_masterList.size();
 			bit_array_bittable changeMask(bit_array_false(), cMastList);
-			
-			auto& last = cMastList ? glb::g_masterList.at(cMastList - 1) : bookmark_t();
-			if (!cMastList || last.playlist.get_length()) {
+
+			bookmark_t tmpbm;
+			bookmark_t* plast = cMastList ? &glb::g_masterList.at(cMastList - 1) : &tmpbm;
+			if (!cMastList || plast->playlist.get_length()) {
 				//(list was empty/filtered playlist)
 				//if the last bookmark's playlist was assigned, add new item
 				dummy.time = oldtime;
@@ -62,8 +63,8 @@ void bookmark_automatic::updateDummyTime() {
 			}
 			else {
 				//item was waiting for playlist details
-				last.playlist = dummy.playlist;
-				last.guid_playlist = dummy.guid_playlist;
+				plast->playlist = dummy.playlist;
+				plast->guid_playlist = dummy.guid_playlist;
 			}
 			changeMask.set(glb::g_masterList.size() - 1, true);
 			for (auto gui : glb::g_guiLists) {

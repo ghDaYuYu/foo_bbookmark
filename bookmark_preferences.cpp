@@ -335,18 +335,19 @@ void CBookmarkPreferences::OnCheckChange(UINT uNotifyCode, int nId, CWindow wndC
 		int selected = comboBox.GetCurSel();
 
 		if (selected >= 0 && static_cast<size_t>(selected) < m_currentPlNames.size()) {
+			pfc::string8 newName;
+			newName += m_currentPlNames[selected];
 
-            pfc::string8 newName;
-            newName += m_currentPlNames[selected];
+			//replace all commas with dots (because of the comma-seperated list)
+			newName.replace_char(',', '.');
 
-            //replace all commas with dots (because of the comma-seperated list)
-            newName.replace_char(',', '.');
-
+			pfc::string8 curr_filter;
+			uGetDlgItemText(m_hWnd, IDC_AUTOSAVE_TRACK_FILTER, curr_filter);
 			//check if name already exists
-			std::stringstream ss(cfg_autosave_newtrack_playlists.get_value().c_str());
+			std::stringstream ss(curr_filter.c_str());
 			std::string token;
 			while (std::getline(ss, token, ',')) {
-				if (strcmp(token.c_str(), newName.c_str()) == 0) {
+				if (!stricmp_utf8(token.c_str(), newName.c_str())) {
 					//skip
 					return;
 				}

@@ -11,6 +11,10 @@ namespace {
 } //anonymous namespace
 
 //==================Hooks for main menu=======================
-void bbookmarkHook_store() { CListControlBookmarkDialog::storeBookmark(); }
-void bbookmarkHook_restore() { CListControlBookmarkDialog::restoreFocusedBookmark(); }
-void bbookmarkHook_clear() { CListControlBookmarkDialog::clearBookmarks(); }
+void bbookmarkHook_store() { CListCtrlMarkDialog::addBookmark(); }
+void bbookmarkHook_restore() { CListCtrlMarkDialog::restoreFocusedBookmark(); }
+void bbookmarkHook_clear() { CListCtrlMarkDialog::clearBookmarks(); }
+
+bool bbookmarkHook_canStore() { return CListCtrlMarkDialog::canStore(); }
+bool bbookmarkHook_canRestore() { return CListCtrlMarkDialog::canRestore(); }
+bool bbookmarkHook_canClear() { return CListCtrlMarkDialog::canClear(); }

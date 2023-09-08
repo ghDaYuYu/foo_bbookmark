@@ -2,12 +2,8 @@
 #include <optional>
 
 #include "bookmark_core.h"
+#include "guids.h"
 #include "bookmark_list_dialog.h"
-#include "style_manager.h"
-
-static const GUID guid_cui_bmark = { 0x70b26ed8, 0x710, 0x4d36, { 0xb8, 0xfe, 0xf7, 0xcf, 0x83, 0x41, 0x7, 0x62 } };
-
-using namespace dlg;
 
 namespace {
 
@@ -102,8 +98,10 @@ namespace {
 
 		void destroy_window() final {
 
-			//..
-
+			//container_uie_window_v3_t::destroy_windows
+			window.value().DestroyWindow();
+			window.reset();
+			m_host.release();
 		}
 
 	private:
@@ -112,6 +110,8 @@ namespace {
 		std::array<bool, N_COLUMNS> hosted_colActive;
 
 	};
+
+	// S T A T I C   C U I - E L E M E N T
 
 	static service_factory_single_t<cui_bmark> cui_bmark_instance;
 

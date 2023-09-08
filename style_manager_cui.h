@@ -10,11 +10,12 @@ class CuiStyleCallback : public columns_ui::colours::common_callback,
 
 	static_api_ptr_t<cui::colours::manager> colorManager;
 	static_api_ptr_t<cui::fonts::manager> fontManager;
-	std::function<void()> callback = nullptr;
+
+	std::function<void(uint32_t)> callback = nullptr;
 
 public:
 
-	CuiStyleCallback(std::function<void()> callback) : callback(callback) {
+	CuiStyleCallback(std::function<void(uint32_t)> callback) : callback(callback) {
 		colorManager->register_common_callback(this);
 		fontManager->register_common_callback(this);
 	}
@@ -25,7 +26,7 @@ public:
 	}
 
 	virtual void on_colour_changed(uint32_t changed_items_mask) const {
-		callback();
+		callback(changed_items_mask);
 	}
 
 	virtual void on_bool_changed(uint32_t changed_items_mask) const final {
@@ -33,11 +34,11 @@ public:
 		//columns_ui::colours::bool_flag_t::bool_flag_use_custom_active_item_frame 0
 		//columns_ui::colours::bool_flag_t::bool_flag_dark_mode_enabled 1
 
-		callback();
+		callback(changed_items_mask);
 	}
 
 	virtual void on_font_changed(uint32_t changed_items_mask) const final {
-		callback();
+		callback(changed_items_mask);
 	}
 
 };
@@ -48,7 +49,7 @@ class CuiStyleManager : public StyleManager {
 
 public:
 
-	CuiStyleManager() : callback([&] { this->onChange(); })
+	CuiStyleManager() : callback([&](uint32_t chg) { this->onChange(chg); })
 	{
 		updateCache();
 	}
@@ -85,21 +86,31 @@ protected:
 		fontManager->get_font(columns_ui::fonts::font_type_items, font);
 		return font;
 	}
-	
+
 	virtual COLORREF defaultBgColor() final {
 		return columns_ui::colours::helper(GUID{}).get_colour(
 			columns_ui::colours::colour_background);
 	}
+	virtual COLORREF defaultHotColor() final {
+		return columns_ui::colours::helper(GUID{}).get_colour(
+			columns_ui::colours::colour_active_item_frame);
+	}
 
 	virtual COLORREF defaultSelColor() {
-		return COLORREF();
+		return columns_ui::colours::helper(GUID{}).get_colour(
+			columns_ui::colours::colour_selection_text);
 	}
 	virtual COLORREF defaultHighColor() {
-		return COLORREF();
+		return columns_ui::colours::g_get_system_color(columns_ui::colours::colour_selection_text);
 	}
 
 public:
 
+	virtual bool isDark() const override {
+		return columns_ui::colours::helper(GUID{}).get_bool(cui::colours::bool_dark_mode_enabled);
+	}
+
+	//todo: remove from StyleManager to DUI_StyleManager
 	COLORREF getTitleColor() const override {
 		return COLORREF();
 	}
@@ -111,6 +122,9 @@ public:
 	}
 	COLORREF getHighColor() const override {
 		return COLORREF();
+	}
+	COLORREF getHotColor() const override {
+		return cachedHotColor;
 	}
 	LOGFONT getTitleFont() const override {
 		return cachedTitleFont;

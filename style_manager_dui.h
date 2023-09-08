@@ -25,6 +25,10 @@ public:
 
 public:
 
+	virtual bool isDark() const final {
+		return instance_callback->is_dark_mode();
+	}
+
 	virtual COLORREF getTitleColor() const final {
 		return cachedTitleColor;
 	}
@@ -36,6 +40,9 @@ public:
 	}
 	virtual COLORREF getHighColor() const final {
 		return cachedHighColor;
+	}
+	virtual COLORREF getHotColor() const final {
+		return cachedHotColor;
 	}
 
 	virtual LOGFONT getTitleFont() const final {
@@ -61,6 +68,9 @@ protected:
 	}
 	virtual COLORREF defaultHighColor() final {
 		return instance_callback->query_std_color(ui_color_highlight);
+	}
+	virtual COLORREF defaultHotColor() final {
+		return instance_callback->getSysColor(COLOR_HOTLIGHT);
 	}
 
 	virtual LOGFONT defaultTitleFont() final {
