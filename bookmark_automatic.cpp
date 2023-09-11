@@ -93,10 +93,18 @@ void bookmark_automatic::updateDummy() {
 			songDesc << "Could not generate Description.";
 		}
 
-		m_updatePlaylist = true;	//We can't read the PlName right after the track was changed
-		dummy.playlist = "";
-		dummy.guid_playlist = pfc::guid_null;
-		dummy.need_playlist = true;
+		size_t index_item;
+		size_t index_playlist;
+		pfc::string8 playing_playlist_name;
+		GUID guid_playing_playlist = pfc::guid_null;
+		auto pl_man = playlist_manager_v5::get();
+		bool blocation_ok = pl_man->get_playing_item_location(&index_playlist, &index_item);
+		blocation_ok &= pl_man->playlist_get_name(index_playlist, playing_playlist_name);
+		if (blocation_ok) {
+			guid_playing_playlist = pl_man->playlist_get_guid(index_playlist);
+		}
+
+		m_updatePlaylist = !blocation_ok;
 
 		pfc::string8 songPath = dbHandle_item->get_path();
 
@@ -106,13 +114,13 @@ void bookmark_automatic::updateDummy() {
 		dummy.desc = songDesc;
 		dummy.path = songPath;
 		dummy.subsong = dbHandle_item->get_subsong_index();
+		dummy.playlist = playing_playlist_name;
+		dummy.guid_playlist = guid_playing_playlist;
 		gimme_time(dummy.date);
+		dummy.need_playlist = m_updatePlaylist;
 	}
 	else {
-		dummy.set_time(0.0);
-		dummy.desc = "";
-		dummy.path = "";
-		dummy.subsong = 0;
+		dummy.reset();
 	}
 }
 
@@ -168,10 +176,16 @@ bool bookmark_automatic::upgradeDummy(std::vector<bookmark_t>& masterList, std::
 
 	auto track_length = track_bm->get_length();
 	bool bsamepath = pfc::string8(track_bm->get_path()).equals(dummy.path);
+
 	if (bsamepath) {
-		if (dummy.get_time() + 3 >= track_bm->get_length()) {
-			// nothing to do
+		if (core_api::is_shutting_down()) {
 			return false;
+		}
+		else {
+			if (dummy.get_time() + 3 >= track_bm->get_length()) {
+				// nothing to do
+				return false;
+			}
 		}
 	}
 	else {

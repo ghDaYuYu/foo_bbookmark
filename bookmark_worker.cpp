@@ -54,9 +54,7 @@ void bookmark_worker::store(std::vector<bookmark_t>& masterList) {
 		auto playlist_manager_ptr = playlist_manager_v5::get();
 		if (playlist_manager_ptr->get_playing_item_location(&index_playlist, &index_item)) {
 			playlist_manager_ptr->playlist_get_name(index_playlist, playing_pl_name);
-			if (core_version_info_v2::get()->test_version(2, 0, 0, 0)) {
-				guid_playlist = playlist_manager_v5::get()->playlist_get_guid(index_playlist);
-			}
+			guid_playlist = playlist_manager_v5::get()->playlist_get_guid(index_playlist);
 		}
 
 		pfc::string8 songPath = dbHandle_item->get_path();
@@ -97,11 +95,9 @@ void bookmark_worker::restore(std::vector<bookmark_t>& masterList, size_t index)
 
 		metadb_handle_ptr track_bm = metadb_ptr->handle_create(rec.path.c_str(), rec.subsong);	//Identify track to restore
 
-		//if (track_bm != track_current) { //Skip if track is already playing
 			size_t index_pl = ~0;
-			if (core_version_info_v2::get()->test_version(2, 0, 0, 0)) {
-				index_pl = playlist_manager_v5::get()->find_playlist_by_guid(rec.guid_playlist);
-			}
+
+			index_pl = playlist_manager_v5::get()->find_playlist_by_guid(rec.guid_playlist);
 
 			if (index_pl == pfc_infinite) {	//Complain if no playlist of that name exists anymore 
 				FB2K_console_print_v("Bookmark Restoration partially failed", "Could not find Playlist '", rec.playlist, "'");

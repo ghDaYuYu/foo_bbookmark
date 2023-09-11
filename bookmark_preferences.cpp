@@ -103,7 +103,6 @@ public:
 	~CBookmarkPreferences() { 
 		g_wnd_bookmark_pref = NULL;
 		m_staticPrefHeader.Detach();
-		DeleteObject(m_font);
 	}
 
 	enum { IDD = IDD_BOOKMARK_PREFERENCES };
@@ -135,7 +134,6 @@ public:
 private:
 
 	BOOL OnInitDialog(CWindow, LPARAM);
-	void SetThemeFont();
 	void OnEditChange(UINT uNotifyCode, int nId, CWindow wndCtl);
 	void OnCheckChange(UINT uNotifyCode, int nId, CWindow wndCtl);
 

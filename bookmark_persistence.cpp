@@ -235,11 +235,10 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 
 				// check playlist name
 				pfc::string8 playlist_name_from_guid;
-				if (core_version_info_v2::get()->test_version(2, 0, 0, 0)) {
-					size_t ndx = playlist_manager_v5::get()->find_playlist_by_guid(elem.guid_playlist);
-					if (ndx != pfc_infinite) {
-						playlist_manager_v5::get()->playlist_get_name(ndx, playlist_name_from_guid);
-					}
+
+				size_t ndx = playlist_manager_v5::get()->find_playlist_by_guid(elem.guid_playlist);
+				if (ndx != pfc_infinite) {
+					playlist_manager_v5::get()->playlist_get_name(ndx, playlist_name_from_guid);
 				}
 
 				if (playlist_name_from_guid.get_length()) {
