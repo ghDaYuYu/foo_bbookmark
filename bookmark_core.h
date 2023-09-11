@@ -3,7 +3,6 @@
 #include <mutex>
 
 #include "bookmark_types.h"
-
 #include "bookmark_automatic.h"
 #include "bookmark_persistence.h"
 #include "bookmark_preferences.h"

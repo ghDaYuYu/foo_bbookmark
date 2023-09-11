@@ -20,11 +20,10 @@ namespace {
 
 			if (is_cfg_Bookmarking() && cfg_autosave_on_quit.get() && g_bmAuto.checkDummy()) {
 
-				if (g_bmAuto.upgradeDummy(g_masterList, g_guiLists)) {
-					//..
-				}
+				g_bmAuto.upgradeDummy(g_masterList, g_guiLists);
+
 			}
-			g_permStore.writeDataFileJSON(g_masterList);
+			g_permStore.writeDataFile(g_masterList);
 		}
 	};
 

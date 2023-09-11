@@ -26,9 +26,9 @@ namespace dlg {
 		case TIME_COL:
 		{
 			std::ostringstream conv;
-			int hours = (int)rec.time / 3600;
-			int minutes = (int)std::fmod(rec.time, 3600) / 60;
-			int seconds = (int)std::fmod(rec.time, 60);
+			int hours = (int)rec.get_time() / 3600;
+			int minutes = (int)std::fmod(rec.get_time(), 3600) / 60;
+			int seconds = (int)std::fmod(rec.get_time(), 60);
 			if (hours != 0)
 				conv << hours << ":";
 			conv << std::setfill('0') << std::setw(2) << minutes << ":" << std::setfill('0') << std::setw(2) << seconds;
@@ -51,7 +51,8 @@ namespace dlg {
 
 		PFC_ASSERT(count == g_masterList.size());
 		pfc::reorder_t(g_masterList, order, count);
-		g_permStore.writeDataFileJSON(g_masterList);
+		CListCtrlMarkDialog::CancelUIListEdits();
+		g_permStore.writeDataFile(glb::g_masterList);
 		return true;
 	}
 
@@ -67,8 +68,9 @@ namespace dlg {
 				(*it)->OnItemsRemoved(mask, oldCount);
 			}
 		}
+		CListCtrlMarkDialog::CancelUIListEdits();
+		g_permStore.writeDataFile(glb::g_masterList);
 
-		g_permStore.writeDataFileJSON(g_masterList);
 		return true;
 	}
 
@@ -107,6 +109,6 @@ namespace dlg {
 	void ILOD_BookmarkSource::listSetEditField(ctx_t ctx, size_t item, size_t subItem, const char* val) {
 		auto& rec = g_masterList[item];
 		rec.comment = pfc::string8(val);
-		g_permStore.writeDataFileJSON(g_masterList);
+		g_permStore.writeDataFile(glb::g_masterList);
 	}
 }

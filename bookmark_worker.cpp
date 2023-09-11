@@ -4,18 +4,19 @@
 #include "bookmark_preferences.h"
 #include "bookmark_worker.h"
 
-
 double g_pendingSeek;
 
 using namespace glb;
 
 bookmark_worker::bookmark_worker()
 {
+	//..
 }
 
 
 bookmark_worker::~bookmark_worker()
 {
+	//..
 }
 
 void bookmark_worker::store(std::vector<bookmark_t>& masterList) {
@@ -29,7 +30,7 @@ void bookmark_worker::store(std::vector<bookmark_t>& masterList) {
 		FB2K_console_print_e("Get_now_playing failed, can only store time.");
 		songDesc << "Could not find playing song info.";
 
-		newMark.time = playback_control_ptr->playback_get_position();
+		newMark.set_time(playback_control_ptr->playback_get_position());
 		newMark.desc = songDesc;
 		newMark.playlist = "";
 		newMark.guid_playlist = pfc::guid_null;
@@ -60,7 +61,7 @@ void bookmark_worker::store(std::vector<bookmark_t>& masterList) {
 
 		pfc::string8 songPath = dbHandle_item->get_path();
 
-		newMark.time = playback_control_ptr->playback_get_position();
+		newMark.set_time(playback_control_ptr->playback_get_position());
 		newMark.desc = songDesc;
 		newMark.playlist = playing_pl_name.c_str();
 		newMark.guid_playlist = guid_playlist;
@@ -80,6 +81,7 @@ void bookmark_worker::restore(std::vector<bookmark_t>& masterList, size_t index)
 
 	if (index >= 0 && index < masterList.size()) {	//load using the index
 		auto rec = masterList[index];
+		g_bmAuto.updateRestoredDummy(rec);
 
 		if (!(bool)rec.path.get_length()) {
 			FB2K_console_print_v("Restore Bookmark failed...no track in bookmark.");
@@ -115,12 +117,11 @@ void bookmark_worker::restore(std::vector<bookmark_t>& masterList, size_t index)
 
 					playlist_manager_ptr->queue_add_item(track_bm);
 					playback_control_ptr->next();
-					g_pendingSeek = rec.time;
+					g_pendingSeek = rec.get_time();
 				}
 			}
 			else {
 				size_t index_item = ~0;
-
 				if (index_pl == ~0 || !playlist_manager_ptr->playlist_find_item(index_pl, track_bm, index_item)) {	//Complain if the track does not exist in that playlist
 					FB2K_console_print_v("Bookmark Restoration partially failed", "Could not find Track '", track_bm->get_path(), "'");
 				}
@@ -157,7 +158,7 @@ void bookmark_worker::restore(std::vector<bookmark_t>& masterList, size_t index)
 						}
 					}
 					//This will be applied by the worker play callback
-					g_pendingSeek = rec.time;
+					g_pendingSeek = rec.get_time();
 				}
 			}
 		//} end track already playing
@@ -170,8 +171,9 @@ void bookmark_worker::restore(std::vector<bookmark_t>& masterList, size_t index)
 					if (!core_api::assert_main_thread()) {
 						FB2K_console_print_v("(Not in main thread)");
 					}
-					FB2K_console_print_v("Restoring time:", rec.time);
-					playback_control_ptr->playback_seek(rec.time);
+					FB2K_console_print_v("Restoring time:", rec.get_time());
+
+					playback_control_ptr->playback_seek(rec.get_time());
 				}
 
 				//unpause

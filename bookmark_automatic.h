@@ -5,7 +5,6 @@
 #include <vector>
 #include <list>
 #include <sstream>
-
 #include <iomanip>
 
 namespace dlg {
@@ -14,44 +13,45 @@ namespace dlg {
 
 }
 
-	class bookmark_automatic {
+class bookmark_automatic {
 
-	private:
+private:
 
-		bookmark_t dummy;
-		bool m_updatePlaylist = true;
+	bookmark_t dummy;
+	bookmark_t restored_dummy;
+	bool m_updatePlaylist = true;
 
-	public:
+public:
 
-		bookmark_automatic() {
-			//..
-		};
-
-		~bookmark_automatic() {
-			//..
-		};
-
-		bool checkDummy() {
-			return (bool)dummy.desc.get_length();
-		}
-
-		bool CheckAutoFilter();
-
-		void updateDummyTime();
-		void updateDummy();
-		bool upgradeDummy(std::vector<bookmark_t>& masterList, std::list< dlg::CListControlBookmark*> guiList);
+	bookmark_automatic() {
+		//..
 	};
+
+	~bookmark_automatic() {
+		//..
+	}
+
+	bool checkDummy() {
+		return (bool)dummy.desc.get_length();
+	}
+
+	bool CheckAutoFilter();
+
+	void updateDummyTime();
+	void updateDummy();
+	bool upgradeDummy(std::vector<bookmark_t>& masterList, std::list< dlg::CListControlBookmark*> guiList);
+	void updateRestoredDummy(bookmark_t& bm);
+};
 
 #pragma warning( push )
 #pragma warning( disable:4996 )
-	inline void gimme_time(pfc::string8& out) {
+inline void gimme_time(pfc::string8& out) {
 
-		auto t = std::time(nullptr);
-		auto tm = *std::localtime(&t);
+	auto t = std::time(nullptr);
+	auto tm = *std::localtime(&t);
+	auto sctime = asctime(&tm);
 
-		auto sctime = asctime(&tm);
-
-		out.set_string(sctime);
-		out.truncate_last_char();
-	}
+	out.set_string(sctime);
+	out.truncate_last_char();
+}
 #pragma warning( pop )

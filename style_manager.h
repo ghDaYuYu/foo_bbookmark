@@ -21,6 +21,7 @@ namespace {
 		virtual COLORREF getBgColor() const = 0;
 		virtual COLORREF getSelColor() const = 0;
 		virtual COLORREF getHighColor() const = 0;
+		virtual COLORREF getHotColor() const = 0;
 		virtual LOGFONT getTitleFont() const = 0;
 		virtual LOGFONT getListFont() const = 0;
 		virtual LOGFONT getPlaylistFont() const = 0;
@@ -62,7 +63,6 @@ namespace {
 		}
 
 	protected:
-	
 		COLORREF cachedTitleColor{};
 		COLORREF cachedBgColor{};
 		COLORREF cachedSelColor{};
@@ -73,7 +73,6 @@ namespace {
 		LOGFONT cachedPlaylistFont{};
 
 	private:
-	
 		std::function<void()> changeHandler;
 
 	};

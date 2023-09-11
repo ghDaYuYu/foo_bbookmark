@@ -36,10 +36,15 @@ namespace {
 					if (!g_restoring) {
 
 						if (g_bmAuto.upgradeDummy(g_masterList, g_guiLists)) {
+
 							if (is_cfg_Bookmarking()) {
-								g_permStore.writeDataFileJSON(g_masterList);
+								g_permStore.writeDataFile(g_masterList);
 							}
 						}
+						else {
+							//..
+						}
+
 					}
 				}
 			}

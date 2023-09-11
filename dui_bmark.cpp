@@ -16,7 +16,7 @@ namespace {
 
 		static void g_get_name(pfc::string_base& out) { out = COMPONENT_NAME_HC; }
 		static GUID g_get_guid() { return guid_dui_bmark; }
-		static const char* g_get_description() { return COMPONENT_NAME_HC; }
+		static const char* g_get_description() { return COMPONENT_DESC; }
 		static GUID g_get_subclass() { return ui_element_subclass_utility; }
 
 		HWND get_wnd() { return m_hWnd; }

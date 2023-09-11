@@ -214,7 +214,6 @@ private:
 		return !buffer.equals(eat.cfg->get_value());
 	}
 
-
 public:
 
 	std::vector<pfc::string8> m_currentPlNames;
@@ -223,7 +222,6 @@ private:
 
 	HeaderStatic m_staticPrefHeader;
 	fb2k::CDarkModeHooks m_dark;
-	HFONT m_font;
 
 	static_api_ptr_t<playback_control> m_playback_control;
 	const preferences_page_callback::ptr m_callback;
@@ -297,28 +295,8 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow wndCtl, LPARAM) {
 
 	//dark mode
 	m_dark.AddDialogWithControls(*this);
-	
-	SetThemeFont();
 
 	return FALSE;
-}
-
-void CBookmarkPreferences::SetThemeFont() {
-	LOGFONTW lf;
-	CWindowDC dc(core_api::get_main_window());
-	CTheme wtheme;
-	HTHEME theme = wtheme.OpenThemeData(core_api::get_main_window(), L"TEXTSTYLE");
-	GetThemeFont(theme, dc, TEXT_BODYTEXT, 0, TMT_FONT, &lf);
-	m_font = CreateFontIndirectW(&lf);
-	SetFont(m_font, true);
-
-	for (HWND walk = ::GetWindow(m_hWnd, GW_CHILD); walk != NULL; ) {
-		HWND next = ::GetWindow(walk, GW_HWNDNEXT);
-		if (::IsWindow(next)) {
-			::SendMessage(next, WM_SETFONT, (WPARAM)m_font, MAKELPARAM(1/*bRedraw*/, 0));
-		}
-		walk = next;
-	}
 }
 
 void CBookmarkPreferences::OnEditChange(UINT uNotifyCode, int nId, CWindow wndCtl) {

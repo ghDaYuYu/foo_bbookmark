@@ -1,7 +1,6 @@
 #include "stdafx.h"
 
 #include <filesystem>
-
 #include <string>
 #include <sstream>
 
@@ -22,6 +21,7 @@ bookmark_persistence::~bookmark_persistence()
 //replaces the contents of masterList with the contents of the persistent file
 
 void bookmark_persistence::replaceMasterList(std::vector<bookmark_t>& newContent, std::vector<bookmark_t>& masterList) {
+
 	FB2K_console_print_v("Replacing cache");
 
 	masterList.clear();
@@ -46,7 +46,7 @@ void add_rec(std::vector<json_t*> &vjson, const std::vector<pfc::string8>& vlbl,
 	//bookmark_t to vrec
 
 	std::vector<pfc::string8> vrec = {
-		std::to_string(rec.time).c_str(),              //time
+		std::to_string(rec.get_time()).c_str(),          //time
 		rec.desc.get_ptr(),                            //desc
 		rec.playlist.get_ptr(),                        //playlist
 		pfc::print_guid(rec.guid_playlist).get_ptr(),  //guid
@@ -63,6 +63,10 @@ void add_rec(std::vector<json_t*> &vjson, const std::vector<pfc::string8>& vlbl,
 		//recycle pointers
 		int res = json_object_set_new_nocheck(vjson[nobj], vlbl[wfield], json_string_nocheck(vrec[wfield].get_ptr()));
 	}
+}
+
+void bookmark_persistence::writeDataFile(std::vector<bookmark_t>& masterList) {
+	cmdTh.add([this, &masterList] { writeDataFileJSON(masterList); });
 }
 
 //save masterList to persistent storage
@@ -142,7 +146,6 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 		
 			json_error_t error;
 			auto json = json_load_file(genFilePath().c_str(), JSON_DECODE_ANY, &error);
-
 			size_t clines = json_array_size(json);
 
 			bookmark_t elem = bookmark_t();
@@ -158,11 +161,11 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 
 				json_t* js_fld;
 				{
-					elem.time = 0;
+					elem.set_time(0.0);
 					json_t* js_fld = json_object_get(js_wobj, "time");
 					const char* dmp_str = json_string_value(js_fld);
 					if (dmp_str) {
-						elem.time = atof(dmp_str);
+						elem.set_time(atof(dmp_str));
 					}
 				}
 
@@ -192,7 +195,6 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 					if (dmp_str) {
 						elem.path = pfc::string8(dmp_str);
 					}
-
 				}
 
 				{
@@ -211,7 +213,6 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 					if (dmp_str) {
 						elem.comment = pfc::string8(dmp_str);
 					}
-
 				}
 
 				{
@@ -221,7 +222,6 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 					if (dmp_str) {
 						elem.date = pfc::string8(dmp_str);
 					}
-
 				}
 
 				{
@@ -256,7 +256,7 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 			if (cfg_verbose) {
 				FB2K_console_print_v("File content:");
 				for (size_t i = 0; i < temp_data.size(); ++i)
-					FB2K_console_print_v("time ", i, ": ", temp_data[i].time);
+					FB2K_console_print_v("time ", i, ": ", temp_data[i].get_time());
 			}
 
 		}
@@ -275,7 +275,6 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 		replaceMasterList(temp_data, masterList);
 	}
 	catch (...) {
-		
 		//..
 	}
 	return true;

@@ -18,13 +18,12 @@ namespace {
 
 		cui_bmark() = default;
 
-		void get_category(pfc::string_base& out) const final { out = "Panels"; }
-
 		const GUID& get_extension_guid() const final { return guid_cui_bmark; }
-		HWND get_wnd() const override final { return window->get_wnd(); }
 		void get_name(pfc::string_base& out) const final { out = COMPONENT_NAME_HC; }
+		void get_category(pfc::string_base& out) const final { out = "Panels"; }
 		unsigned get_type() const final { return ui_extension::type_panel; }
 
+		HWND get_wnd() const override final { return window->get_wnd(); }
 		bool is_available(const ui_extension::window_host_ptr& p_host) const final {
 			return !m_host.is_valid() || p_host->get_host_guid() != m_host->get_host_guid();
 		}
@@ -43,7 +42,7 @@ namespace {
 
 					// create dlg
 
-					window.emplace(wnd_parent, hosted_colWidths, hosted_colActive);
+					window.emplace(wnd_parent, m_hosted_colWidths, m_hosted_colActive);
 
 				}
 				catch (std::exception& e) {
@@ -81,10 +80,10 @@ namespace {
 			stream_reader_formatter<false> reader(*p_reader, p_abort);
 
 			for (int i = 0; i < N_COLUMNS; i++) {
-				reader >> (t_uint32)hosted_colWidths[i];
+				reader >> (t_uint32)m_hosted_colWidths[i];
 			}
 			for (int i = 0; i < N_COLUMNS; i++) {
-				reader >> (bool)hosted_colActive[i];
+				reader >> (bool)m_hosted_colActive[i];
 			}
 		};
 
@@ -106,8 +105,8 @@ namespace {
 
 	private:
 
-		std::array<uint32_t, N_COLUMNS> hosted_colWidths;
-		std::array<bool, N_COLUMNS> hosted_colActive;
+		std::array<uint32_t, N_COLUMNS> m_hosted_colWidths;
+		std::array<bool, N_COLUMNS> m_hosted_colActive;
 
 	};
 

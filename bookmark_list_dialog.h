@@ -170,6 +170,9 @@ namespace dlg {
 		}
 
 		static void addBookmark() {
+
+			CancelUIListEdits();
+
 			bookmark_worker bmWorker;
 			bmWorker.store(g_masterList);
 
@@ -178,17 +181,26 @@ namespace dlg {
 			}
 
 			FB2K_console_print_v("Created Bookmark, saving to file now.");
-			g_permStore.writeDataFileJSON(g_masterList);
-
+			g_permStore.writeDataFile(g_masterList);
 		}
 
 		static void clearBookmarks() {
-
+			CListCtrlMarkDialog::CancelUIListEdits();
 			g_masterList.clear();
 			for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
 				(*it)->OnItemsRemoved(pfc::bit_array_true(),g_masterList.size());
 			}
-			g_permStore.writeDataFileJSON(g_masterList);
+			g_permStore.writeDataFile(g_masterList);
+		}
+
+		static void CancelUIListEdits() {
+
+			for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
+				
+				if ((*it)->TableEdit_IsActive()) {
+					(*it)->TableEdit_Abort(false);
+				}
+			}
 		}
 
 		static bool canStore() {
@@ -319,11 +331,10 @@ namespace dlg {
 							configToUI(true);
 						}
 					}
-
 				}
 				else {
 
-					bool bupdatable = /*!(playback_control_v3::get()->is_playing() || playback_control_v3::get()->is_paused()) &&*/ !is_cfg_Bookmarking() /*&& !cfg_autosave_newtrack.get()*/;
+					bool bupdatable = true;
 
 					auto selmask = m_guiList.GetSelectionMask();
 					auto isel = m_guiList.GetSingleSel();
@@ -331,19 +342,26 @@ namespace dlg {
 					size_t csel = m_guiList.GetSelectedCount();
 
 					bool bsinglesel = m_guiList.GetSingleSel() != ~0;
-					bool bresetable = (bool)icount && bsinglesel && g_masterList.at(isel).time != 0;
+					bool bresetable = (bool)icount && bsinglesel && g_masterList.at(isel).get_time();
+					bresetable |= csel > 1;
 
 					//Contextmenu for listbody
-					enum { ID_STORE = 1, ID_RESTORE, ID_RESET_TIME, ID_DEL, ID_CLEAR, ID_COPY, ID_SELECTALL, ID_SELECTNONE, ID_INVERTSEL, ID_MAKEPRIME, ID_PAUSE_BOOKMARKS, ID_PREF_PAGE };
-					menu.AppendMenu(MF_STRING | (!CListCtrlMarkDialog::canStore() ? MF_DISABLED | MF_GRAYED : 0), ID_STORE, L"&Add Bookmark");
+					enum { ID_STORE = 1, ID_RESTORE, ID_RESET_TIME, ID_DEL, ID_CLEAR,
+						ID_COPY_BOOKMARK, ID_COPY, ID_COPY_PATH, ID_OPEN_FOLDER, ID_SELECTALL, ID_SELECTNONE, ID_INVERTSEL, ID_MAKEPRIME,
+						ID_PAUSE_BOOKMARKS, ID_PREF_PAGE, ID_SEL_PROPERTIES
+					};
+					menu.AppendMenu(MF_STRING | (!CListCtrlMarkDialog::canStore() ? MF_DISABLED | MF_GRAYED : 0), ID_STORE, L"&Add bookmark");
 					menu.AppendMenu(MF_STRING | (!bupdatable || !bresetable ? MF_DISABLED | MF_GRAYED : 0), ID_RESET_TIME, L"Reset &time");
 					menu.AppendMenu(MF_STRING | (!bsinglesel ? MF_DISABLED | MF_GRAYED : 0), ID_RESTORE, L"&Restore\tENTER");
 					menu.AppendMenu(MF_STRING | (!bupdatable || !(bool)csel ? MF_DISABLED | MF_GRAYED : 0), ID_DEL, L"&Delete\tDel");
 					menu.AppendMenu(MF_SEPARATOR);
-					menu.AppendMenu(MF_STRING | (!bupdatable || !(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_CLEAR, L"C&lear All");
+					menu.AppendMenu(MF_STRING | (!bupdatable || !(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_CLEAR, L"C&lear all");
 					menu.AppendMenu(MF_SEPARATOR);
 					if (bsinglesel) {
-						menu.AppendMenu(MF_STRING, ID_COPY, L"&Copy");
+						menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_COPY, L"&Copy");
+						menu.AppendMenu(MF_STRING | (!(bool)icount || !m_colActive[1] ? MF_DISABLED | MF_GRAYED : 0), ID_COPY_BOOKMARK, L"Copy &bookmark");
+						menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_COPY_PATH, L"Copy &path");
+						menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_OPEN_FOLDER, L"&Open containing folder");
 						menu.AppendMenu(MF_SEPARATOR);
 					}
 					// Note: Ctrl+A handled automatically by CListControl, no need for us to catch it
@@ -351,9 +369,10 @@ namespace dlg {
 					menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_SELECTNONE, L"Select &none");
 					menu.AppendMenu(MF_STRING | (!(bool)csel ? MF_DISABLED | MF_GRAYED : 0), ID_INVERTSEL, L"&Invert selection");
 					menu.AppendMenu(MF_SEPARATOR);
-
-					menu.AppendMenu(MF_STRING | (is_cfg_Bookmarking() ? MF_UNCHECKED : MF_CHECKED), ID_PAUSE_BOOKMARKS, L"&Pause Bookmarking");
-					menu.AppendMenu(MF_STRING, ID_PREF_PAGE, L"Con&figuration...");
+					menu.AppendMenu(MF_STRING | (is_cfg_Bookmarking() ? MF_UNCHECKED : MF_CHECKED), ID_PAUSE_BOOKMARKS, L"&Pause bookmarking");
+					menu.AppendMenu(MF_STRING, ID_PREF_PAGE, L"Vital Bookmarks con&figuration...");
+					menu.AppendMenu(MF_SEPARATOR);
+					menu.AppendMenu(MF_STRING | (!bsinglesel ? MF_DISABLED | MF_GRAYED : 0), ID_SEL_PROPERTIES, L"Properties\tAlt+ENTER");
 
 					int cmd;
 					{
@@ -370,43 +389,74 @@ namespace dlg {
 
 						cmd = menu.TrackPopupMenuEx(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, descriptions, nullptr);
 					}
+
+					pfc::string8 clip_bookmark;
+					GUID guid_ctx = pfc::guid_null;
+
 					switch (cmd) {
+
 					case ID_STORE:
 						addBookmark();
 						break;
 					case ID_RESTORE:
 						restoreFocusedBookmark();
 						break;
-					case  ID_RESET_TIME:
-						g_masterList.at(isel).time = 0;
-						m_guiList.ReloadItem(isel);
-						m_guiList.UpdateItem(isel);
+					case  ID_RESET_TIME: {
+						auto mask = m_guiList.GetSelectionMask();
+						size_t c = m_guiList.GetItemCount();
+						auto dbgc = g_masterList.size();
+						size_t f = mask.find(true, 0, c);
+						for (size_t w = f; w < c; w = mask.find(true, w + 1, c)) {
+							g_masterList.at(w).set_time(0.0);
+						}
+
+						m_guiList.ReloadItems(mask);
+						m_guiList.UpdateItems(mask);
+
 						break;
+					}
 					case ID_DEL:
 						m_guiList.RequestRemoveSelection();
 						break;
 					case ID_CLEAR:
 						clearBookmarks();
 						break;
-					case ID_COPY:
+					case ID_COPY_BOOKMARK: {
+
 						if (m_colActive[1]) {
 							pfc::string8 coltext;
 							for (auto i = 0; i < static_cast<int>(m_guiList.GetColumnCount()); i++) {
 								m_guiList.GetColumnText(i, coltext);
 								if (coltext.equals(COLUMNNAMES[1])) {
-									pfc::string8 bookmark;
-									m_guiList.GetSubItemText(m_guiList.GetSingleSel(), i, bookmark);
-
-									ClipboardHelper::OpenScope scope;
-									scope.Open(core_api::get_main_window()/*, true*/);
-									ClipboardHelper::SetString(bookmark);
-									scope.Close();
-
+									m_guiList.GetSubItemText(m_guiList.GetSingleSel(), i, clip_bookmark);
 									break;
 								}
 							}
+							if (!clip_bookmark.get_length()) {
+								break;
+							}
 						}
+						else {
+							break;
+						}
+					}
+
+					[[fallthrough]];
+					case ID_COPY_PATH: {
+
+						if (!clip_bookmark.get_length()) {
+							clip_bookmark = g_masterList.at(m_guiList.GetSingleSel()).path;
+							if (pfc::strcmp_partial(clip_bookmark.get_ptr(), "file://") == 0) {
+								clip_bookmark.remove_chars(0, strlen("file://"));
+							}
+						}
+
+						ClipboardHelper::OpenScope scope;
+						scope.Open(core_api::get_main_window(), true);
+						ClipboardHelper::SetString(clip_bookmark);
+						scope.Close();
 						break;
+					}
 					case ID_SELECTALL:
 						m_guiList.SelectAll();
 						break;
@@ -449,6 +499,43 @@ namespace dlg {
 						else {
 							static_api_ptr_t<ui_control>()->show_preferences(g_get_prefs_guid());
 						}
+						break;
+					}
+					case ID_OPEN_FOLDER: {
+						if (pfc::guid_equal(guid_ctx, pfc::guid_null)) {
+							menu_helpers::name_to_guid_table menu_table;
+							bool bf = menu_table.search("Open containing folder", 22, guid_ctx);
+						}
+					}
+					[[fallthrough]];
+					case ID_SEL_PROPERTIES: {
+						if (pfc::guid_equal(guid_ctx, pfc::guid_null)) {
+							menu_helpers::name_to_guid_table menu_table;
+							bool bf = menu_table.search("Properties", 10, guid_ctx);
+						}
+					}
+					[[fallthrough]];
+					case ID_COPY: {
+						if (pfc::guid_equal(guid_ctx, pfc::guid_null)) {
+							menu_helpers::name_to_guid_table menu_table;
+							bool bf = menu_table.search("Copy", 4, guid_ctx);
+						}
+
+						const char* path = g_masterList.at(m_guiList.GetSingleSel()).path;
+						const t_uint32 subsong = g_masterList.at(m_guiList.GetSingleSel()).subsong;
+						auto l_metadb = metadb::get();
+						metadb_handle_list valid_handles;
+
+						try {
+							metadb_handle_ptr ptr;
+							l_metadb->handle_create(ptr, make_playable_location(path, subsong));
+							valid_handles.add_item(ptr);
+						}
+						catch (...) {
+							break;
+						}
+
+						bool rrs = menu_helpers::run_command_context(guid_ctx, pfc::guid_null, valid_handles);
 						break;
 					}
 					}
@@ -510,17 +597,6 @@ namespace dlg {
 			}
 			for (int i = 0; i < N_COLUMNS; i++) {
 				writer << m_colActive[i];
-			}
-		}
-
-		void CUI_sets_config(stream_reader* p_reader, abort_callback& p_abort) const {
-
-			stream_reader_formatter<false> reader(*p_reader, p_abort);
-			for (int i = 0; i < N_COLUMNS; i++) {
-				reader >> (t_uint32)m_colWidths[i];
-			}
-			for (int i = 0; i < N_COLUMNS; i++) {
-				reader >> (bool)m_colActive[i];
 			}
 		}
 
@@ -627,9 +703,9 @@ namespace dlg {
 
 	private:
 
-		bool m_cui = false;
-
 		fb2k::CDarkModeHooks m_dark;
+
+		bool m_cui = false;
 
 		std::array<uint32_t, N_COLUMNS> m_colWidths = {0};
 
