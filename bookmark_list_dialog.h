@@ -177,7 +177,9 @@ namespace dlg {
 			bmWorker.store(g_masterList);
 
 			for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
-				(*it)->OnItemsInserted(g_masterList.size() - 1, 1, true);
+				(*it)->SelectNone();
+                (*it)->OnItemsInserted(g_masterList.size() - 1, 1, true);
+                (*it)->EnsureItemVisible(g_masterList.size() - 1, false);
 			}
 
 			FB2K_console_print_v("Created Bookmark, saving to file now.");
