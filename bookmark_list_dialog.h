@@ -180,6 +180,7 @@ namespace dlg {
 				(*it)->SelectNone();
                 (*it)->OnItemsInserted(g_masterList.size() - 1, 1, true);
                 (*it)->EnsureItemVisible(g_masterList.size() - 1, false);
+                (*it)->SetFocusItem(g_masterList.size() - 1);
 			}
 
 			FB2K_console_print_v("Created Bookmark, saving to file now.");
