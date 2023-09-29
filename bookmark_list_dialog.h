@@ -345,17 +345,20 @@ namespace dlg {
 					size_t csel = m_guiList.GetSelectedCount();
 
 					bool bsinglesel = m_guiList.GetSingleSel() != ~0;
-					bool bresetable = (bool)icount && bsinglesel && g_masterList.at(isel).get_time();
-					bresetable |= csel > 1;
+					bool bresetable_time = (bool)icount && bsinglesel && g_masterList.at(isel).get_time();
+					bresetable_time |= csel > 1;
+					bool bresetable_playlist = (bool)icount && bsinglesel && g_masterList.at(isel).playlist.get_length();
+					bresetable_playlist |= csel > 1;
 
 					//Contextmenu for listbody
-					enum { ID_STORE = 1, ID_RESTORE, ID_RESET_TIME, ID_DEL, ID_CLEAR,
+					enum { ID_STORE = 1, ID_RESTORE, ID_RESET_TIME, ID_RESET_PLAYLIST, ID_DEL, ID_CLEAR,
 						ID_COPY_BOOKMARK, ID_COPY, ID_COPY_PATH, ID_OPEN_FOLDER, ID_SELECTALL, ID_SELECTNONE, ID_INVERTSEL, ID_MAKEPRIME,
 						ID_PAUSE_BOOKMARKS, ID_PREF_PAGE, ID_SEL_PROPERTIES
 					};
 					menu.AppendMenu(MF_STRING | (!CListCtrlMarkDialog::canStore() ? MF_DISABLED | MF_GRAYED : 0), ID_STORE, L"&Add bookmark");
-					menu.AppendMenu(MF_STRING | (!bupdatable || !bresetable ? MF_DISABLED | MF_GRAYED : 0), ID_RESET_TIME, L"Reset &time");
 					menu.AppendMenu(MF_STRING | (!bsinglesel ? MF_DISABLED | MF_GRAYED : 0), ID_RESTORE, L"&Restore\tENTER");
+					menu.AppendMenu(MF_STRING | (!bupdatable || !bresetable_time ? MF_DISABLED | MF_GRAYED : 0), ID_RESET_TIME, L"Reset &time");
+					menu.AppendMenu(MF_STRING | (!bupdatable || !bresetable_playlist ? MF_DISABLED | MF_GRAYED : 0), ID_RESET_PLAYLIST, L"Reset pla&ylist");
 					menu.AppendMenu(MF_STRING | (!bupdatable || !(bool)csel ? MF_DISABLED | MF_GRAYED : 0), ID_DEL, L"&Delete\tDel");
 					menu.AppendMenu(MF_SEPARATOR);
 					menu.AppendMenu(MF_STRING | (!bupdatable || !(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_CLEAR, L"C&lear all");
@@ -407,10 +410,25 @@ namespace dlg {
 					case  ID_RESET_TIME: {
 						auto mask = m_guiList.GetSelectionMask();
 						size_t c = m_guiList.GetItemCount();
-						auto dbgc = g_masterList.size();
+
 						size_t f = mask.find(true, 0, c);
 						for (size_t w = f; w < c; w = mask.find(true, w + 1, c)) {
 							g_masterList.at(w).set_time(0.0);
+						}
+
+						m_guiList.ReloadItems(mask);
+						m_guiList.UpdateItems(mask);
+
+						break;
+					}
+					case  ID_RESET_PLAYLIST: {
+						auto mask = m_guiList.GetSelectionMask();
+						size_t c = m_guiList.GetItemCount();
+
+						size_t f = mask.find(true, 0, c);
+						for (size_t w = f; w < c; w = mask.find(true, w + 1, c)) {
+							g_masterList.at(w).playlist = "";
+							g_masterList.at(w).guid_playlist = pfc::guid_null;
 						}
 
 						m_guiList.ReloadItems(mask);
@@ -449,9 +467,7 @@ namespace dlg {
 
 						if (!clip_bookmark.get_length()) {
 							clip_bookmark = g_masterList.at(m_guiList.GetSingleSel()).path;
-							if (pfc::strcmp_partial(clip_bookmark.get_ptr(), "file://") == 0) {
-								clip_bookmark.remove_chars(0, strlen("file://"));
-							}
+							foobar2000_io::extract_native_path(clip_bookmark, clip_bookmark);
 						}
 
 						ClipboardHelper::OpenScope scope;

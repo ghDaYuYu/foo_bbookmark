@@ -79,6 +79,18 @@ void bookmark_worker::restore(std::vector<bookmark_t>& masterList, size_t index)
 
 	if (index >= 0 && index < masterList.size()) {	//load using the index
 		auto rec = masterList[index];
+
+		abort_callback_impl p_abort;
+		try {
+			if (!filesystem_v3::g_exists(rec.path.c_str(), p_abort)) {
+				FB2K_console_print_e("Restore Bookmark failed...object not found.");
+				return;
+			}
+		}
+		catch (exception_aborted) {
+			return;
+		}
+
 		g_bmAuto.updateRestoredDummy(rec);
 
 		if (!(bool)rec.path.get_length()) {
@@ -96,11 +108,13 @@ void bookmark_worker::restore(std::vector<bookmark_t>& masterList, size_t index)
 		metadb_handle_ptr track_bm = metadb_ptr->handle_create(rec.path.c_str(), rec.subsong);	//Identify track to restore
 
 			size_t index_pl = ~0;
+			size_t index_item = ~0;
 
 			index_pl = playlist_manager_v5::get()->find_playlist_by_guid(rec.guid_playlist);
 
-			if (index_pl == pfc_infinite) {	//Complain if no playlist of that name exists anymore 
-				FB2K_console_print_v("Bookmark Restoration partially failed", "Could not find Playlist '", rec.playlist, "'");
+			if (index_pl == pfc_infinite || !playlist_manager_ptr->playlist_find_item(index_pl, track_bm, index_item)) {
+
+				FB2K_console_print_v("Bookmark Restoration partially failed (queued)", "Could not find playlist '", rec.playlist, "' or playlist does not contain item.");
 
 				if (track_bm.get_ptr()) {
 					//Change track by way of the queue:
@@ -118,44 +132,38 @@ void bookmark_worker::restore(std::vector<bookmark_t>& masterList, size_t index)
 			}
 			else {
 				size_t index_item = ~0;
-				if (index_pl == ~0 || !playlist_manager_ptr->playlist_find_item(index_pl, track_bm, index_item)) {	//Complain if the track does not exist in that playlist
-					FB2K_console_print_v("Bookmark Restoration partially failed", "Could not find Track '", track_bm->get_path(), "'");
+				if (is_cfg_Queuing()) {
+					//Change track by way of the queue:
+					playlist_manager_ptr->queue_flush();
+
+					{
+						std::lock_guard<std::mutex> ul(g_mtx_restoring);
+						g_restoring = true;
+					}
+
+					playlist_manager_ptr->queue_add_item_playlist(index_pl, index_item);
+
+					playback_control_ptr->next();
 				}
 				else {
-
-					if (is_cfg_Queuing()) {
-						//Change track by way of the queue:
-						playlist_manager_ptr->queue_flush();
+					size_t plpos;
+					playlist_manager_ptr->playlist_find_item(index_pl, track_bm, plpos);
+					if (plpos != ~0) {
+						playlist_manager_ptr->set_active_playlist(index_pl);
+						playlist_manager_ptr->set_playing_playlist(index_pl);
+						playlist_manager_ptr->playlist_set_selection(index_pl, bit_array_true(), bit_array_false());
+						playlist_manager_ptr->playlist_set_selection_single(index_pl, plpos, true);
+						playlist_manager_ptr->playlist_set_focus_item(index_pl, plpos);
 
 						{
 							std::lock_guard<std::mutex> ul(g_mtx_restoring);
 							g_restoring = true;
 						}
-
-						playlist_manager_ptr->queue_add_item_playlist(index_pl, index_item);
-
-						playback_control_ptr->next();
+						playlist_manager_ptr->playlist_execute_default_action(index_pl, plpos);
 					}
-					else {
-						size_t plpos;
-						playlist_manager_ptr->playlist_find_item(index_pl, track_bm, plpos);
-						if (plpos != ~0) {
-							playlist_manager_ptr->set_active_playlist(index_pl);
-							playlist_manager_ptr->set_playing_playlist(index_pl);
-							playlist_manager_ptr->playlist_set_selection(index_pl, bit_array_true(), bit_array_false());
-							playlist_manager_ptr->playlist_set_selection_single(index_pl, plpos, true);
-							playlist_manager_ptr->playlist_set_focus_item(index_pl, plpos);
-
-							{
-								std::lock_guard<std::mutex> ul(g_mtx_restoring);
-								g_restoring = true;
-							}
-							playlist_manager_ptr->playlist_execute_default_action(index_pl, plpos);
-						}
-					}
-					//This will be applied by the worker play callback
-					g_pendingSeek = rec.get_time();
 				}
+				//This will be applied by worker play callback
+				g_pendingSeek = rec.get_time();
 			}
 		//} end track already playing
 

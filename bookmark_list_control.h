@@ -77,6 +77,47 @@ namespace dlg {
 
 		}
 
+		virtual uint32_t QueryDragDropTypes() const override {
+			return dragDrop_reorder | dragDrop_external;
+		}
+
+		virtual DWORD DragDropSourceEffects() override {
+			return DROPEFFECT_MOVE | DROPEFFECT_COPY;
+		}
+
+		virtual pfc::com_ptr_t<IDataObject> MakeDataObject() override {
+
+			static_api_ptr_t<playlist_incoming_item_filter> piif;
+
+			metadb_handle_list mhl;
+			bit_array_bittable selmask = GetSelectionMask();
+			t_size selsize = selmask.size();
+
+			for (t_size walk = selmask.find_first(true, 0, selsize); walk < selsize;
+				walk = selmask.find_next(true, walk, selsize)) {
+
+				auto rec = glb::g_masterList[walk];
+
+				abort_callback_impl p_abort;
+				try {
+					if (!filesystem_v3::g_exists(rec.path.c_str(), p_abort)) {
+						FB2K_console_print_e("Create D&D Bookmark failed...object not found.");
+						continue;
+					}
+				}
+				catch (exception_aborted) {
+					break;
+				}
+				
+				auto metadb_ptr = metadb::get();
+				metadb_handle_ptr track_bm = metadb_ptr->handle_create(rec.path.c_str(), rec.subsong);
+				mhl.add_item(track_bm);
+			}
+
+			pfc::com_ptr_t<IDataObject> pDataObject = piif->create_dataobject_ex(mhl);
+			return pDataObject;
+		}
+
 		size_t GetColContent(size_t icol) {
 
 			return (*m_pcolContent)[icol];
