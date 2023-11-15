@@ -10,12 +10,13 @@
 namespace dlg {
 
 	const enum colID {
-		TIME_COL = 0,
+		ITEM_NUMBER = 0,
+		TIME_COL,
 		DESC_COL,
 		PLAYLIST_COL,
 		ELU_COL,
 		DATE_COL,
-		N_COLUMNS
+		N_COLUMNS //6
 	};
 
 	class CListControlBookmark;
@@ -37,13 +38,18 @@ namespace dlg {
 		uint32_t listGetEditFlags(ctx_t ctx, size_t item, size_t subItem) override;
 		pfc::string8 listGetEditField(ctx_t ctx, size_t item, size_t subItem, size_t& lineCount) override;
 		void listSetEditField(ctx_t ctx, size_t item, size_t subItem, const char* val) override;
+		virtual void listColumnHeaderClick(ctx_t, size_t subItem) override {
+			//..
+		}
 
+		// Called prior to a typefind pass attempt, you can either deny entirely, or prepare any necessary data and allow it.
+		bool listAllowTypeFind(ctx_t) override { return false; }
+		// Allow type-find in a specific item/column?
+		bool listAllowTypeFindHere(ctx_t, size_t item, size_t subItem) override { return false; }
+	
 	public:
-
 		//..
-
 	};
-
 
 	typedef CListControlFb2kColors <CListControlOwnerData> CListControlOwnerColors;
 
@@ -52,7 +58,6 @@ namespace dlg {
 	public:
 
 		CListControlBookmark(ILOD_BookmarkSource* h, bool is_cui) : CListControlOwnerColors(h), m_cui(is_cui) {
-		
 			//..
 		}
 
@@ -60,21 +65,17 @@ namespace dlg {
 
 			//..
 		}
-
 		typedef CListControlOwnerColors TParent;
+
 		BEGIN_MSG_MAP_EX(CListControlBookmark)
 			CHAIN_MSG_MAP(TParent)
 		END_MSG_MAP()
-
-		void Initialize(HWND hparent, pfc::array_t<size_t>* pcolContent) {
-
-			m_pcolContent = pcolContent;
-
+		void Initialize(pfc::array_t<size_t>* pcols_content) {
+			InitializeHeaderCtrl(HDS_BUTTONS);
+			m_pcols_content = pcols_content;
 			SetPlaylistStyle();
 			SetWantReturn(true);
-
 			::SetWindowLongPtr(m_hWnd, GWL_EXSTYLE, 0);
-
 		}
 
 		virtual uint32_t QueryDragDropTypes() const override {
@@ -119,15 +120,34 @@ namespace dlg {
 		}
 
 		size_t GetColContent(size_t icol) {
+			return (*m_pcols_content)[icol];
+		}
 
-			return (*m_pcolContent)[icol];
+	protected:
+
+		virtual void OnColumnHeaderClick(t_size index) override {
+			if (index) {
+				return;
+			}
+			m_sorted_dir = !m_sorted_dir;
+			SelectNone();
+			SetColumnSort(index, m_sorted_dir);
+			m_host->listColumnHeaderClick(this, index);
+			ReloadItems(bit_array_true());
+			if (GetItemCount()) {
+				auto fi = GetFocusItem();
+				if (fi != pfc_infinite) {
+					SetFocusItem(m_sorted_dir ? fi - (GetItemCount() - 1) : GetItemCount() - 1 - fi);
+				}
+			}
 		}
 
 	private:
 
+		bool m_sorted_dir = 0;
 		bool m_cui = false;
 
-		pfc::array_t<size_t>* m_pcolContent;
+		pfc::array_t<size_t>* m_pcols_content;
 
 	};
 }

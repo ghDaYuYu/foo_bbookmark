@@ -5,6 +5,7 @@
 #include <array>
 
 #include <helpers/atl-misc.h>
+#include <helpers/helpers.h>
 #include <libPPUI/clipboard.h>
 #include <helpers/DarkMode.h>
 
@@ -18,14 +19,17 @@
 #include "style_manager_cui.h"
 #include "guids.h"
 
+#include "helpers/cfg_guidlist.h"
+
 using namespace glb;
 
 namespace dlg {
 
-	static const char* COLUMNNAMES[] = { "Time", "Bookmark", "Playlist", "Comment", "Date"};
+	static const char* COLUMNNAMES[] = { "#", "Time", "Bookmark", "Playlist", "Comment", "Date"};
+	static const char BOOKMARK_COL = 3; //todo: config to ui & clipboard
 
-	static const std::array<uint32_t, N_COLUMNS> defaultColWidths = { 40, 150, 110, 150, 150 };
-	static const std::array<bool, N_COLUMNS> defaultColActive = { true, true, false, false, false };
+	static const std::array<uint32_t, N_COLUMNS> default_cols_width = { 20, 40, 150, 110, 150, 150 };
+	static const std::array<bool, N_COLUMNS> default_cols_active = { false, true, true, false, false, false };
 
 	class CListCtrlMarkDialog : public CDialogImpl<CListCtrlMarkDialog>, private ILOD_BookmarkSource {
 
@@ -75,33 +79,30 @@ namespace dlg {
 
 			m_cui = false;
 
-			m_colActive = defaultColActive;
-			m_colContent.resize(N_COLUMNS);
+			m_cols_active = default_cols_active;
+			m_cols_content.resize(N_COLUMNS);
 
-			parseConfig(cfg, m_colWidths, m_colActive);
+			parseConfig(cfg, m_sorted_dir, m_cols_width, m_cols_active);
 
 			m_cust_stylemanager->setChangeHandler([&] { this->on_style_change(); });
 		}
 
 		// CUI constructor
 
-		CListCtrlMarkDialog(HWND parent, std::array<uint32_t, N_COLUMNS> colWidths, std::array<bool, N_COLUMNS> colActive)
-			: m_colWidths(colWidths), m_colActive(colActive), m_guiList(this, true), m_cust_stylemanager(new CuiStyleManager())
+		CListCtrlMarkDialog(HWND parent, bool sorted_dir, std::array<uint32_t, N_COLUMNS> colWidths, std::array<bool, N_COLUMNS> colActive)
+			: m_sorted_dir(sorted_dir), m_cols_width(colWidths), m_cols_active(colActive), m_guiList(this, true), m_cust_stylemanager(new CuiStyleManager())
 		{
 
 			m_cui = true;
 
 			if (!colWidths.size()) {
-				m_colActive = defaultColActive;
+				m_cols_active = default_cols_active;
 			}
 
-			m_colContent.resize(N_COLUMNS);
+			m_cols_content.resize(N_COLUMNS);
 			
-			parseConfig(nullptr, m_colWidths, m_colActive);
-
+			parseConfig(nullptr, m_sorted_dir, m_cols_width, m_cols_active);
 			m_cust_stylemanager->setChangeHandler([&] { this->on_style_change(); });
-
-			// initiale (create)
 
 			initialize_window(parent);
 
@@ -137,7 +138,7 @@ namespace dlg {
 
 		//see ImplementBumpableElem<TImpl> - ui_element_impl_withpopup<`anonymous-namespace'::dui_tour,ui_element_v2>
 		static ui_element_config::ptr g_get_default_configuration() {
-			return makeConfig(guid_dui_bmark);
+			return makeConfig(guid_dui_bmark, false);
 		}
 
 		// Restore Bookmarks
@@ -177,10 +178,14 @@ namespace dlg {
 			bmWorker.store(g_masterList);
 
 			for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
+				size_t item = g_masterList.size() - 1;
+				if ((*it)->GetSortOrder()) {
+					item = 0;
+				}
 				(*it)->SelectNone();
-                (*it)->OnItemsInserted(g_masterList.size() - 1, 1, true);
-                (*it)->EnsureItemVisible(g_masterList.size() - 1, false);
-                (*it)->SetFocusItem(g_masterList.size() - 1);
+				(*it)->OnItemsInserted(item, 1, true);
+				(*it)->EnsureItemVisible(item, false);
+				(*it)->SetFocusItem(item);
 			}
 
 			FB2K_console_print_v("Created Bookmark, saving to file now.");
@@ -234,8 +239,7 @@ namespace dlg {
 			::ShowWindow(GetDlgItem(IDC_BOOKMARKLIST), SW_SHOW);
 
 			m_guiList.CreateInDialog(*this, IDC_BOOKMARKLIST);
-
-			m_guiList.Initialize(&m_colContent);
+			m_guiList.Initialize(&m_cols_content);
 			configToUI(false);
 
 			m_dark.AddDialogWithControls(*this);
@@ -298,7 +302,7 @@ namespace dlg {
 						//The + 1 and - 1 below to ensure cmd = 0 remains unused
 
 						auto flags = MF_STRING;
-						if (m_colActive[i])
+						if (m_cols_active[i])
 							flags |= MF_CHECKED;
 						else
 							flags |= MF_UNCHECKED;
@@ -313,6 +317,7 @@ namespace dlg {
 						CMenuDescriptionMap descriptions(m_hWnd);
 
 						// Set descriptions of all our items
+						descriptions.Set(ITEM_NUMBER + 1, "Item order");
 						descriptions.Set(TIME_COL + 1, "Playback timestamp");
 						descriptions.Set(DESC_COL + 1, "Custom bookmark description");
 						descriptions.Set(PLAYLIST_COL + 1, "Playlist");
@@ -324,13 +329,19 @@ namespace dlg {
 
 					if (cmd) {
 						size_t colndx = static_cast<size_t>(cmd) - 1;
-						m_colActive[colndx] = !m_colActive[colndx]; // toggle column state whose menucommand was triggered
-						bool all_disabled = std::find(m_colActive.begin(), m_colActive.end(), true) == m_colActive.end();
+						m_cols_active[colndx] = !m_cols_active[colndx]; // toggle column state whose menucommand was triggered
+						bool all_disabled = std::find(m_cols_active.begin(), m_cols_active.end(), true) == m_cols_active.end();
 						if (all_disabled) {
 							//revert
-							m_colActive[colndx] = !m_colActive[colndx];
+							m_cols_active[colndx] = !m_cols_active[colndx];
 						}
 						else {
+							//todo
+							if (!m_cols_active[colndx]) {
+								auto col_ndx = m_cols_content[colndx];
+								m_cols_width[col_ndx] = static_cast<int>(m_guiList.GetColumnWidthF(colndx));
+							}
+
 							configToUI(true);
 						}
 					}
@@ -365,7 +376,7 @@ namespace dlg {
 					menu.AppendMenu(MF_SEPARATOR);
 					if (bsinglesel) {
 						menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_COPY, L"&Copy");
-						menu.AppendMenu(MF_STRING | (!(bool)icount || !m_colActive[1] ? MF_DISABLED | MF_GRAYED : 0), ID_COPY_BOOKMARK, L"Copy &bookmark");
+						menu.AppendMenu(MF_STRING | (!(bool)icount || !m_cols_active[1] ? MF_DISABLED | MF_GRAYED : 0), ID_COPY_BOOKMARK, L"Copy &bookmark");
 						menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_COPY_PATH, L"Copy &path");
 						menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_OPEN_FOLDER, L"&Open containing folder");
 						menu.AppendMenu(MF_SEPARATOR);
@@ -391,7 +402,7 @@ namespace dlg {
 						descriptions.Set(ID_SELECTALL, "Selects all items");
 						descriptions.Set(ID_SELECTNONE, "Deselects all items");
 						descriptions.Set(ID_INVERTSEL, "Invert selection");
-						descriptions.Set(ID_INVERTSEL, "The primary list's selection determines the bookmark restored by the global restore command.");
+						//descriptions.Set(ID_INVERTSEL, "The primary list's selection determines the bookmark restored by the global restore command.");
 
 						cmd = menu.TrackPopupMenuEx(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, descriptions, nullptr);
 					}
@@ -410,7 +421,6 @@ namespace dlg {
 					case  ID_RESET_TIME: {
 						auto mask = m_guiList.GetSelectionMask();
 						size_t c = m_guiList.GetItemCount();
-
 						size_t f = mask.find(true, 0, c);
 						for (size_t w = f; w < c; w = mask.find(true, w + 1, c)) {
 							g_masterList.at(w).set_time(0.0);
@@ -424,7 +434,6 @@ namespace dlg {
 					case  ID_RESET_PLAYLIST: {
 						auto mask = m_guiList.GetSelectionMask();
 						size_t c = m_guiList.GetItemCount();
-
 						size_t f = mask.find(true, 0, c);
 						for (size_t w = f; w < c; w = mask.find(true, w + 1, c)) {
 							g_masterList.at(w).playlist = "";
@@ -444,11 +453,11 @@ namespace dlg {
 						break;
 					case ID_COPY_BOOKMARK: {
 
-						if (m_colActive[1]) {
+						if (m_cols_active[BOOKMARK_COL]) {
 							pfc::string8 coltext;
 							for (auto i = 0; i < static_cast<int>(m_guiList.GetColumnCount()); i++) {
 								m_guiList.GetColumnText(i, coltext);
-								if (coltext.equals(COLUMNNAMES[1])) {
+								if (coltext.equals(COLUMNNAMES[BOOKMARK_COL])) {
 									m_guiList.GetSubItemText(m_guiList.GetSingleSel(), i, clip_bookmark);
 									break;
 								}
@@ -573,79 +582,165 @@ namespace dlg {
 			FB2K_console_print_v("get_configuration called.");
 
 			for (int i = 0; i < N_COLUMNS; i++) {
-				auto col_ndx = m_colContent[i];
+				auto col_ndx = m_cols_content[i];
 				if (i < static_cast<int>(m_guiList.GetColumnCount())) {
-					m_colWidths[col_ndx] = static_cast<int>(m_guiList.GetColumnWidthF(i));
+					m_cols_width[col_ndx] = static_cast<int>(m_guiList.GetColumnWidthF(i));
 				}
 				else {
 					//default
-					m_colWidths[col_ndx] = defaultColWidths[col_ndx];
+					m_cols_width[col_ndx] = default_cols_width[col_ndx];
 				}
 			}
 
-			return makeConfig(ui_guid, m_colWidths, m_colActive);
+			return makeConfig(ui_guid, m_guiList.GetSortOrder(), m_cols_width, m_cols_active);
 		}
 
 		// host to dlg
 
 		void set_configuration(ui_element_config::ptr config) {
 			FB2K_console_print_v("set_configuration called.");
-			parseConfig(config, m_colWidths, m_colActive);
+			parseConfig(config, m_sorted_dir, m_cols_width, m_cols_active);
 
 			configToUI(false);
 		}
 
-		void CUI_gets_config(stream_writer* p_writer, abort_callback& p_abort) const {
-
-			std::array<uint32_t, N_COLUMNS> colWidths = m_colWidths;
+		//todo: merge makeConfig
+		void get_uicfg(stream_writer_formatter<>* out, abort_callback& p_abort/*, const std::array<uint32_t, N_COLUMNS>& cols_width, const std::array<bool, N_COLUMNS>& cols_active*/) const {
+			std::array<uint32_t, N_COLUMNS> tmp_cols_width/* = cols_width*/;
 
 			for (int i = 0; i < N_COLUMNS; i++) {
-				auto col_ndx = m_colContent[i];
+				auto col_ndx = m_cols_content[i];
 				if (i < static_cast<int>(m_guiList.GetColumnCount())) {
-					colWidths[col_ndx] = static_cast<int>(m_guiList.GetColumnWidthF(i));
+					tmp_cols_width[col_ndx] = static_cast<int>(m_guiList.GetColumnWidthF(i));
 				}
 				else {
 					//default
-					colWidths[col_ndx] = defaultColWidths[col_ndx];
+					tmp_cols_width[col_ndx] = default_cols_width[col_ndx];
 				}
 			}
 
-			stream_writer_formatter<false> writer(*p_writer, p_abort);
+			pfc::string8 strVer; strVer << kUI_CONF_VER;
+			*out << (pfc::string_base&)strVer;
+
 			for (int i = 0; i < N_COLUMNS; i++) {
-				writer << colWidths[i];
+				*out << tmp_cols_width[i];
 			}
 			for (int i = 0; i < N_COLUMNS; i++) {
-				writer << m_colActive[i];
+				*out << m_cols_active[i];
+			}
+
+			*out << m_guiList.GetSortOrder();
+		}
+
+		// todo: merge parseConfig
+		static void set_cui_config(stream_reader* p_reader, t_size p_size, abort_callback& p_abort, bool &bsort, std::array<uint32_t, N_COLUMNS>& cols_width, std::array<bool, N_COLUMNS>& cols_active) {
+	
+			size_t cfg_ver = 0;
+
+			stream_reader_buffered srb(p_reader, p_size);
+			pfc::mem_block mb; mb.resize(1024);
+
+			pfc::array_t<t_uint8> buffer;
+			buffer.set_size(p_size);
+
+			p_reader->read(buffer.get_ptr(), p_size, p_abort);
+
+			stream_reader_memblock_ref srmr(buffer);
+
+			stream_reader_formatter<false> reader(srmr, p_abort);
+			try {
+				pfc::string8 ver;
+				reader >> ver;
+				cfg_ver = atoi(ver);
+			}
+			catch (exception_io_data_truncation e) {
+				//v0 (VB 1.1)
+			}
+
+			//rewind
+			srmr.reset();
+
+			if (cfg_ver == 0) {
+				for (int i = 1; i < dlg::N_COLUMNS; i++) {
+					reader >> (t_uint32)cols_width[i];
+				}
+				for (int i = 1; i < dlg::N_COLUMNS; i++) {
+					reader >> (bool)cols_active[i];
+				}
+			}
+			else {
+				pfc::string8 strVer;
+				reader >> strVer;
+				for (int i = 0; i < dlg::N_COLUMNS; i++) {
+					reader >> (t_uint32)cols_width[i];
+				}
+				for (int i = 0; i < dlg::N_COLUMNS; i++) {
+					reader >> (bool)cols_active[i];
+				}
+
+				reader >> bsort;
+
 			}
 		}
 
 	private:
 
-		// read dui config
-		static void parseConfig(ui_element_config::ptr cfg, std::array<uint32_t, N_COLUMNS>& widths, std::array<bool, N_COLUMNS>& active) {
+		//todo: merge set_cui_config
+		static void parseConfig(ui_element_config::ptr cfg, bool & bsort, std::array<uint32_t, N_COLUMNS>& widths, std::array<bool, N_COLUMNS>& active) {
 
 			FB2K_console_print_v("Parsing config");
 
 			if (!widths.size()) {
-				widths = defaultColWidths;
-				active = defaultColActive;
+				bsort = false;
+				widths = default_cols_width;
+				active = default_cols_active;
 			}
 			else {
 				//..
 			}
 
 			if (!cfg.get_ptr()) {
-				//todo: cui
+				//cui
 				return;
 			}
 
+			size_t cfg_ver = 0;
+			size_t cfg_ver_col_diff = 1;
+
 			try {
+
+				::ui_element_config_parser test_configParser(cfg);
+				try {
+					pfc::string8 strVer;
+					test_configParser >> strVer;
+					cfg_ver = atoi(strVer);
+				}
+				catch (exception_io_data_truncation e) {
+					//v0 (VB 1.1)
+				}
+
 				::ui_element_config_parser configParser(cfg);
-				//read from config:
-				for (int i = 0; i < N_COLUMNS; i++)
-					configParser >> widths[i];
-				for (int i = 0; i < N_COLUMNS; i++) {
-					configParser >> active[i];
+				if (cfg_ver == 0) {
+					for (int i = 1; i < N_COLUMNS; i++)
+						configParser >> widths[i];
+					for (int i = 1; i < N_COLUMNS; i++) {
+						configParser >> active[i];
+					}
+				}
+				else {
+					if (cfg_ver != kUI_CONF_VER) { 
+						exception_io_data_truncation e;
+						throw e;
+					}
+					pfc::string8 ver;
+					configParser >> ver; //todo: skip instead
+					for (int i = 0; i < N_COLUMNS; i++)
+						configParser >> widths[i];
+					for (int i = 0; i < N_COLUMNS; i++) {
+						configParser >> active[i];
+					}
+
+					configParser >> bsort;
 				}
 			}
 			catch (exception_io_data_truncation e) {
@@ -656,23 +751,34 @@ namespace dlg {
 			}
 		}
 
-		static ui_element_config::ptr makeConfig(GUID ui_guid, std::array<uint32_t, N_COLUMNS> widths = defaultColWidths, const std::array<bool, N_COLUMNS> active = defaultColActive) {
-			if (sizeof(widths) / sizeof(uint32_t) != N_COLUMNS)
-				return makeConfig(ui_guid);
+		//todo: merge get_uicfg 
+		static ui_element_config::ptr makeConfig(GUID ui_guid, bool bsort, std::array<uint32_t, N_COLUMNS> widths = default_cols_width, const std::array<bool, N_COLUMNS> active = default_cols_active) {
+	
+			if (sizeof(widths) / sizeof(uint32_t) != N_COLUMNS) {
+				return makeConfig(ui_guid, false);
+			}
 
 			FB2K_console_print_v("Making config from ", widths[0], " and ", widths[1]);
 
 			ui_element_config_builder out;
+
+			pfc::string8 strVer; strVer << kUI_CONF_VER;
+			out << (pfc::string_base&)strVer;
+
 			for (int i = 0; i < N_COLUMNS; i++)
 				out << widths[i];
 			for (int i = 0; i < N_COLUMNS; i++)
 				out << active[i];
+
+			out << bsort;
+
 			return out.finish(ui_guid);
 		}
 
 		void configToUI(bool breload) {
 
-			FB2K_console_print_v("Applying config to UI: ", m_colWidths[0], " and ", m_colWidths[1]);
+			FB2K_console_print_v("Applying config to UI: ", m_cols_width[0], " and ", m_cols_width[1]);
+
 
 			auto DPI = m_guiList.GetDPI();
 
@@ -680,30 +786,32 @@ namespace dlg {
 				m_guiList.ResetColumns(false);
 			}
 
-			auto fit = std::find(m_colActive.begin(), m_colActive.end(), true);
-			if (fit == m_colActive.end()) {
-				m_colActive[0] = true;
-				m_colActive[1] = true;
+			auto fit = std::find(m_cols_active.begin(), m_cols_active.end(), true);
+			if (fit == m_cols_active.end()) {
+				m_cols_active[BOOKMARK_COL-1] = true;
+				m_cols_active[BOOKMARK_COL] = true;
 			}
+
+			m_guiList.SetSortOrder(m_sorted_dir);
 
 			size_t ndx_tail = N_COLUMNS - 1;
 			for (int i = 0; i < N_COLUMNS; i++) {
 
 				if (cfg_verbose) {
-					FB2K_console_print_v("Config to UI: i is ", i, "; name: ", COLUMNNAMES[i], ", active: ", m_colActive[i], ", width: ", m_colWidths[i]);
+					FB2K_console_print_v("Config to UI: i is ", i, "; name: ", COLUMNNAMES[i], ", active: ", m_cols_active[i], ", width: ", m_cols_width[i]);
 				}
 
 				auto ndx_cont = !m_guiList.IsHeaderEnabled() ? 0 : m_guiList.GetColumnCount();
-				if (m_colActive[i]) {
-					//use defaults instead of zero
-					size_t width = (m_colWidths[i] != 0 && m_colWidths[i] != pfc_infinite) ? m_colWidths[i] : defaultColWidths[i];
+				if (m_cols_active[i]) {
+
+					size_t width = (m_cols_width[i] != 0 && m_cols_width[i] != pfc_infinite) ? m_cols_width[i] : default_cols_width[i];
 					width = pfc::min_t<size_t>(width, 1000);
-					m_colContent[ndx_cont] = i;
+					m_cols_content[ndx_cont] = i;
 					m_guiList.AddColumn(COLUMNNAMES[i], MulDiv(static_cast<int>(width), DPI.cx, 96), LVCFMT_LEFT, false);
 				}
 				else {
 					//move to tail
-					m_colContent[ndx_tail--] = i;
+					m_cols_content[ndx_tail--] = i;
 				}
 			}
 			if (breload) {
@@ -726,10 +834,10 @@ namespace dlg {
 
 		bool m_cui = false;
 
-		std::array<uint32_t, N_COLUMNS> m_colWidths = {0};
-
-		std::array<bool, N_COLUMNS> m_colActive;
-		pfc::array_t<size_t> m_colContent;
+		bool m_sorted_dir = false;
+		std::array<uint32_t, N_COLUMNS> m_cols_width = {0};
+		std::array<bool, N_COLUMNS> m_cols_active;
+		pfc::array_t<size_t> m_cols_content;
 
 		friend class CListControlBookmark;
 	};

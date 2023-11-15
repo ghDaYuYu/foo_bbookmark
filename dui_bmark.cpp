@@ -23,7 +23,9 @@ namespace {
 
 		// dlg to host
 		ui_element_config::ptr get_configuration() {
-			return CListCtrlMarkDialog::get_configuration(get_guid());
+			ui_element_config_builder out;
+			get_uicfg(&out, fb2k::noAbort);
+			return out.finish(get_guid());
 		}
 
 		// host to dlg

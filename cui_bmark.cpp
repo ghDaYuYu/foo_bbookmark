@@ -42,7 +42,7 @@ namespace {
 
 					// create dlg
 
-					window.emplace(wnd_parent, m_hosted_colWidths, m_hosted_colActive);
+					window.emplace(wnd_parent, m_sorted_dir, m_hosted_colWidths, m_hosted_colActive);
 
 				}
 				catch (std::exception& e) {
@@ -75,23 +75,18 @@ namespace {
 		// set_config
 
 		void set_config(stream_reader* p_reader, t_size p_size, abort_callback& p_abort) override {
-			
-			//window is not created yet
-			stream_reader_formatter<false> reader(*p_reader, p_abort);
 
-			for (int i = 0; i < N_COLUMNS; i++) {
-				reader >> (t_uint32)m_hosted_colWidths[i];
-			}
-			for (int i = 0; i < N_COLUMNS; i++) {
-				reader >> (bool)m_hosted_colActive[i];
-			}
+			//window is not created yet
+			dlg::CListCtrlMarkDialog::set_cui_config(p_reader, p_size, p_abort, m_sorted_dir, m_hosted_colWidths, m_hosted_colActive);
+
 		};
 
 		// get_config
 
 		void get_config(stream_writer* p_writer, abort_callback& p_abort) const override {
 
-			window->CUI_gets_config(p_writer, p_abort);
+			stream_writer_formatter<false> writer(*p_writer, p_abort);
+			window->get_uicfg(&writer, p_abort);
 
 		};
 
@@ -107,7 +102,7 @@ namespace {
 
 		std::array<uint32_t, N_COLUMNS> m_hosted_colWidths;
 		std::array<bool, N_COLUMNS> m_hosted_colActive;
-
+		bool m_sorted_dir;
 	};
 
 	// S T A T I C   C U I - E L E M E N T

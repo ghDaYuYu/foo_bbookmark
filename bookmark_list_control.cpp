@@ -16,13 +16,19 @@ namespace dlg {
 
 	pfc::string8 ILOD_BookmarkSource::listGetSubItemText(ctx_t ctx, size_t item, size_t subItem) {
 
-		auto& rec = g_masterList[item];
-
 		CListControlBookmark* plc = (CListControlBookmark*)(ctx);
+
+		if (plc->GetSortOrder()) {
+			item = listGetItemCount(ctx) - 1 - item;
+		}
+
+		auto& rec = glb::g_masterList[item];
 
 		auto subItemContent = plc->GetColContent(subItem);
 
 		switch (subItemContent) {
+		case ITEM_NUMBER:
+			return std::to_string(item + 1).c_str();
 		case TIME_COL:
 		{
 			std::ostringstream conv;
@@ -41,31 +47,63 @@ namespace dlg {
 		case ELU_COL:
 			return rec.comment.c_str();
 		case DATE_COL:
-			return rec.date.c_str();
+			return rec.runtime_date.c_str();
 		default:
 			return "";
 		}
 	}
 
-	bool ILOD_BookmarkSource::listReorderItems(ctx_t, const size_t* order, size_t count) {
+	bool ILOD_BookmarkSource::listReorderItems(ctx_t ctx, const size_t* order, size_t count) {
 
-		PFC_ASSERT(count == g_masterList.size());
-		pfc::reorder_t(g_masterList, order, count);
+		PFC_ASSERT(count == glb::g_masterList.size());
+
+		CListControlBookmark* plc = (CListControlBookmark*)(ctx);
+
+		if (plc->GetSortOrder()) {
+			size_t ci = listGetItemCount(ctx);
+			pfc::array_t<t_size> order_data;
+			order_data.resize(ci);
+			for (size_t i = 0; i < ci; i++) {
+				order_data[ci - 1 - i] = ci - 1 - *(order + i);
+			}
+			pfc::reorder_t(glb::g_masterList, order_data.get_ptr(), ci);
+		}
+		else {
+			pfc::reorder_t(g_masterList, order, count);
+		}
+
 		CListCtrlMarkDialog::CancelUIListEdits();
 		g_permStore.writeDataFile(glb::g_masterList);
 		return true;
 	}
 
 	bool ILOD_BookmarkSource::listRemoveItems(ctx_t ctx, pfc::bit_array const& mask) {
+
 		size_t oldCount = g_masterList.size();
 
-		pfc::remove_mask_t(g_masterList, mask); //remove from global list
+		//todo
+		bit_array_bittable sorted_mask((const bit_array_bittable&)mask);
+		pfc::bit_array& new_mask = sorted_mask;
+
+		CListControlBookmark* plc = (CListControlBookmark*)(ctx);
+
+		//remove from global list
+
+		if (plc->GetSortOrder()) {
+			//todo: find_next instead
+			for (size_t i = 0; i < listGetItemCount(ctx); i++) {
+				sorted_mask.set(listGetItemCount(ctx) - 1 - i, mask.get(i));
+			}
+			new_mask = sorted_mask;
+		}
+
+		pfc::remove_mask_t(glb::g_masterList, new_mask);
 
 		//Update all guiLists
 
-		for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
+		for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != glb::g_guiLists.end(); ++it) {
 			if ((*it) != ctx) {
-				(*it)->OnItemsRemoved(mask, oldCount);
+				(*it)->OnItemsRemoved(new_mask, oldCount);
 			}
 		}
 		CListCtrlMarkDialog::CancelUIListEdits();
@@ -75,6 +113,11 @@ namespace dlg {
 	}
 
 	void ILOD_BookmarkSource::listItemAction(ctx_t ctx, size_t item) {
+
+		CListControlBookmark* plc = (CListControlBookmark*)(ctx);
+		if (plc->GetSortOrder()) {
+			item = listGetItemCount(ctx) - 1 - item;
+		}
 
 		CListCtrlMarkDialog::restoreBookmark(item);
 	}
@@ -157,6 +200,10 @@ namespace dlg {
 	void ILOD_BookmarkSource::listSetEditField(ctx_t ctx, size_t item, size_t subItem, const char* val) {
 
 		CListControlBookmark* plc = (CListControlBookmark*)(ctx);
+		if (plc->GetSortOrder()) {
+			item = listGetItemCount(ctx) - 1 - item;
+		}
+
 		auto subItemContent = plc->GetColContent(subItem);
 
 		if (subItemContent == TIME_COL) {
