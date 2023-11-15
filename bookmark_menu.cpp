@@ -48,7 +48,7 @@ public:
 
 	void get_name(t_uint32 p_index, pfc::string_base & p_out) {
 		switch (p_index) {
-		case   cmd_store: p_out = "Add Bookmark"; break;
+		case cmd_store: p_out = "Add Bookmark"; break;
 		case cmd_restore: p_out = "Restore Bookmark"; break;
 		case cmd_clearBookmarks: p_out = "Clear Bookmarks"; break;
 		default: uBugCheck(); // should never happen unless somebody called us with invalid parameters - bail
@@ -83,14 +83,17 @@ public:
 
 	void execute(t_uint32 p_index, service_ptr_t<service_base> p_callback) {
 		switch (p_index) {
-		case   cmd_store:
-			bbookmarkHook_store();
+		case cmd_store:
+			if (bbookmarkHook_canStore())
+				bbookmarkHook_store();
 			break;
 		case cmd_restore:
-			bbookmarkHook_restore();
+			if (bbookmarkHook_canRestore())
+				bbookmarkHook_restore();
 			break;
 		case cmd_clearBookmarks:
-			bbookmarkHook_clear();
+			if (bbookmarkHook_canClear())
+				bbookmarkHook_clear();
 			break;
 		default: uBugCheck();
 		}

@@ -35,7 +35,8 @@ namespace dlg {
 
 	public:
 
-		// cust style manager callback
+		//not overriding - serves cui_bmark
+		HWND get_wnd() const { return m_hWnd; }
 
 		void on_style_change() {
 

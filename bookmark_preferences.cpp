@@ -21,6 +21,7 @@ static const int stringlength = 256;
 
 // preference page
 static const GUID guid_bookmark_pref_page = { 0x49e82acf, 0x4954, 0x4274, { 0x80, 0xe8, 0xff, 0x74, 0xf3, 0x71, 0x1e, 0x5f } };
+GUID  g_get_prefs_guid() { return guid_bookmark_pref_page; }
 
 static const GUID guid_cfg_desc_format = { 0xa13f4068, 0xa177, 0x4cc0, { 0x9b, 0x5f, 0x4c, 0xe4, 0x85, 0x58, 0xba, 0xfc } };
 static const GUID guid_cfg_date_format = { 0x25c3c9bd, 0x80b3, 0x4926, { 0xb0, 0x6, 0xed, 0x7b, 0xb9, 0x9c, 0x1f, 0x1 } };
@@ -355,7 +356,7 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow wndCtl, LPARAM) {
 
 	HWND wndStaticHeader = uGetDlgItem(IDC_STATIC_PREF_HEADER);
 	m_staticPrefHeader.SubclassWindow(wndStaticHeader);
-	m_staticPrefHeader.PaintGradientHeader();
+	m_staticPrefHeader.PaintHeader();
 
 	//fill playlist combo
 
@@ -483,15 +484,20 @@ t_uint32 CBookmarkPreferences::get_state() {
 void CBookmarkPreferences::reset() {
 
 	defToUi(eat_format);
+	defToUi(eat_date);
 	defToUi(eat_as_newtrack_playlists);
 
 	defToUi(bab_as_exit);
 	defToUi(bab_as_newtrack);
+	defToUi(bab_as_focus_newtrack);
+	defToUi(bab_as_radio_newtrack);
 	defToUi(bab_as_filter_newtrack);
 
 	defToUi(bab_verbose);
 
-	defToUi(bai_queue_flag);
+	defToUi(bai_queue_flag, QUEUE_RESTORE_TO_FLAG, /*IDC_QUEUE_FLAG*/bai_queue_flag.idc);
+	defToUi(bai_queue_flag, QUEUE_FLUSH_FLAG, IDC_QUEUE_FLUSH_FLAG);
+
 	defToUi(bai_status_flag);
 	defToUi(bai_misc_flag);
 
@@ -501,10 +507,14 @@ void CBookmarkPreferences::reset() {
 void CBookmarkPreferences::apply() {
 
 	uiToCfg(eat_format);
+	uiToCfg(eat_date);
 	uiToCfg(eat_as_newtrack_playlists);
 
 	uiToCfg(bab_as_exit);
 	uiToCfg(bab_as_newtrack);
+	uiToCfg(bab_as_focus_newtrack);
+	uiToCfg(bab_as_radio_newtrack);
+	uiToCfg(bab_as_filter_newtrack);
 
 	//refresh dummy
 	if (bab_as_newtrack.cfg->get()) {
@@ -514,7 +524,10 @@ void CBookmarkPreferences::apply() {
 	uiToCfg(bab_as_filter_newtrack);
 	uiToCfg(bab_verbose);
 
-	uiToCfg(bai_queue_flag);
+	int ui_fval = 0;
+	ui_fval = IsDlgButtonChecked(bai_queue_flag.idc) ? QUEUE_RESTORE_TO_FLAG : ui_fval;
+	ui_fval = IsDlgButtonChecked(IDC_QUEUE_FLUSH_FLAG) ? ui_fval | QUEUE_FLUSH_FLAG : ui_fval;
+	uiToCfg(bai_queue_flag, ui_fval);
 	uiToCfg(bai_status_flag);
 	uiToCfg(bai_misc_flag);
 
@@ -525,15 +538,21 @@ bool CBookmarkPreferences::HasChanged() {
 
 	bool result = false;
 	result |= isUiChanged(eat_format);
+	result |= isUiChanged(eat_date);
 	result |= isUiChanged(eat_as_newtrack_playlists);
 
 	result |= isUiChanged(bab_as_exit);
 	result |= isUiChanged(bab_as_newtrack);
+	result |= isUiChanged(bab_as_focus_newtrack);
+	result |= isUiChanged(bab_as_radio_newtrack);
 	result |= isUiChanged(bab_as_filter_newtrack);
 
 	result |= isUiChanged(bab_verbose);
 
-	result |= isUiChanged(bai_queue_flag);
+	int ui_fval = 0;
+	ui_fval = IsDlgButtonChecked(bai_queue_flag.idc) ? QUEUE_RESTORE_TO_FLAG : ui_fval;
+	ui_fval = IsDlgButtonChecked(IDC_QUEUE_FLUSH_FLAG) ? ui_fval | QUEUE_FLUSH_FLAG : ui_fval;
+	result |= isUiChanged(bai_queue_flag, ui_fval);
 
 	result |= isUiChanged(bai_status_flag);
 	result |= isUiChanged(bai_misc_flag);

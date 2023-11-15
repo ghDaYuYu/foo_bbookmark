@@ -98,18 +98,19 @@ namespace dlg {
 				walk = selmask.find_next(true, walk, selsize)) {
 
 				auto rec = glb::g_masterList[walk];
-
-				abort_callback_impl p_abort;
-				try {
-					if (!filesystem_v3::g_exists(rec.path.c_str(), p_abort)) {
-						FB2K_console_print_e("Create D&D Bookmark failed...object not found.");
-						continue;
+				if (!rec.path.startsWith("https://")) {
+					abort_callback_impl p_abort;
+					try {
+						if (!filesystem_v3::g_exists(rec.path.c_str(), p_abort)) {
+							FB2K_console_print_e("Create D&D Bookmark failed...object not found.");
+							continue;
+						}
+					}
+					catch (exception_aborted) {
+						break;
 					}
 				}
-				catch (exception_aborted) {
-					break;
-				}
-				
+
 				auto metadb_ptr = metadb::get();
 				metadb_handle_ptr track_bm = metadb_ptr->handle_create(rec.path.c_str(), rec.subsong);
 				mhl.add_item(track_bm);
@@ -118,6 +119,9 @@ namespace dlg {
 			pfc::com_ptr_t<IDataObject> pDataObject = piif->create_dataobject_ex(mhl);
 			return pDataObject;
 		}
+
+		bool GetSortOrder() const { return m_sorted_dir; }
+		void SetSortOrder(bool enable) { m_sorted_dir = enable; }
 
 		size_t GetColContent(size_t icol) {
 			return (*m_pcols_content)[icol];
