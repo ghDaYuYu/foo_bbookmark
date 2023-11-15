@@ -24,12 +24,12 @@ void bookmark_automatic::updateDummyTime() {
 		auto playlist_manager_ptr = playlist_manager_v5::get();
 
 		if (playlist_manager_ptr->get_playing_item_location(&index_playlist, &index_item)) {
-			FB2K_console_print_v("AutoBookmark: dummy update: Playlist index is ", index_playlist);
+			FB2K_console_print_v("AutoBookmark: dummy update: Item location playlist index: ", index_playlist);
 			if (playlist_manager_ptr->playlist_get_name(index_playlist, playing_pl_name))
-				FB2K_console_print_v("AutoBookmark: dummy update: Playlist name is ", playing_pl_name);
+				FB2K_console_print_v("AutoBookmark: dummy update: Item location playlist name: ", playing_pl_name);
 		}
 		else {
-			FB2K_console_print_v("AutoBookmark: dummy update: couldn't find playlist index");
+			FB2K_console_print_v("AutoBookmark: dummy update: pending item location request");
 		}
 
 		//Set the flag back to true if either operation fails
@@ -208,7 +208,7 @@ bool bookmark_automatic::upgradeDummy(std::vector<bookmark_t>& masterList, std::
 	}
 
 	if (!CheckAutoFilter()) {
-		FB2K_console_print_v("Filter is active and did not match, do not store a bookmark.");
+		if (cfg_verbose) console::formatter() << "Filter is active and did not match, do not store a bookmark.";
 		return false;
 	}
 

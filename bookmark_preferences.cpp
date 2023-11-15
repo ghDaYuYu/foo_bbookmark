@@ -446,23 +446,25 @@ void CBookmarkPreferences::OnCheckChange(UINT uNotifyCode, int nId, CWindow wndC
 				}
 			}
 
-            //Add newName to the ui:
-            wchar_t fieldContent[1 + (stringlength * 2)];
-            GetDlgItemTextW(IDC_AUTOSAVE_TRACK_FILTER, (LPTSTR)fieldContent, stringlength);
+			FB2K_console_print_v("Adding to auto-bookmarking playlists: ", newName);
 
-            if (fieldContent[0] != L"\0"[0]) {
-                wcscat_s(fieldContent, L",");
-            }
-            
-            WCHAR wstr[1024];
-            ConvertString8(newName, wstr, 1024 - 1);
+			//Add newName to the ui:
+			wchar_t fieldContent[1 + (stringlength * 2)];
+			GetDlgItemTextW(IDC_AUTOSAVE_TRACK_FILTER, (LPTSTR)fieldContent, stringlength);
 
-            wcscat_s(fieldContent, wstr);
+			if (fieldContent[0] != L"\0"[0]) {
+				wcscat_s(fieldContent, L",");
+			}
+			
+			WCHAR wstr[1024];
+			ConvertString8(newName, wstr, 1024 - 1);
 
-            SetDlgItemText(IDC_AUTOSAVE_TRACK_FILTER, fieldContent);
+			wcscat_s(fieldContent, wstr);
 
-            return; 
-        }
+			SetDlgItemText(IDC_AUTOSAVE_TRACK_FILTER, fieldContent);
+
+			return; 
+		}
 
 	} else {
 
