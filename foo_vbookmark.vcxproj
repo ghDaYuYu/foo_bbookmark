@@ -407,6 +407,7 @@
     <ClCompile Include="bookmark_playlist_callback.cpp" />
     <ClCompile Include="bookmark_play_callback.cpp" />
     <ClCompile Include="bookmark_worker.cpp" />
+    <ClCompile Include="context_menu.cpp" />
     <ClCompile Include="cui_bmark.cpp" />
     <ClCompile Include="dui_bmark.cpp" />
     <ClCompile Include="header_static.cpp" />
@@ -436,6 +437,8 @@
     <ClInclude Include="bookmark_list_control.h" />
     <ClInclude Include="bookmark_persistence.h" />
     <ClInclude Include="bookmark_preferences.h" />
+    <ClInclude Include="context_menu.h" />
+    <ClInclude Include="guids.h" />
     <ClInclude Include="style_manager_cui.h" />
     <ClInclude Include="style_manager_dui.h" />
     <ClInclude Include="header_static.h" />
