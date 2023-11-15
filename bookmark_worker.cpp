@@ -36,7 +36,7 @@ void bookmark_worker::store(std::vector<bookmark_t>& masterList) {
 		newMark.guid_playlist = pfc::guid_null;
 		newMark.path = "";
 		newMark.subsong = 0;
-		gimme_time(newMark.date);
+		gimme_time(newMark);
 	}
 	else {
 		titleformat_object::ptr desc_format;
@@ -65,7 +65,18 @@ void bookmark_worker::store(std::vector<bookmark_t>& masterList) {
 		newMark.guid_playlist = guid_playlist;
 		newMark.path = songPath;
 		newMark.subsong = dbHandle_item->get_subsong_index();
-		gimme_time(newMark.date);
+		gimme_time(newMark);
+
+		if (newMark.isRadio()) {
+			titleformat_object::ptr p_script;
+			pfc::string8 titleformat = cfg_desc_format.get_value();
+			static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(p_script, titleformat);
+
+			pfc::string_formatter songDesc;
+			if (playback_control::get()->playback_format_title(NULL, songDesc, p_script, NULL, playback_control::display_level_all)) {
+				newMark.desc = songDesc.c_str();
+			}
+		}
 	}
 
 	masterList.emplace_back(newMark);
@@ -98,8 +109,6 @@ void bookmark_worker::restore(std::vector<bookmark_t>& masterList, size_t index)
 			return;
 		}
 
-		g_pendingSeek = 0.0;	//reset just in case
-
 		//restore track:
 		auto metadb_ptr = metadb::get();
 		auto playlist_manager_ptr = playlist_manager::get(); //Get index of stored playlist
@@ -107,65 +116,8 @@ void bookmark_worker::restore(std::vector<bookmark_t>& masterList, size_t index)
 
 		metadb_handle_ptr track_bm = metadb_ptr->handle_create(rec.path.c_str(), rec.subsong);	//Identify track to restore
 
-			size_t index_pl = ~0;
-			size_t index_item = ~0;
-
-			index_pl = playlist_manager_v5::get()->find_playlist_by_guid(rec.guid_playlist);
-
-			if (index_pl == pfc_infinite || !playlist_manager_ptr->playlist_find_item(index_pl, track_bm, index_item)) {
-
-				FB2K_console_print_v("Bookmark Restoration partially failed (queued)", "Could not find playlist '", rec.playlist, "' or playlist does not contain item.");
-
-				if (track_bm.get_ptr()) {
-					//Change track by way of the queue:
-					playlist_manager_ptr->queue_flush();
-
-					{
-						std::lock_guard<std::mutex> ul(g_mtx_restoring);
-						g_restoring = true;
-					}
-
-					playlist_manager_ptr->queue_add_item(track_bm);
-					playback_control_ptr->next();
-					g_pendingSeek = rec.get_time();
-				}
-			}
-			else {
-				size_t index_item = ~0;
-				if (is_cfg_Queuing()) {
-					//Change track by way of the queue:
-					playlist_manager_ptr->queue_flush();
-
-					{
-						std::lock_guard<std::mutex> ul(g_mtx_restoring);
-						g_restoring = true;
-					}
-
-					playlist_manager_ptr->queue_add_item_playlist(index_pl, index_item);
-
-					playback_control_ptr->next();
-				}
-				else {
-					size_t plpos;
-					playlist_manager_ptr->playlist_find_item(index_pl, track_bm, plpos);
-					if (plpos != ~0) {
-						playlist_manager_ptr->set_active_playlist(index_pl);
-						playlist_manager_ptr->set_playing_playlist(index_pl);
-						playlist_manager_ptr->playlist_set_selection(index_pl, bit_array_true(), bit_array_false());
-						playlist_manager_ptr->playlist_set_selection_single(index_pl, plpos, true);
-						playlist_manager_ptr->playlist_set_focus_item(index_pl, plpos);
-
-						{
-							std::lock_guard<std::mutex> ul(g_mtx_restoring);
-							g_restoring = true;
-						}
-						playlist_manager_ptr->playlist_execute_default_action(index_pl, plpos);
-					}
-				}
-				//This will be applied by worker play callback
-				g_pendingSeek = rec.get_time();
-			}
-		//} end track already playing
+		size_t index_pl = ~0;
+		size_t index_item = ~0;
 
 		{
 			std::lock_guard<std::mutex> ul(g_mtx_restoring);
@@ -175,6 +127,7 @@ void bookmark_worker::restore(std::vector<bookmark_t>& masterList, size_t index)
 					if (!core_api::assert_main_thread()) {
 						FB2K_console_print_v("(Not in main thread)");
 					}
+
 					FB2K_console_print_v("Restoring time:", rec.get_time());
 
 					playback_control_ptr->playback_seek(rec.get_time());
@@ -182,7 +135,6 @@ void bookmark_worker::restore(std::vector<bookmark_t>& masterList, size_t index)
 
 				//unpause
 				playback_control_ptr->pause(false);
-
 			}
 		}
 	}

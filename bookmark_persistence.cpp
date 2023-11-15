@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <string>
 #include <sstream>
+#include <map>
 
 #include "jansson.h"
 
@@ -30,13 +31,17 @@ void bookmark_persistence::replaceMasterList(std::vector<bookmark_t>& newContent
 
 pfc::string8 bookmark_persistence::genFilePath() {
 
-	static std::string path;
+	static pfc::string8 path;
 
 	if (path.empty()) {
-		path = std::string(core_api::get_profile_path()).append("\\configuration\\").append(core_api::get_my_file_name()).append(".dll.dat").substr(7, std::string::npos);
+		path = core_api::get_profile_path();
+		path << "\\configuration\\";
+		path << core_api::get_my_file_name();
+		path << ".dll.dat";
+		foobar2000_io::extract_native_path(path, path);
 	}
 
-	return pfc::string8(path.c_str());
+	return path;
 }
 
 void add_rec(std::vector<json_t*> &vjson, const std::vector<pfc::string8>& vlbl, const bookmark_t & rec) {
@@ -46,7 +51,7 @@ void add_rec(std::vector<json_t*> &vjson, const std::vector<pfc::string8>& vlbl,
 	//bookmark_t to vrec
 
 	std::vector<pfc::string8> vrec = {
-		std::to_string(rec.get_time()).c_str(),          //time
+		std::to_string(rec.get_time()).c_str(),        //time
 		rec.desc.get_ptr(),                            //desc
 		rec.playlist.get_ptr(),                        //playlist
 		pfc::print_guid(rec.guid_playlist).get_ptr(),  //guid
@@ -60,7 +65,6 @@ void add_rec(std::vector<json_t*> &vjson, const std::vector<pfc::string8>& vlbl,
 
 	auto nobj = vjson.size() - 1;
 	for (auto wfield = 0; wfield < nfields; wfield++) {
-		//recycle pointers
 		int res = json_object_set_new_nocheck(vjson[nobj], vlbl[wfield], json_string_nocheck(vrec[wfield].get_ptr()));
 	}
 }
@@ -98,7 +102,6 @@ void bookmark_persistence::writeDataFileJSON(std::vector<bookmark_t>& masterList
 		//first pass
 
 		for (size_t i = 0; i < n_entries; i++) {
-			//todo: recycle pointer
 			//add boolmark_t to vjson as json object
 			add_rec(vjson, vlbl, masterList[i]);
 		}
@@ -108,7 +111,6 @@ void bookmark_persistence::writeDataFileJSON(std::vector<bookmark_t>& masterList
 		json_t* arr_top = json_array();
 
 		for (auto wobj : vjson) {
-
 			auto res = json_array_append(arr_top, wobj);
 		}
 
@@ -132,9 +134,54 @@ void bookmark_persistence::writeDataFileJSON(std::vector<bookmark_t>& masterList
 	}
 }
 
+int get_month_index(std::string name)
+{
+	std::map<std::string, int> months
+	{
+			{ "Jan", 1 },
+			{ "Feb", 2 },
+			{ "Mar", 3 },
+			{ "Apr", 4 },
+			{ "May", 5 },
+			{ "Jun", 6 },
+			{ "Jul", 7 },
+			{ "Aug", 8 },
+			{ "Sep", 9 },
+			{ "Oct", 10 },
+			{ "Nov", 11 },
+			{ "Dec", 12 }
+	};
+
+	const auto iter = months.find(name);
+
+	if (iter != months.cend())
+		return iter->second;
+	return 1/*SIZE_MAX*/;
+}
+
+int get_wday_index(std::string name)
+{
+	std::map<std::string, int> wdays
+	{
+			{ "Mon", 0 },
+			{ "Tue", 1 },
+			{ "Wed", 2 },
+			{ "The", 3 },
+			{ "Fri", 4 },
+			{ "Sat", 5 },
+			{ "Sun", 6 },
+	};
+
+	const auto iter = wdays.find(name);
+
+	if (iter != wdays.cend())
+		return iter->second;
+
+	return 1/*SIZE_MAX*/;
+}
+
 //restore masterList from persistent storage
 bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList) {
-
 	try {
 
 		FB2K_console_print_v("Reading bookmarks from file");
@@ -219,8 +266,39 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 					elem.date = "";
 					js_fld = json_object_get(js_wobj, "date");
 					const char* dmp_str = json_string_value(js_fld);
+					// Www Mmm dd hh:mm:ss yyyy
+					std::stringstream Stream(dmp_str);
+					int Year, Day, Hour, Minute, Second;
+					std::string StrAmPm;
+					std::string StrWeekDay;
+					std::string StrMonth;
+
+					char ThrowAway;
+					Stream >> StrWeekDay >> StrMonth >> Day;
+					Stream >> Hour >> ThrowAway >> Minute >> ThrowAway >> Second;
+					Stream >> Year;
+
+					time_t rawtime;
+					struct tm timeinfo = { 0 };
+					timeinfo.tm_year = Year - 1900;;
+					timeinfo.tm_mon = get_month_index(StrMonth);
+					timeinfo.tm_mday = Day;
+					timeinfo.tm_wday = get_wday_index(StrWeekDay);
+					timeinfo.tm_hour = Hour;
+					timeinfo.tm_min = Minute;
+					timeinfo.tm_sec = Second;
+					timeinfo.tm_isdst = -1;
+
+					rawtime = mktime(&timeinfo);
+
 					if (dmp_str) {
 						elem.date = pfc::string8(dmp_str);
+						char buffer[255];
+						// Format: Mo, 15.06.2009 20:20:00
+						std::tm ptm;
+						localtime_s(&ptm, &rawtime);
+						std::strftime(buffer, 255, cfg_date_format.get_value(), &ptm);
+						elem.runtime_date = buffer;
 					}
 				}
 
@@ -248,8 +326,7 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 					}
 				}
 
-				temp_data.push_back(elem);	//to vector
-
+				temp_data.push_back(elem);	//save to vector
 			}
 
 			if (cfg_verbose) {
@@ -276,6 +353,7 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 	catch (...) {
 		//..
 	}
+
 	return true;
 }
 

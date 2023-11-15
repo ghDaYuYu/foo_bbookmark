@@ -1,7 +1,5 @@
 #include "stdafx.h"
-
 #include "bookmark_core.h"
-
 #include "bookmark_list_control.h"
 #include "bookmark_playlist_callback.h"
 
@@ -10,11 +8,11 @@ unsigned bookmark_playlist_callback::get_flags() {
 }
 
 void bookmark_playlist_callback::on_playlists_removing(const bit_array& p_mask, t_size p_old_count, t_size p_new_count) {
-	//todo
+	//..
 }
 
 void bookmark_playlist_callback::on_playlists_removed(const bit_array& p_mask, t_size p_old_count, t_size p_new_count) {
-	//todo
+	//..
 }
 
 void bookmark_playlist_callback::on_playlist_renamed(t_size p_index, const char* p_new_name, t_size p_new_name_len) {
@@ -48,10 +46,6 @@ void bookmark_playlist_callback::on_playlist_renamed(t_size p_index, const char*
 			gui->ReloadItems(changeMask);
 		}
 	}
-
-
-	//ffTRACK_CALL_TEXT_DEBUG("bookmark_playlist_callback::on_playlists_removed");
-	//static_api_ptr_t<playlist_history>()->on_playlist_renamed(p_index, p_new_name, p_new_name_len);
 }
 
 

@@ -30,23 +30,27 @@ namespace {
 				g_bmAuto.updateDummy();
 			}
 
-			if (cfg_autosave_newtrack.get()) {
-				{
-					std::lock_guard<std::mutex> ul(g_mtx_restoring);
-					if (!g_restoring) {
+			bool bcan_autosave_newtrack = cfg_autosave_newtrack.get() && (!g_bmAuto.checkDummyIsRadio() || cfg_autosave_radio_newtrack.get());
 
-						if (g_bmAuto.upgradeDummy(g_masterList, g_guiLists)) {
+			if (bcan_autosave_newtrack) {
 
-							if (is_cfg_Bookmarking()) {
-								g_permStore.writeDataFile(g_masterList);
-							}
-						}
-						else {
-							//..
+				std::lock_guard<std::mutex> ul(g_mtx_restoring);
+				if (!g_restoring) {
+
+					if (g_bmAuto.upgradeDummy(g_masterList, g_guiLists)) {
+
+						if (is_cfg_Bookmarking()) {
+							g_permStore.writeDataFile(g_masterList);
+							bool bscroll_list = cfg_autosave_focus_newtrack.get();
+							g_bmAuto.refresh_ui(bscroll_list, bscroll_list, g_masterList, g_guiLists);
 						}
 
 					}
+					else {
+						//..
+					}
 				}
+
 			}
 		}
 
@@ -74,6 +78,25 @@ namespace {
 
 		g_bmAuto.updateDummyTime();
 	}
+
+	void bm_play_callback::on_playback_dynamic_info_track(const file_info& p_info) {
+
+		if (!g_bmAuto.checkDummyIsRadio()) {
+			return;
+		}
+
+		auto playback_control_ptr = playback_control::get();
+
+		metadb_handle_ptr track_current;
+		//Identify current track
+		bool bnowPlaying = playback_control_ptr->get_now_playing(track_current);
+		if (bnowPlaying) {
+			on_playback_new_track(track_current);
+		}
+
+	}
 }
+
+// S T A T I C   P L A Y - C A L L B A C K
 
 static service_factory_single_t<bm_play_callback> g_play_callback_static_factory;

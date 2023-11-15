@@ -13,7 +13,6 @@
 #include <libPPUI/wtl-pp.h>
 
 #include "header_static.h"
-#include "bookmark_preferences.h"
 
 #include "bookmark_core.h"
 #include "bookmark_automatic.h"
@@ -24,10 +23,13 @@ static const int stringlength = 256;
 static const GUID guid_bookmark_pref_page = { 0x49e82acf, 0x4954, 0x4274, { 0x80, 0xe8, 0xff, 0x74, 0xf3, 0x71, 0x1e, 0x5f } };
 
 static const GUID guid_cfg_desc_format = { 0xa13f4068, 0xa177, 0x4cc0, { 0x9b, 0x5f, 0x4c, 0xe4, 0x85, 0x58, 0xba, 0xfc } };
+static const GUID guid_cfg_date_format = { 0x25c3c9bd, 0x80b3, 0x4926, { 0xb0, 0x6, 0xed, 0x7b, 0xb9, 0x9c, 0x1f, 0x1 } };
 static const GUID guid_cfg_autosave_newtrack_playlists = { 0x6c5226bc, 0x92a8, 0x4ae8, { 0x85, 0xde, 0xb, 0x58, 0xe3, 0x2b, 0x6e, 0x70 } };
 
 static const GUID guid_cfg_autosave_on_quit = { 0xbce06bc, 0x1d6a, 0x4bc2, { 0xbd, 0xe1, 0x64, 0x91, 0x31, 0x9f, 0xb6, 0xcf } };
 static const GUID guid_cfg_autosave_newtrack = { 0x6fc02f38, 0xfd74, 0x4352, { 0xab, 0x8f, 0xac, 0xdd, 0x10, 0x12, 0xb, 0x8f } };
+static const GUID guid_cfg_autosave_focus_newtrack = { 0x612365c1, 0x8b58, 0x434f, { 0xb8, 0xb1, 0x6f, 0x72, 0x2a, 0x85, 0x21, 0xf6 } };
+static const GUID guid_cfg_autosave_radio_newtrack = { 0x87cc64d0, 0x360e, 0x4c21, { 0xb9, 0x8, 0x2d, 0x94, 0x65, 0x67, 0x4a, 0xfc } };
 static const GUID guid_cfg_autosave_filter_newtrack = { 0x75728bc2, 0x6955, 0x4ea6, { 0x95, 0xe5, 0xf3, 0xb2, 0xfc, 0xef, 0x3c, 0x8c } };
 
 static const GUID guid_cfg_verbose = { 0x354baaa6, 0x7bbb, 0x40df, { 0xbf, 0xb8, 0x8b, 0x76, 0xc, 0xbd, 0x9d, 0xd0 } };
@@ -43,11 +45,14 @@ static const GUID guid_cfg_misc_flag = { 0x452ac946, 0xf849, 0x4c79, { 0x98, 0x6
 
 // defaults
 
-static const pfc::string8 default_cfg_bookmark_desc_format = "%title%";
+static const pfc::string8 default_cfg_bookmark_desc_format = "%title% - $if2(%album% - ,- ) %artist%";
+static const pfc::string8 default_cfg_date_format = "%a %b %d %H:%M:%S %Y";
 static const pfc::string8 default_cfg_autosave_newtrack_playlists = "Podcatcher";
 
 static const bool default_cfg_autosave_newtrack = false;
-static const bool default_cfg_autosave_filter_newtrack = true;
+static const bool default_cfg_autosave_focus_newtrack = true;
+static const bool default_cfg_autosave_radio_newtrack = false;
+static const bool default_cfg_autosave_filter_newtrack = false;
 static const bool default_cfg_autosave_on_quit = false;
 
 static const bool default_cfg_verbose = false;
@@ -59,9 +64,12 @@ static const int default_cfg_misc_flag = 0;
 // cfg_var
 
 cfg_string cfg_desc_format(guid_cfg_desc_format, default_cfg_bookmark_desc_format.c_str());
+cfg_string cfg_date_format(guid_cfg_date_format, default_cfg_date_format.c_str());
 cfg_string cfg_autosave_newtrack_playlists(guid_cfg_autosave_newtrack_playlists, default_cfg_autosave_newtrack_playlists.c_str());
 
 cfg_bool cfg_autosave_newtrack(guid_cfg_autosave_newtrack, default_cfg_autosave_newtrack);
+cfg_bool cfg_autosave_focus_newtrack(guid_cfg_autosave_focus_newtrack, default_cfg_autosave_focus_newtrack);
+cfg_bool cfg_autosave_radio_newtrack(guid_cfg_autosave_radio_newtrack, default_cfg_autosave_radio_newtrack);
 cfg_bool cfg_autosave_filter_newtrack(guid_cfg_autosave_filter_newtrack, default_cfg_autosave_filter_newtrack);
 cfg_bool cfg_autosave_on_quit(guid_cfg_autosave_on_quit, default_cfg_autosave_on_quit);
 
@@ -114,6 +122,7 @@ public:
 	BEGIN_MSG_MAP_EX(CBookmarkPreferences)
 		MSG_WM_INITDIALOG(OnInitDialog)
 		COMMAND_CODE_HANDLER_EX(EN_CHANGE, OnEditChange)
+		COMMAND_CODE_HANDLER_EX(CBN_SELCHANGE, OnComboChange)
 		COMMAND_CODE_HANDLER_EX(BN_CLICKED, OnCheckChange)
 		MESSAGE_HANDLER_SIMPLE(UMSG_NEW_TRACK, OnNewTrackMessage)
 		MESSAGE_HANDLER_SIMPLE(UMSG_PAUSED, OnPaused)
@@ -135,6 +144,7 @@ private:
 
 	BOOL OnInitDialog(CWindow, LPARAM);
 	void OnEditChange(UINT uNotifyCode, int nId, CWindow wndCtl);
+	void OnComboChange(UINT uNotifyCode, int nId, CWindow wndCtl);
 	void OnCheckChange(UINT uNotifyCode, int nId, CWindow wndCtl);
 
 	bool HasChanged();
@@ -148,7 +158,7 @@ private:
 
 	void cfgToUi(boxAndBool_t bab) {
 		CCheckBox cb(GetDlgItem(bab.idc));
-		cb.SetCheck(*(bab.cfg));
+		cb.SetCheck(bab.cfg->get());
 	}
 
 	void uiToCfg(boxAndBool_t & bab) {
@@ -163,7 +173,7 @@ private:
 
 	bool isUiChanged(boxAndBool_t bab) {
 		CCheckBox cb(GetDlgItem(bab.idc));
-		return *(bab.cfg) != (bool)cb.GetCheck();
+		return bab.cfg->get() != (bool)cb.GetCheck();
 	}
 
 	// boxAndInt_t
@@ -173,9 +183,18 @@ private:
 		cb.SetCheck((bool) (bai.cfg->get_value()));
 	}
 
+	void cfgToUi(boxAndInt_t bai, int flag, int idc) {
+		CCheckBox cb(GetDlgItem(idc));
+		cb.SetCheck(bai.cfg->get_value() & flag);
+	}
+
 	void uiToCfg(boxAndInt_t & bai) {
 		CCheckBox cb(GetDlgItem(bai.idc));
 		bai.cfg->set(cb.GetCheck());
+	}
+
+	void uiToCfg(boxAndInt_t& bai, int ui_fval) {
+		bai.cfg->set(ui_fval);
 	}
 
 	void defToUi(boxAndInt_t bai) {
@@ -183,32 +202,59 @@ private:
 		cb.SetCheck(bai.def);
 	}
 
+	void defToUi(boxAndInt_t bai, int flag, int idc) {
+		CCheckBox cb(GetDlgItem(idc));
+		cb.SetCheck(bai.def & flag);
+	}
+
 	bool isUiChanged(boxAndInt_t bai) {
 		CCheckBox cb(GetDlgItem(bai.idc));
-		return *(bai.cfg) != cb.GetCheck();
+		return bai.cfg->get_value() != (int)cb.GetCheck();
+	}
+
+	bool isUiChanged(boxAndInt_t bai, int ui_fval) {
+		return bai.cfg->get_value() != ui_fval;
 	}
 
 	// ectrlAndString_t
 
 	void cfgToUi(ectrlAndString_t eat) {
-
-		uSetDlgItemText(m_hWnd, eat.idc, eat.cfg->get_value().c_str());
+		if (eat.idc == IDC_CMB_DATEFORMAT) {
+			uSetDlgItemText(m_hWnd, eat.idc, eat.cfg->get_value().c_str());
+		}
+		else {
+			uSetDlgItemText(m_hWnd, eat.idc, eat.cfg->get_value().c_str());
+		}
 	}
 
 	void uiToCfg(ectrlAndString_t & eat) {
-
-		pfc::string8 buffer = uGetDlgItemText(m_hWnd, eat.idc);
+		pfc::string8 buffer;
+		if (eat.idc == IDC_CMB_DATEFORMAT) {
+			buffer = uGetDlgItemText(m_hWnd, eat.idc);
+		}
+		else {
+			buffer = uGetDlgItemText(m_hWnd, eat.idc);
+		}
 		eat.cfg->set(buffer.c_str());
 	}
 
 	void defToUi(ectrlAndString_t eat) {
-
-		uSetDlgItemText(m_hWnd, eat.idc, eat.def.c_str());
+		if (eat.idc == IDC_CMB_DATEFORMAT) {
+			uSetDlgItemText(m_hWnd, eat.idc, eat.def.c_str());
+		}
+		else {
+			uSetDlgItemText(m_hWnd, eat.idc, eat.def.c_str());
+		}
 	}
 
 	bool isUiChanged(ectrlAndString_t eat) {
-
-		pfc::string8 buffer = uGetDlgItemText(m_hWnd, eat.idc);
+		pfc::string8 buffer;
+		if (eat.idc == IDC_CMB_DATEFORMAT) {
+			buffer = uGetDlgItemText(m_hWnd, eat.idc);
+		}
+		else {
+			buffer = uGetDlgItemText(m_hWnd, eat.idc);
+		}
 		return !buffer.equals(eat.cfg->get_value());
 	}
 
@@ -226,9 +272,12 @@ private:
 
 	//TODO: group all these, then use for loops
 	ectrlAndString_t eat_format = { IDC_TITLEFORMAT, &cfg_desc_format, default_cfg_bookmark_desc_format };
+	ectrlAndString_t eat_date = { IDC_CMB_DATEFORMAT, &cfg_date_format, default_cfg_date_format };
 	ectrlAndString_t eat_as_newtrack_playlists = { IDC_AUTOSAVE_TRACK_FILTER, &cfg_autosave_newtrack_playlists, default_cfg_autosave_newtrack_playlists };
 
 	boxAndBool_t bab_as_newtrack = { IDC_AUTOSAVE_TRACK, &cfg_autosave_newtrack, default_cfg_autosave_newtrack };
+	boxAndBool_t bab_as_focus_newtrack = { IDC_AUTOSAVE_FOCUS_TRACK, &cfg_autosave_focus_newtrack, default_cfg_autosave_focus_newtrack };
+	boxAndBool_t bab_as_radio_newtrack = { IDC_AUTOSAVE_RADIO_TRACK, &cfg_autosave_radio_newtrack, default_cfg_autosave_radio_newtrack };
 	boxAndBool_t bab_as_filter_newtrack = { IDC_AUTOSAVE_TRACK_FILTER_CHECK, &cfg_autosave_filter_newtrack, default_cfg_autosave_filter_newtrack };
 	boxAndBool_t bab_as_exit = { IDC_AUTOSAVE_EXIT, &cfg_autosave_on_quit, default_cfg_autosave_on_quit };
 
@@ -244,22 +293,61 @@ void ConvertString8(const pfc::string8 orig, wchar_t* out, size_t max) {
 	pfc::stringcvt::convert_utf8_to_wide(out, max, orig.get_ptr(), orig.length());
 }
 
+void InitDateCombo(HWND hwndParent, UINT idc_date, pfc::string8 strval) {
+
+	std::vector<std::string> vfd = {
+		"%a %b %d %H:%M:%S %Y",
+		"%y-%m-%d %H:%M:%S %a",
+		"%y-%m-%d %H:%M %a",
+		"%y-%m-%d %H:%M"
+	};
+
+	CComboBox cmb = GetDlgItem(hwndParent, idc_date);
+
+	for (auto& w : vfd) {
+		WCHAR wstr[32];
+		ConvertString8(w.c_str(), wstr, 32 - 1);
+		cmb.SetItemData(cmb.AddString(wstr), cmb.GetCount());
+	}
+
+	auto cursel = std::find(vfd.begin(), vfd.end(), strval.c_str());
+	auto curndx = std::distance(vfd.begin(), cursel);
+
+	for (int i = 0; i < cmb.GetCount(); ++i) {
+		WCHAR wstr[32];
+		ConvertString8(strval.c_str(), wstr, 32 - 1);
+		auto dbg = cmb.GetCurSel();
+		if (cmb.GetItemData(i) == curndx)
+		{
+			cmb.SetCurSel(i);
+			break;
+		}
+	}
+}
+
 BOOL CBookmarkPreferences::OnInitDialog(CWindow wndCtl, LPARAM) {
 
 	DlgResize_Init(false, true);
 
 	g_wnd_bookmark_pref = m_hWnd;
 
+	InitDateCombo(m_hWnd, eat_date.idc, eat_date.cfg->get_value());
+
 	cfgToUi(eat_format);
+	cfgToUi(eat_date);
 	cfgToUi(eat_as_newtrack_playlists);
 
 	cfgToUi(bab_as_exit);
 	cfgToUi(bab_as_newtrack);
+	cfgToUi(bab_as_focus_newtrack);
+	cfgToUi(bab_as_radio_newtrack);
 	cfgToUi(bab_as_filter_newtrack);
 
 	cfgToUi(bab_verbose);
 
-	cfgToUi(bai_queue_flag);
+	cfgToUi(bai_queue_flag, QUEUE_RESTORE_TO_FLAG, /*IDC_QUEUE_FLAG*/bai_queue_flag.idc);
+	cfgToUi(bai_queue_flag, QUEUE_FLUSH_FLAG, IDC_QUEUE_FLUSH_FLAG);
+
 	cfgToUi(bai_status_flag);
 	cfgToUi(bai_misc_flag);
 
@@ -277,17 +365,18 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow wndCtl, LPARAM) {
 	
 	for (size_t i = 0; i < plCount; i++) {
 
-        pfc::string8 plName;
-        playlist_manager::get()->playlist_get_name(i, plName);
+		pfc::string8 plName;
+		playlist_manager::get()->playlist_get_name(i, plName);
 
-        m_currentPlNames.emplace_back(plName);
+		m_currentPlNames.emplace_back(plName);
 
-        WCHAR wstr[1024];
-        ConvertString8(plName, wstr, 1024 - 1);
+		WCHAR wstr[1024];
+		ConvertString8(plName, wstr, 1024 - 1);
 
-        uSendMessage(comboBox, CB_ADDSTRING, 0, (LPARAM)wstr);
-    }
-    SendMessage(comboBox, CB_SETCURSEL, 0, 0);
+		uSendMessage(comboBox, CB_ADDSTRING, 0, (LPARAM)wstr);
+
+	}
+	SendMessage(comboBox, CB_SETCURSEL, 0, 0);
 
 	comboBox.SetTopIndex(0);
 
@@ -300,6 +389,34 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow wndCtl, LPARAM) {
 void CBookmarkPreferences::OnEditChange(UINT uNotifyCode, int nId, CWindow wndCtl) {
 
 	OnChanged();
+}
+
+void CBookmarkPreferences::OnComboChange(UINT uNotifyCode, int nId, CWindow wndCtl) {
+	if (nId != IDC_CMB_DATEFORMAT) {
+		//nothing to do
+		return;
+	}
+	pfc::string8 strFormat = uGetDlgItemText(m_hWnd, nId);
+
+	auto t = std::time(nullptr);
+	auto tm = *std::localtime(&t);
+	auto sctime = asctime(&tm);
+
+	char buffer[255];
+	std::strftime(buffer, 255, strFormat, &tm);
+
+
+	wchar_t fieldContent[1 + (stringlength * 2)];
+
+	if (fieldContent[0] != L"\0"[0]) {
+		auto dbg = 0;
+	}
+
+	WCHAR wstr[stringlength];
+	ConvertString8(buffer, wstr, stringlength - 1);
+
+	SetDlgItemTextW(IDC_PREVIEW_DATE_FORMAT, wstr);
+	m_callback->on_state_changed();
 }
 
 void CBookmarkPreferences::OnCheckChange(UINT uNotifyCode, int nId, CWindow wndCtl) {

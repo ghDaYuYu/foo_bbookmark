@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bookmark_types.h"
+#include "bookmark_preferences.h"
 
 #include <vector>
 #include <list>
@@ -35,23 +36,38 @@ public:
 		return (bool)dummy.desc.get_length();
 	}
 
+	bool checkDummyIsRadio() {
+		return (bool)dummy.isRadio();
+	}
+
 	bool CheckAutoFilter();
 
 	void updateDummyTime();
 	void updateDummy();
 	bool upgradeDummy(std::vector<bookmark_t>& masterList, std::list< dlg::CListControlBookmark*> guiList);
 	void updateRestoredDummy(bookmark_t& bm);
+
+	void refresh_ui(bool bselect, bool bensure_visible, std::vector<bookmark_t>& masterList, std::list< dlg::CListControlBookmark*> guiLists);
 };
 
 #pragma warning( push )
 #pragma warning( disable:4996 )
-inline void gimme_time(pfc::string8& out) {
+
+inline void gimme_time(bookmark_t& out) {
+
+	pfc::string8 date;
+	pfc::string8 runtime_date;
 
 	auto t = std::time(nullptr);
 	auto tm = *std::localtime(&t);
 	auto sctime = asctime(&tm);
 
-	out.set_string(sctime);
-	out.truncate_last_char();
+	date.set_string(sctime);
+	date.truncate_last_char();
+
+	char buffer[255];
+	std::strftime(buffer, 255, cfg_date_format.get(), &tm);
+	out.runtime_date = buffer;
+	out.date = date;
 }
 #pragma warning( pop )
