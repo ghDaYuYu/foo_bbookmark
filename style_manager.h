@@ -4,8 +4,6 @@
 #include <wingdi.h>
 #include <functional>
 
-#include "SDK/ui_element.h"
-
 namespace {
 
 	class StyleManager {
@@ -41,7 +39,7 @@ namespace {
 		}
 
 	protected:
-	
+
 		virtual COLORREF defaultTitleColor() = 0;
 		virtual COLORREF defaultBgColor() = 0;
 		virtual COLORREF defaultSelColor() = 0;
