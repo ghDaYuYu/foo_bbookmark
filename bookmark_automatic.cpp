@@ -126,7 +126,9 @@ void bookmark_automatic::updateDummy() {
 		dummy.need_playlist = m_updatePlaylist;
 	}
 	else {
-		dummy.reset();
+		if (!core_api::is_shutting_down()) {
+			dummy.reset();
+		}
 	}
 }
 
@@ -192,19 +194,16 @@ bool bookmark_automatic::upgradeDummy(std::vector<bookmark_t>& masterList, std::
 		}
 	}
 
-	if (bsamepath && bsame_radio_content) {
-		if (core_api::is_shutting_down()) {
-			return false;
-		}
-		else {
+	if (!core_api::is_shutting_down()) {
+		if (bsamepath && (dummy.isRadio() && bsame_radio_content)) {
 			if (dummy.get_time() + 3 >= track_bm->get_length()) {
 				// nothing to do
 				return false;
 			}
 		}
-	}
-	else {
-		updateDummy();
+		else {
+			updateDummy();
+		}
 	}
 
 	if (!CheckAutoFilter()) {
@@ -219,7 +218,15 @@ bool bookmark_automatic::upgradeDummy(std::vector<bookmark_t>& masterList, std::
 		for (std::vector<bookmark_t>::iterator it = masterList.begin(); it != masterList.end(); ++it) {
 			bool beqtime = abs(it->get_time() - dummy.get_time()) <= timeFuzz;
 			bool bsamepath = it->path.equals(dummy.path) && pfc::guid_equal(it->guid_playlist, dummy.guid_playlist);
-			if (dummy.need_playlist || (beqtime && bsamepath)) {
+			bool bcheckradio = !dummy.isRadio() || (it->desc.equals(dummy.desc));
+			if (dummy.need_playlist || (beqtime && bsamepath && bcheckradio)) {
+
+				if (cfg_verbose) {
+					if (!dummy.need_playlist && (beqtime && bsamepath)) {
+						console::formatter() << "Skipped time-duplicate bookmark: " << dummy.path;
+					}
+				}
+
 				// nothing to do
 				return false;
 			}

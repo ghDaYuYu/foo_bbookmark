@@ -356,6 +356,14 @@ namespace dlg {
 					size_t icount = m_guiList.GetItemCount();
 					size_t csel = m_guiList.GetSelectedCount();
 
+					if (m_sorted_dir) {
+						bit_array_bittable tmp_mask(selmask);
+						for (size_t i = 0; i < selmask.size(); i++) {
+							selmask.set(selmask.size() - 1 - i, tmp_mask.get(i));
+						}
+						isel = selmask.size() - 1 - isel;
+					}
+
 					bool bsinglesel = m_guiList.GetSingleSel() != ~0;
 					bool bresetable_time = (bool)icount && bsinglesel && g_masterList.at(isel).get_time();
 					bresetable_time |= csel > 1;
@@ -420,29 +428,27 @@ namespace dlg {
 						restoreFocusedBookmark();
 						break;
 					case  ID_RESET_TIME: {
-						auto mask = m_guiList.GetSelectionMask();
 						size_t c = m_guiList.GetItemCount();
-						size_t f = mask.find(true, 0, c);
-						for (size_t w = f; w < c; w = mask.find(true, w + 1, c)) {
+						size_t f = selmask.find(true, 0, c);
+						for (size_t w = f; w < c; w = selmask.find(true, w + 1, c)) {
 							g_masterList.at(w).set_time(0.0);
 						}
 
-						m_guiList.ReloadItems(mask);
-						m_guiList.UpdateItems(mask);
+						m_guiList.ReloadItems(selmask);
+						m_guiList.UpdateItems(selmask);
 
 						break;
 					}
 					case  ID_RESET_PLAYLIST: {
-						auto mask = m_guiList.GetSelectionMask();
 						size_t c = m_guiList.GetItemCount();
-						size_t f = mask.find(true, 0, c);
-						for (size_t w = f; w < c; w = mask.find(true, w + 1, c)) {
+						size_t f = selmask.find(true, 0, c);
+						for (size_t w = f; w < c; w = selmask.find(true, w + 1, c)) {
 							g_masterList.at(w).playlist = "";
 							g_masterList.at(w).guid_playlist = pfc::guid_null;
 						}
 
-						m_guiList.ReloadItems(mask);
-						m_guiList.UpdateItems(mask);
+						m_guiList.ReloadItems(selmask);
+						m_guiList.UpdateItems(selmask);
 
 						break;
 					}
@@ -459,7 +465,7 @@ namespace dlg {
 							for (auto i = 0; i < static_cast<int>(m_guiList.GetColumnCount()); i++) {
 								m_guiList.GetColumnText(i, coltext);
 								if (coltext.equals(COLUMNNAMES[BOOKMARK_COL])) {
-									m_guiList.GetSubItemText(m_guiList.GetSingleSel(), i, clip_bookmark);
+									m_guiList.GetSubItemText(isel, i, clip_bookmark);
 									break;
 								}
 							}
@@ -476,7 +482,7 @@ namespace dlg {
 					case ID_COPY_PATH: {
 
 						if (!clip_bookmark.get_length()) {
-							clip_bookmark = g_masterList.at(m_guiList.GetSingleSel()).path;
+							clip_bookmark = g_masterList.at(isel).path;
 							foobar2000_io::extract_native_path(clip_bookmark, clip_bookmark);
 						}
 
@@ -494,7 +500,6 @@ namespace dlg {
 						break;
 					case ID_INVERTSEL:
 					{
-						auto selmask = m_guiList.GetSelectionMask();
 						m_guiList.SetSelection(
 							// Items which we alter - all of them
 							pfc::bit_array_true(),
@@ -550,8 +555,8 @@ namespace dlg {
 							bool bf = menu_table.search("Copy", 4, guid_ctx);
 						}
 
-						const char* path = g_masterList.at(m_guiList.GetSingleSel()).path;
-						const t_uint32 subsong = g_masterList.at(m_guiList.GetSingleSel()).subsong;
+						const char* path = g_masterList.at(isel).path;
+						const t_uint32 subsong = g_masterList.at(isel).subsong;
 						auto l_metadb = metadb::get();
 						metadb_handle_list valid_handles;
 

@@ -130,19 +130,17 @@ namespace dlg {
 	protected:
 
 		virtual void OnColumnHeaderClick(t_size index) override {
-			if (index) {
+			if (GetColContent(index) != 0) {
 				return;
 			}
 			m_sorted_dir = !m_sorted_dir;
 			SelectNone();
 			SetColumnSort(index, m_sorted_dir);
+
 			m_host->listColumnHeaderClick(this, index);
 			ReloadItems(bit_array_true());
 			if (GetItemCount()) {
-				auto fi = GetFocusItem();
-				if (fi != pfc_infinite) {
-					SetFocusItem(m_sorted_dir ? fi - (GetItemCount() - 1) : GetItemCount() - 1 - fi);
-				}
+				SetFocusItem(0);
 			}
 		}
 
