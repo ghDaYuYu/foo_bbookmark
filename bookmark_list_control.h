@@ -62,7 +62,6 @@ namespace dlg {
 		}
 
 		~CListControlBookmark() {
-
 			//..
 		}
 		typedef CListControlOwnerColors TParent;
@@ -70,6 +69,7 @@ namespace dlg {
 		BEGIN_MSG_MAP_EX(CListControlBookmark)
 			CHAIN_MSG_MAP(TParent)
 		END_MSG_MAP()
+
 		void Initialize(pfc::array_t<size_t>* pcols_content) {
 			InitializeHeaderCtrl(HDS_BUTTONS);
 			m_pcols_content = pcols_content;
@@ -93,6 +93,13 @@ namespace dlg {
 			metadb_handle_list mhl;
 			bit_array_bittable selmask = GetSelectionMask();
 			t_size selsize = selmask.size();
+
+			if (m_sorted_dir) {
+            	bit_array_bittable tmpMask(selmask);
+            	for (size_t i = 0; i < selsize; i++) {
+                    selmask.set(selsize - 1 - i, tmpMask.get(i));
+            	}
+            }
 
 			for (t_size walk = selmask.find_first(true, 0, selsize); walk < selsize;
 				walk = selmask.find_next(true, walk, selsize)) {
@@ -133,7 +140,9 @@ namespace dlg {
 			if (GetColContent(index) != 0) {
 				return;
 			}
+
 			m_sorted_dir = !m_sorted_dir;
+
 			SelectNone();
 			SetColumnSort(index, m_sorted_dir);
 
