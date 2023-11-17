@@ -123,6 +123,13 @@ namespace dlg {
 				mhl.add_item(track_bm);
 			}
 
+			if (m_sorted_dir) {
+				pfc::array_t<t_size> order;
+				order.resize(mhl.get_count());
+				for (unsigned walk = 0; walk < mhl.size(); walk++) order[walk] = mhl.size() - 1 - walk;
+				mhl.reorder(order.get_ptr());
+			}
+
 			pfc::com_ptr_t<IDataObject> pDataObject = piif->create_dataobject_ex(mhl);
 			return pDataObject;
 		}
