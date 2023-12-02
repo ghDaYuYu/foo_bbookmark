@@ -7,10 +7,12 @@
   extern cfg_bool cfg_autosave_newtrack;
   extern cfg_bool cfg_autosave_focus_newtrack;
   extern cfg_bool cfg_autosave_radio_newtrack;
+  extern cfg_bool cfg_autosave_radio_comment;
   extern cfg_bool cfg_autosave_filter_newtrack;
   extern cfg_bool cfg_autosave_on_quit;
 
   extern cfg_bool cfg_verbose;
+  extern cfg_bool cfg_monitor;
 
   extern cfg_int cfg_queue_flag;
   extern cfg_int cfg_status_flag;

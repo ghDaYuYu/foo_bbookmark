@@ -6,7 +6,7 @@ COMPONENT_NAME_HC,
 // component version
 FOO_COMPONENT_VERSION,
 "A foobar 2000 plugin featuring playback bookmarks\n\n"
-"Author: dayuyu\n"
+"Author: da yuyu\n"
 "Version: "FOO_COMPONENT_VERSION"\n"
 "Compiled: "__DATE__ "\n"
 "fb2k SDK: "PLUGIN_FB2K_SDK"\n\n"

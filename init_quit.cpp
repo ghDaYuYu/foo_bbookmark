@@ -9,7 +9,7 @@ namespace {
 
 		virtual void on_init() {
 
-			g_permStore.readDataFileJSON(g_masterList);
+			g_store.Initialize();
 
 			if (g_primaryGuiList) {
 				g_primaryGuiList->ReloadData();
@@ -19,11 +19,10 @@ namespace {
 		virtual void on_quit() {
 
 			if (is_cfg_Bookmarking() && cfg_autosave_on_quit.get() && g_bmAuto.checkDummy()) {
-
-				g_bmAuto.upgradeDummy(g_masterList, g_guiLists);
-
+				g_bmAuto.upgradeDummy(g_guiLists);
 			}
-			g_permStore.writeDataFile(g_masterList);
+
+			g_store.Write();
 		}
 	};
 

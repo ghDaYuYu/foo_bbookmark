@@ -36,18 +36,72 @@ public:
 		return (bool)dummy.desc.get_length();
 	}
 
+	const bookmark_t getDummy() {
+		return dummy;
+	}
+
+	bool getDyna() {
+		return dummy.isRadio() && dummy.dyna;
+	}
+	void setDyna(bool state) {
+		dummy.dyna = dummy.isRadio() && state;
+	}
+
 	bool checkDummyIsRadio() {
 		return (bool)dummy.isRadio();
 	}
+
+	bool checkDummyIsRadio(const pfc::string8 path) {
+		return (bool)dummy.isRadio(path);
+	}
+	
+	bool fetchHelloRadioStationName(pfc::string8 &out);
 
 	bool CheckAutoFilter();
 
 	void updateDummyTime();
 	void updateDummy();
-	bool upgradeDummy(std::vector<bookmark_t>& masterList, std::list< dlg::CListControlBookmark*> guiList);
-	void updateRestoredDummy(bookmark_t& bm);
+	bool upgradeDummy(std::list< dlg::CListControlBookmark*> guiList);
 
-	void refresh_ui(bool bselect, bool bensure_visible, std::vector<bookmark_t>& masterList, std::list< dlg::CListControlBookmark*> guiLists);
+	void ResetRestoredDummy();
+	void SetRestoredDummy(bookmark_t& bm);
+	void checkDeletedRestoredDummy(const bit_array& mask, size_t count);
+
+	void resetDummyKeepDyna() {
+		auto tmp = dummy;
+		resetDummyAll();
+		dummy.dyna = tmp.dyna;
+		dummy.desc = tmp.desc;
+		dummy.comment = tmp.comment;
+	}
+
+	void resetDummyLocChecks() {
+		dummy.need_loc_retries = 0;
+		dummy.need_playlist = true;
+	}
+
+	void resetDummyAll() { dummy = bookmark_t(); }
+	void setDummyTime(double time) { dummy.set_time(time); }
+
+	bool isRestoredDummy(const bookmark_t& bm);
+	bool isRestoredRadioDummy(const bookmark_t& bm);
+
+	void refresh_ui(bool bselect, bool bensure_visible, const std::vector<bookmark_t>& masterList, std::list< dlg::CListControlBookmark*> guiLists);
+
+public:
+
+	//..
+
+private:
+
+	bookmark_t dummy;
+
+	bookmark_t restored_dummy;
+
+	bool m_updatePlaylist = true;
+
+
+	titleformat_object::ptr m_pttf_title = nullptr;
 };
 
 #pragma warning( push )
@@ -65,9 +119,9 @@ inline void gimme_time(bookmark_t& out) {
 	date.set_string(sctime);
 	date.truncate_last_char();
 
-	char buffer[255];
-	std::strftime(buffer, 255, cfg_date_format.get(), &tm);
-	out.runtime_date = buffer;
-	out.date = date;
+		char buffer[DATE_BUFFER_SIZE];
+		std::strftime(buffer, DATE_BUFFER_SIZE, cfg_date_format.get(), &tm);
+		out.runtime_date = buffer;
+		out.date = date;
 }
 #pragma warning( pop )

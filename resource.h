@@ -26,6 +26,7 @@
 #define IDC_QUEUE_FLAG                  1037
 #define IDC_STATIC_UI_UNSUPPORTED       1038
 #define IDC_QUEUE_FLUSH_FLAG            1038
+#define IDC_AUTOSAVE_RADIO_COMMENT_ST   1039
 
 // Next default values for new objects
 // 
@@ -33,7 +34,7 @@
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        113
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1039
+#define _APS_NEXT_CONTROL_VALUE         1040
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

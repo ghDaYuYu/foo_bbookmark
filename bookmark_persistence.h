@@ -3,18 +3,18 @@
 #include "bookmark_types.h"
 #include <vector>
 
-inline ThreadUtils::cmdThread cmdTh;
+inline ThreadUtils::cmdThread cmdThFile;
 
 class bookmark_persistence {
 private:
-	const bool noisy = true;
+	//..
 public:
 	bookmark_persistence();
 	~bookmark_persistence();
 
-	void writeDataFile(std::vector<bookmark_t>& masterList);
+	void writeDataFile(const std::vector<bookmark_t>& masterList);
 	//Stores the contents of g_masterList in a persistent file
-	void writeDataFileJSON(std::vector<bookmark_t>& masterList);
+	void writeDataFileJSON(const std::vector<bookmark_t>& masterList);
 
 	//Replaces the contents of g_masterList with the contents of the persistent file
 	bool readDataFileJSON(std::vector<bookmark_t>& masterList);

@@ -57,7 +57,7 @@ public:
 
 	bool get_description(t_uint32 p_index, pfc::string_base & p_out) {
 		switch (p_index) {
-		case   cmd_store: p_out = "Stores the playback position to a bookmark"; return true;
+		case cmd_store: p_out = "Stores the playback position to a bookmark"; return true;
 		case cmd_restore: p_out = "Restores the playback position from the bookmark selected by in the first element to be instantiated."; return true;
 		case cmd_clearBookmarks: p_out = "Removes all bookmarks"; return true;
 		default: uBugCheck(); // should never happen unless somebody called us with invalid parameters - bail

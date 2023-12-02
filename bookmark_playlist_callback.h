@@ -22,8 +22,8 @@ public:
 	virtual void on_playlist_played(t_size p_index) {};
 	virtual void on_playlist_created(t_size p_index, const char* p_name, t_size p_name_len) {};
 	virtual void on_playlists_reorder(const t_size* p_order, t_size p_count) {};
-	virtual void on_playlists_removing(const bit_array& p_mask, t_size p_old_count, t_size p_new_count);
-	virtual void on_playlists_removed(const bit_array& p_mask, t_size p_old_count, t_size p_new_count);
+	virtual void on_playlists_removing(const bit_array& p_mask, t_size p_old_count, t_size p_new_count);  //<--
+	virtual void on_playlists_removed(const bit_array& p_mask, t_size p_old_count, t_size p_new_count) {};
 	virtual void on_playlist_renamed(t_size p_index, const char* p_new_name, t_size p_new_name_len);  //<--
 
 	virtual void on_default_format_changed() {}

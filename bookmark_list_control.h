@@ -1,7 +1,6 @@
 #pragma once
 
 #include "pfc/array.h"
-
 #include "libPPUI/CListControlOwnerData.h"
 #include "helpers/CListControlFb2kColors.h"
 
@@ -43,10 +42,10 @@ namespace dlg {
 		}
 
 		// Called prior to a typefind pass attempt, you can either deny entirely, or prepare any necessary data and allow it.
-		bool listAllowTypeFind(ctx_t) override { return false; }
+		bool listAllowTypeFind(ctx_t) override { return true; }
 		// Allow type-find in a specific item/column?
-		bool listAllowTypeFindHere(ctx_t, size_t item, size_t subItem) override { return false; }
-	
+		bool listAllowTypeFindHere(ctx_t ctx, size_t item, size_t subItem) override;
+
 	public:
 		//..
 	};
@@ -95,17 +94,16 @@ namespace dlg {
 			t_size selsize = selmask.size();
 
 			if (m_sorted_dir) {
-            	bit_array_bittable tmpMask(selmask);
-            	for (size_t i = 0; i < selsize; i++) {
-                    selmask.set(selsize - 1 - i, tmpMask.get(i));
-            	}
-            }
-
+				bit_array_bittable tmpMask(selmask);
+				for (size_t i = 0; i < selsize; i++) {
+					selmask.set(selsize - 1 - i, tmpMask.get(i));
+				}
+			}
 			for (t_size walk = selmask.find_first(true, 0, selsize); walk < selsize;
 				walk = selmask.find_next(true, walk, selsize)) {
 
-				auto rec = glb::g_masterList[walk];
-				if (!rec.path.startsWith("https://")) {
+				const bookmark_t rec = glb::g_store.GetItem(walk);
+				if (rec.path.get_length() && !rec.path.startsWith("https://")) {
 					abort_callback_impl p_abort;
 					try {
 						if (!filesystem_v3::g_exists(rec.path.c_str(), p_abort)) {
@@ -136,8 +134,13 @@ namespace dlg {
 
 		bool GetSortOrder() const { return m_sorted_dir; }
 		void SetSortOrder(bool enable) { m_sorted_dir = enable; }
+		void GetSortOrdererMask(bit_array_bittable& ordered_mask) {
+			bit_array_bittable tmp_mask(ordered_mask);
+				for (size_t w = 0; w < ordered_mask.size(); w++) ordered_mask.set(w, tmp_mask[tmp_mask.size() - 1 - w]);
+		}
 
 		size_t GetColContent(size_t icol) {
+
 			return (*m_pcols_content)[icol];
 		}
 

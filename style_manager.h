@@ -71,7 +71,7 @@ namespace {
 		LOGFONT cachedPlaylistFont{};
 
 	private:
-		std::function<void()> changeHandler;
+		std::function<void()> changeHandler = nullptr;
 
 	};
 }

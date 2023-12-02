@@ -2,16 +2,19 @@
 #include <regex>
 #include <iomanip>
 
-#include "bookmark_list_control.h"
-#include "bookmark_list_dialog.h"
+#include "bookmark_store.h"
 
-using namespace glb;
+#include "bookmark_list_control.h"
+#include "bookmark_list_dialog.h" 
 
 namespace dlg {
 
-	size_t ILOD_BookmarkSource::listGetItemCount(ctx_t) {
+	using namespace glb;
 
-		return g_masterList.size();
+	// ILOD overrides
+
+	size_t ILOD_BookmarkSource::listGetItemCount(ctx_t) {
+		return g_store.Size();
 	}
 
 	pfc::string8 ILOD_BookmarkSource::listGetSubItemText(ctx_t ctx, size_t item, size_t subItem) {
@@ -22,7 +25,7 @@ namespace dlg {
 			item = listGetItemCount(ctx) - 1 - item;
 		}
 
-		auto& rec = glb::g_masterList[item];
+		const bookmark_t rec = g_store.GetMasterList()[item];
 
 		auto subItemContent = plc->GetColContent(subItem);
 
@@ -32,9 +35,9 @@ namespace dlg {
 		case TIME_COL:
 		{
 			std::ostringstream conv;
-			int hours = (int)rec.get_time() / 3600;
-			int minutes = (int)std::fmod(rec.get_time(), 3600) / 60;
-			int seconds = (int)std::fmod(rec.get_time(), 60);
+			int hours = (int)(rec.get_time() / 3600);
+			int minutes = (int)(std::fmod(rec.get_time(), 3600) / 60);
+			int seconds = (int)(std::fmod(rec.get_time(), 60));
 			if (hours != 0)
 				conv << hours << ":";
 			conv << std::setfill('0') << std::setw(2) << minutes << ":" << std::setfill('0') << std::setw(2) << seconds;
@@ -55,7 +58,9 @@ namespace dlg {
 
 	bool ILOD_BookmarkSource::listReorderItems(ctx_t ctx, const size_t* order, size_t count) {
 
-		PFC_ASSERT(count == glb::g_masterList.size());
+		auto masterList = g_store.GetMasterList();
+
+		PFC_ASSERT(count == g_store.Size());
 
 		CListControlBookmark* plc = (CListControlBookmark*)(ctx);
 
@@ -66,48 +71,52 @@ namespace dlg {
 			for (size_t i = 0; i < ci; i++) {
 				order_data[ci - 1 - i] = ci - 1 - *(order + i);
 			}
-			pfc::reorder_t(glb::g_masterList, order_data.get_ptr(), ci);
+			g_store.Reorder(order_data, ci);
 		}
 		else {
-			pfc::reorder_t(g_masterList, order, count);
+			pfc::array_t<t_size> order_data;
+			order_data.append_fromptr(order, count);
+			g_store.Reorder(order_data, count);
 		}
 
 		CListCtrlMarkDialog::CancelUIListEdits();
-		g_permStore.writeDataFile(glb::g_masterList);
+
+		g_store.Write();
 		return true;
 	}
 
 	bool ILOD_BookmarkSource::listRemoveItems(ctx_t ctx, pfc::bit_array const& mask) {
+		
+		size_t oldCount = g_store.Size();
 
-		size_t oldCount = g_masterList.size();
-
-		//todo
 		bit_array_bittable sorted_mask((const bit_array_bittable&)mask);
-		pfc::bit_array& new_mask = sorted_mask;
+		pfc::bit_array_bittable new_mask = sorted_mask;
 
 		CListControlBookmark* plc = (CListControlBookmark*)(ctx);
 
 		//remove from global list
 
 		if (plc->GetSortOrder()) {
-			//todo: find_next instead
-			for (size_t i = 0; i < listGetItemCount(ctx); i++) {
-				sorted_mask.set(listGetItemCount(ctx) - 1 - i, mask.get(i));
-			}
+		
+			plc->GetSortOrdererMask(sorted_mask);
 			new_mask = sorted_mask;
 		}
 
-		pfc::remove_mask_t(glb::g_masterList, new_mask);
+		g_bmAuto.checkDeletedRestoredDummy(new_mask, oldCount);
+
+		g_store.Remove(new_mask);
 
 		//Update all guiLists
 
-		for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != glb::g_guiLists.end(); ++it) {
+		for (std::list<CListControlBookmark*>::iterator it = g_guiLists.begin(); it != g_guiLists.end(); ++it) {
 			if ((*it) != ctx) {
 				(*it)->OnItemsRemoved(new_mask, oldCount);
 			}
 		}
+
 		CListCtrlMarkDialog::CancelUIListEdits();
-		g_permStore.writeDataFile(glb::g_masterList);
+
+		g_store.Write();
 
 		return true;
 	}
@@ -216,16 +225,28 @@ namespace dlg {
 			}
 			else {
 				//replace time
-				auto& rec = g_masterList[item];
+				bookmark_t rec = g_store.GetItem(item);
+
 				rec.set_time(static_cast<double>(secs));
-				g_permStore.writeDataFile(g_masterList);
+				g_store.SetItem(item, rec);
+
+				g_store.Write();
 			}
 		}
 		else if (subItemContent == ELU_COL) {
 			//replace comment
-			auto& rec = g_masterList[item];
+			bookmark_t rec = g_store.GetItem(item);
+
 			rec.comment = pfc::string8(val);
-			g_permStore.writeDataFile(glb::g_masterList);
+			g_store.SetItem(item, rec);  //includes write data file
+
+			g_store.Write();
 		}
+	}
+
+	bool ILOD_BookmarkSource::listAllowTypeFindHere(ctx_t ctx, size_t item, size_t subItem) {
+		CListControlBookmark* plc = (CListControlBookmark*)(ctx);
+		auto subItemContent = plc->GetColContent(subItem);
+		return subItemContent == DESC_COL || subItemContent == PLAYLIST_COL || subItemContent == ELU_COL;
 	}
 }

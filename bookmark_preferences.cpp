@@ -31,9 +31,11 @@ static const GUID guid_cfg_autosave_on_quit = { 0xbce06bc, 0x1d6a, 0x4bc2, { 0xb
 static const GUID guid_cfg_autosave_newtrack = { 0x6fc02f38, 0xfd74, 0x4352, { 0xab, 0x8f, 0xac, 0xdd, 0x10, 0x12, 0xb, 0x8f } };
 static const GUID guid_cfg_autosave_focus_newtrack = { 0x612365c1, 0x8b58, 0x434f, { 0xb8, 0xb1, 0x6f, 0x72, 0x2a, 0x85, 0x21, 0xf6 } };
 static const GUID guid_cfg_autosave_radio_newtrack = { 0x87cc64d0, 0x360e, 0x4c21, { 0xb9, 0x8, 0x2d, 0x94, 0x65, 0x67, 0x4a, 0xfc } };
+static const GUID guid_cfg_autosave_radio_comment = { 0x9fa5bf2b, 0xb0ea, 0x416e, { 0xb7, 0x6, 0x35, 0x3c, 0x76, 0xbb, 0x99, 0xd3 } };
 static const GUID guid_cfg_autosave_filter_newtrack = { 0x75728bc2, 0x6955, 0x4ea6, { 0x95, 0xe5, 0xf3, 0xb2, 0xfc, 0xef, 0x3c, 0x8c } };
 
 static const GUID guid_cfg_verbose = { 0x354baaa6, 0x7bbb, 0x40df, { 0xbf, 0xb8, 0x8b, 0x76, 0xc, 0xbd, 0x9d, 0xd0 } };
+static const GUID guid_cfg_monitor = { 0xd36b1b6d, 0x4a55, 0x48c1, { 0xab, 0x46, 0x69, 0x14, 0xb5, 0x5, 0x2f, 0x7f } };
 
 // {E0B79D39-269C-49ED-8892-ED46DD5F3445}
 static const GUID guid_cfg_queue_flag = { 0xe0b79d39, 0x269c, 0x49ed, { 0x88, 0x92, 0xed, 0x46, 0xdd, 0x5f, 0x34, 0x45 } };
@@ -46,17 +48,19 @@ static const GUID guid_cfg_misc_flag = { 0x452ac946, 0xf849, 0x4c79, { 0x98, 0x6
 
 // defaults
 
-static const pfc::string8 default_cfg_bookmark_desc_format = "%title% - $if2(%album% - ,- ) %artist%";
+static const pfc::string8 default_cfg_bookmark_desc_format = "%title% - $if2(%album% - ,- )%artist%";
 static const pfc::string8 default_cfg_date_format = "%a %b %d %H:%M:%S %Y";
 static const pfc::string8 default_cfg_autosave_newtrack_playlists = "Podcatcher";
 
 static const bool default_cfg_autosave_newtrack = false;
 static const bool default_cfg_autosave_focus_newtrack = true;
 static const bool default_cfg_autosave_radio_newtrack = false;
+static const bool default_cfg_autosave_radio_comment = false;
 static const bool default_cfg_autosave_filter_newtrack = false;
 static const bool default_cfg_autosave_on_quit = false;
 
 static const bool default_cfg_verbose = false;
+static const bool default_cfg_monitor = true;
 
 static const int default_cfg_queue_flag = 0;
 static const int default_cfg_status_flag = 0;
@@ -71,10 +75,12 @@ cfg_string cfg_autosave_newtrack_playlists(guid_cfg_autosave_newtrack_playlists,
 cfg_bool cfg_autosave_newtrack(guid_cfg_autosave_newtrack, default_cfg_autosave_newtrack);
 cfg_bool cfg_autosave_focus_newtrack(guid_cfg_autosave_focus_newtrack, default_cfg_autosave_focus_newtrack);
 cfg_bool cfg_autosave_radio_newtrack(guid_cfg_autosave_radio_newtrack, default_cfg_autosave_radio_newtrack);
+cfg_bool cfg_autosave_radio_comment(guid_cfg_autosave_radio_comment, default_cfg_autosave_radio_comment);
 cfg_bool cfg_autosave_filter_newtrack(guid_cfg_autosave_filter_newtrack, default_cfg_autosave_filter_newtrack);
 cfg_bool cfg_autosave_on_quit(guid_cfg_autosave_on_quit, default_cfg_autosave_on_quit);
 
 cfg_bool cfg_verbose(guid_cfg_verbose, default_cfg_verbose);
+cfg_bool cfg_monitor(guid_cfg_monitor, default_cfg_monitor);
 
 cfg_int cfg_queue_flag(guid_cfg_queue_flag, default_cfg_queue_flag);
 cfg_int cfg_status_flag(guid_cfg_status_flag, default_cfg_status_flag);
@@ -110,7 +116,7 @@ public:
 	}
 
 	~CBookmarkPreferences() { 
-		g_wnd_bookmark_pref = NULL;
+		glb::g_wnd_bookmark_pref = NULL;
 		m_staticPrefHeader.Detach();
 	}
 
@@ -125,8 +131,8 @@ public:
 		COMMAND_CODE_HANDLER_EX(EN_CHANGE, OnEditChange)
 		COMMAND_CODE_HANDLER_EX(CBN_SELCHANGE, OnComboChange)
 		COMMAND_CODE_HANDLER_EX(BN_CLICKED, OnCheckChange)
-		MESSAGE_HANDLER_SIMPLE(UMSG_NEW_TRACK, OnNewTrackMessage)
-		MESSAGE_HANDLER_SIMPLE(UMSG_PAUSED, OnPaused)
+		MESSAGE_HANDLER_SIMPLE(glb::UMSG_NEW_TRACK, OnNewTrackMessage)
+		MESSAGE_HANDLER_SIMPLE(glb::UMSG_PAUSED, OnPaused)
 		CHAIN_MSG_MAP(CDialogResize<CBookmarkPreferences>)
 	END_MSG_MAP()
 
@@ -279,10 +285,12 @@ private:
 	boxAndBool_t bab_as_newtrack = { IDC_AUTOSAVE_TRACK, &cfg_autosave_newtrack, default_cfg_autosave_newtrack };
 	boxAndBool_t bab_as_focus_newtrack = { IDC_AUTOSAVE_FOCUS_TRACK, &cfg_autosave_focus_newtrack, default_cfg_autosave_focus_newtrack };
 	boxAndBool_t bab_as_radio_newtrack = { IDC_AUTOSAVE_RADIO_TRACK, &cfg_autosave_radio_newtrack, default_cfg_autosave_radio_newtrack };
+	boxAndBool_t bab_as_radio_comment = { IDC_AUTOSAVE_RADIO_COMMENT_ST, &cfg_autosave_radio_comment, default_cfg_autosave_radio_comment };
 	boxAndBool_t bab_as_filter_newtrack = { IDC_AUTOSAVE_TRACK_FILTER_CHECK, &cfg_autosave_filter_newtrack, default_cfg_autosave_filter_newtrack };
 	boxAndBool_t bab_as_exit = { IDC_AUTOSAVE_EXIT, &cfg_autosave_on_quit, default_cfg_autosave_on_quit };
 
 	boxAndBool_t bab_verbose = { IDC_VERBOSE, &cfg_verbose, default_cfg_verbose };
+	boxAndBool_t bab_monitor = { IDC_MONITOR, &cfg_monitor, default_cfg_monitor };
 
 	boxAndInt_t bai_queue_flag = { IDC_QUEUE_FLAG, &cfg_queue_flag, default_cfg_queue_flag };
 	boxAndInt_t bai_status_flag = { IDC_STATUS_FLAG, &cfg_status_flag, default_cfg_status_flag };
@@ -306,8 +314,8 @@ void InitDateCombo(HWND hwndParent, UINT idc_date, pfc::string8 strval) {
 	CComboBox cmb = GetDlgItem(hwndParent, idc_date);
 
 	for (auto& w : vfd) {
-		WCHAR wstr[32];
-		ConvertString8(w.c_str(), wstr, 32 - 1);
+		WCHAR wstr[DATE_BUFFER_SIZE];
+		ConvertString8(w.c_str(), wstr, DATE_BUFFER_SIZE - 1);
 		cmb.SetItemData(cmb.AddString(wstr), cmb.GetCount());
 	}
 
@@ -315,8 +323,8 @@ void InitDateCombo(HWND hwndParent, UINT idc_date, pfc::string8 strval) {
 	auto curndx = std::distance(vfd.begin(), cursel);
 
 	for (int i = 0; i < cmb.GetCount(); ++i) {
-		WCHAR wstr[32];
-		ConvertString8(strval.c_str(), wstr, 32 - 1);
+		WCHAR wstr[DATE_BUFFER_SIZE];
+		ConvertString8(strval.c_str(), wstr, DATE_BUFFER_SIZE - 1);
 		auto dbg = cmb.GetCurSel();
 		if (cmb.GetItemData(i) == curndx)
 		{
@@ -330,7 +338,7 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow wndCtl, LPARAM) {
 
 	DlgResize_Init(false, true);
 
-	g_wnd_bookmark_pref = m_hWnd;
+	glb::g_wnd_bookmark_pref = m_hWnd;
 
 	InitDateCombo(m_hWnd, eat_date.idc, eat_date.cfg->get_value());
 
@@ -342,9 +350,11 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow wndCtl, LPARAM) {
 	cfgToUi(bab_as_newtrack);
 	cfgToUi(bab_as_focus_newtrack);
 	cfgToUi(bab_as_radio_newtrack);
+	cfgToUi(bab_as_radio_comment);
 	cfgToUi(bab_as_filter_newtrack);
 
 	cfgToUi(bab_verbose);
+	cfgToUi(bab_monitor);
 
 	cfgToUi(bai_queue_flag, QUEUE_RESTORE_TO_FLAG, /*IDC_QUEUE_FLAG*/bai_queue_flag.idc);
 	cfgToUi(bai_queue_flag, QUEUE_FLUSH_FLAG, IDC_QUEUE_FLUSH_FLAG);
@@ -403,8 +413,8 @@ void CBookmarkPreferences::OnComboChange(UINT uNotifyCode, int nId, CWindow wndC
 	auto tm = *std::localtime(&t);
 	auto sctime = asctime(&tm);
 
-	char buffer[255];
-	std::strftime(buffer, 255, strFormat, &tm);
+	char buffer[DATE_BUFFER_SIZE];
+	std::strftime(buffer, DATE_BUFFER_SIZE, strFormat, &tm);
 
 
 	wchar_t fieldContent[1 + (stringlength * 2)];
@@ -491,9 +501,11 @@ void CBookmarkPreferences::reset() {
 	defToUi(bab_as_newtrack);
 	defToUi(bab_as_focus_newtrack);
 	defToUi(bab_as_radio_newtrack);
+	defToUi(bab_as_radio_comment);
 	defToUi(bab_as_filter_newtrack);
 
 	defToUi(bab_verbose);
+	defToUi(bab_monitor);
 
 	defToUi(bai_queue_flag, QUEUE_RESTORE_TO_FLAG, /*IDC_QUEUE_FLAG*/bai_queue_flag.idc);
 	defToUi(bai_queue_flag, QUEUE_FLUSH_FLAG, IDC_QUEUE_FLUSH_FLAG);
@@ -514,15 +526,17 @@ void CBookmarkPreferences::apply() {
 	uiToCfg(bab_as_newtrack);
 	uiToCfg(bab_as_focus_newtrack);
 	uiToCfg(bab_as_radio_newtrack);
+	uiToCfg(bab_as_radio_comment);
 	uiToCfg(bab_as_filter_newtrack);
 
 	//refresh dummy
 	if (bab_as_newtrack.cfg->get()) {
-		g_bmAuto.updateDummy();
+		glb::g_bmAuto.updateDummy();
 	}
 
 	uiToCfg(bab_as_filter_newtrack);
 	uiToCfg(bab_verbose);
+	uiToCfg(bab_monitor);
 
 	int ui_fval = 0;
 	ui_fval = IsDlgButtonChecked(bai_queue_flag.idc) ? QUEUE_RESTORE_TO_FLAG : ui_fval;
@@ -545,12 +559,14 @@ bool CBookmarkPreferences::HasChanged() {
 	result |= isUiChanged(bab_as_newtrack);
 	result |= isUiChanged(bab_as_focus_newtrack);
 	result |= isUiChanged(bab_as_radio_newtrack);
+	result |= isUiChanged(bab_as_radio_comment);
 	result |= isUiChanged(bab_as_filter_newtrack);
 
 	result |= isUiChanged(bab_verbose);
+	result |= isUiChanged(bab_monitor);
 
 	int ui_fval = 0;
-	ui_fval = IsDlgButtonChecked(bai_queue_flag.idc) ? QUEUE_RESTORE_TO_FLAG : ui_fval;
+	ui_fval = IsDlgButtonChecked(/*IDC_QUEUE_FLAG*/bai_queue_flag.idc) ? QUEUE_RESTORE_TO_FLAG : ui_fval;
 	ui_fval = IsDlgButtonChecked(IDC_QUEUE_FLUSH_FLAG) ? ui_fval | QUEUE_FLUSH_FLAG : ui_fval;
 	result |= isUiChanged(bai_queue_flag, ui_fval);
 

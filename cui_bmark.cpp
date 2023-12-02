@@ -5,6 +5,8 @@
 #include "guids.h"
 #include "bookmark_list_dialog.h"
 
+using namespace glb;
+
 namespace {
 
 	// CUI element class

@@ -178,7 +178,7 @@ contextmenu_item_node_prop_vb::contextmenu_item_node_prop_vb()
 bool contextmenu_item_node_prop_vb::get_display_data(pfc::string_base& p_out, unsigned& p_displayflags, metadb_handle_list_cref p_data, const GUID& p_caller)
 {
 	p_displayflags = 0;
-	p_out = "Vital Bookmarks configuration...";
+	p_out = "Vital Bookmarks preferences...";
 	return true;
 }
 
