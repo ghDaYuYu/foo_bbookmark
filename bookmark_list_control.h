@@ -1,9 +1,11 @@
 #pragma once
-
+#include <atlsafe.h>
 #include "pfc/array.h"
+#include "pfc/string-conv-lite.h"
 #include "libPPUI/CListControlOwnerData.h"
 #include "helpers/CListControlFb2kColors.h"
 
+#include "IBookmark.h"
 #include "bookmark_core.h"
 
 namespace dlg {
@@ -50,6 +52,16 @@ namespace dlg {
 		//..
 	};
 
+	// wstring to BSTR wrapper
+	inline CComBSTR ToBstr(const std::wstring& s)
+	{
+		if (s.empty())
+		{
+			return CComBSTR();
+		}
+		return CComBSTR(static_cast<int>(s.size()), s.data());
+	}
+
 	typedef CListControlFb2kColors <CListControlOwnerData> CListControlOwnerColors;
 
 	class CListControlBookmark : public CListControlOwnerColors {
@@ -85,12 +97,41 @@ namespace dlg {
 			return DROPEFFECT_MOVE | DROPEFFECT_COPY;
 		}
 
+		inline void AddFormaDeco(IDataObject* piifDataObject) {
+
+			FORMATETC fmtetc = { 0 };
+			fmtetc.cfFormat = CF_TEXT;
+			fmtetc.dwAspect = DVASPECT_CONTENT;
+			fmtetc.lindex = -1;
+			fmtetc.tymed = TYMED_HGLOBAL;
+
+			STGMEDIUM medium = { 0 };
+			medium.tymed = TYMED_HGLOBAL;
+
+			std::wstring wdeco_name;
+			ibom::IBom::GetDecoClassName(wdeco_name);
+
+			pfc::stringcvt::string_utf8_from_wide cnv_w;
+			cnv_w.convert(wdeco_name.data());
+
+			medium.hGlobal = GlobalAlloc(GMEM_MOVEABLE + GMEM_DDESHARE, cnv_w.length() + 1);
+			if (medium.hGlobal) {
+				char* pMem = (char*)GlobalLock(medium.hGlobal);
+				if (pMem) {
+					strcpy_s(pMem, cnv_w.length() + 1, cnv_w);
+					HRESULT hr = GlobalUnlock(medium.hGlobal); // todo: check !!! ERROR
+					hr = piifDataObject->SetData(&fmtetc, &medium, TRUE);
+				}
+			}
+		}
+
 		virtual pfc::com_ptr_t<IDataObject> MakeDataObject() override {
 
-			static_api_ptr_t<playlist_incoming_item_filter> piif;
+			const bool bUseDeco = true;
 
 			metadb_handle_list mhl;
 			bit_array_bittable selmask = GetSelectionMask();
+			auto csel = GetSelectedCount();
 			t_size selsize = selmask.size();
 
 			if (m_sorted_dir) {
@@ -99,9 +140,14 @@ namespace dlg {
 					selmask.set(selsize - 1 - i, tmpMask.get(i));
 				}
 			}
-			for (t_size walk = selmask.find_first(true, 0, selsize); walk < selsize;
-				walk = selmask.find_next(true, walk, selsize)) {
 
+			pfc::stringcvt::string_wide_from_utf8_t cnv_w;
+			std::vector<std::wstring > vselguids(GetSelectedCount());
+
+			t_size walk = selmask.find_first(true, 0, selsize);
+			for (walk; walk < selsize; walk = selmask.find_next(true, walk, selsize)) {
+
+				// check paths
 				const bookmark_t rec = glb::g_store.GetItem(walk);
 				if (rec.path.get_length() && !rec.path.startsWith("https://")) {
 					abort_callback_impl p_abort;
@@ -112,12 +158,19 @@ namespace dlg {
 						}
 					}
 					catch (exception_aborted) {
+						//todo: log error/return
 						break;
 					}
 				}
 
 				auto metadb_ptr = metadb::get();
 				metadb_handle_ptr track_bm = metadb_ptr->handle_create(rec.path.c_str(), rec.subsong);
+
+				if (bUseDeco) {
+					cnv_w.convert(pfc::print_guid(rec.guid_playlist));
+					vselguids[mhl.get_count()] = (std::move(cnv_w));
+				}
+
 				mhl.add_item(track_bm);
 			}
 
@@ -126,17 +179,53 @@ namespace dlg {
 				order.resize(mhl.get_count());
 				for (unsigned walk = 0; walk < mhl.size(); walk++) order[walk] = mhl.size() - 1 - walk;
 				mhl.reorder(order.get_ptr());
+				if (bUseDeco) {
+					std::reverse(vselguids.begin(), vselguids.end());
+				}
 			}
 
-			pfc::com_ptr_t<IDataObject> pDataObject = piif->create_dataobject_ex(mhl);
-			return pDataObject;
+			// mhl ready, make data object...
+
+			static_api_ptr_t<playlist_incoming_item_filter> piif;
+
+			if (bUseDeco) {
+
+				// fb2k piif
+
+				IDataObject* piifDataObject = piif->create_dataobject(mhl);
+				AddFormaDeco(piifDataObject); // + TYMED_HGLOBAL CF_CHAR deco signature
+
+				pfc::com_ptr_t<ibom::IBom> pBookmarkDataObject;
+
+				// IDataObject cast
+
+				pBookmarkDataObject.attach((ibom::IBom*)piifDataObject);
+
+				if (!pBookmarkDataObject.is_valid()) {
+					//todo: log error, continue without deco
+					return piif->create_dataobject_ex(mhl);
+				}
+
+				// Bookmark container ready
+
+				pBookmarkDataObject->SetPlaylistGuids(vselguids);
+				return pBookmarkDataObject;  /*pfc::com_ptr_t<ibom::IBom>*/
+
+			}
+			else {
+
+				// fb2k piif
+				pfc::com_ptr_t<IDataObject> pDataObject = piif->create_dataobject_ex(mhl);
+				return pDataObject;
+			}
+
 		}
 
 		bool GetSortOrder() const { return m_sorted_dir; }
 		void SetSortOrder(bool enable) { m_sorted_dir = enable; }
 		void GetSortOrdererMask(bit_array_bittable& ordered_mask) {
 			bit_array_bittable tmp_mask(ordered_mask);
-				for (size_t w = 0; w < ordered_mask.size(); w++) ordered_mask.set(w, tmp_mask[tmp_mask.size() - 1 - w]);
+			for (size_t w = 0; w < ordered_mask.size(); w++) ordered_mask.set(w, tmp_mask[tmp_mask.size() - 1 - w]);
 		}
 
 		size_t GetColContent(size_t icol) {
