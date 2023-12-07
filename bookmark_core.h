@@ -16,8 +16,6 @@ namespace dlg {
 
 namespace glb {
 
-	inline std::vector<bookmark_t> g_masterList;
-
 	inline std::list<dlg::CListControlBookmark*> g_guiLists;
 
 	inline bookmark_automatic g_bmAuto;

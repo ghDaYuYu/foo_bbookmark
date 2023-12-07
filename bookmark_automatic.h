@@ -16,12 +16,6 @@ namespace dlg {
 
 class bookmark_automatic {
 
-private:
-
-	bookmark_t dummy;
-	bookmark_t restored_dummy;
-	bool m_updatePlaylist = true;
-
 public:
 
 	bookmark_automatic() {
@@ -88,18 +82,11 @@ public:
 
 	void refresh_ui(bool bselect, bool bensure_visible, const std::vector<bookmark_t>& masterList, std::list< dlg::CListControlBookmark*> guiLists);
 
-public:
-
-	//..
-
 private:
 
 	bookmark_t dummy;
-
 	bookmark_t restored_dummy;
-
 	bool m_updatePlaylist = true;
-
 
 	titleformat_object::ptr m_pttf_title = nullptr;
 };
@@ -107,7 +94,7 @@ private:
 #pragma warning( push )
 #pragma warning( disable:4996 )
 
-inline void gimme_time(bookmark_t& out) {
+inline void gimme_date(bookmark_t& out) {
 
 	pfc::string8 date;
 	pfc::string8 runtime_date;

@@ -144,20 +144,19 @@ void bookmark_automatic::updateDummy() {
 			}
 		}
 
-		size_t index_item;
 		size_t index_playlist;
 		pfc::string8 playing_playlist_name;
 		GUID guid_playing_playlist = pfc::guid_null;
 
 		auto pl_man = playlist_manager_v5::get();
-		//todo: rev playing playlist prob worthless
+
 		size_t index_playing_playlist = pl_man->get_playing_playlist();
-		bool has_some_playlist = index_playing_playlist != SIZE_MAX;
+		bool has_playlist = index_playing_playlist != SIZE_MAX;
 
 		size_t index_item;
-		has_some_playlist &= pl_man->playlist_find_item(index_playing_playlist, dbHandle_item, index_item);
+		has_playlist &= pl_man->playlist_find_item(index_playing_playlist, dbHandle_item, index_item);
 
-		if (has_some_playlist) {
+		if (has_playlist) {
 
 			blocation_ok &= pl_man->get_playing_item_location(&index_playlist, &index_item);
 			blocation_ok &= pl_man->playlist_get_name(index_playlist, playing_playlist_name);
@@ -253,11 +252,11 @@ bool bookmark_automatic::CheckAutoFilter() {
 }
 bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> guiLists) {
 
+	const std::vector<bookmark_t>& masterList = g_store.GetMasterList();
+
 	if (dummy.need_playlist) {
 		return false;
 	}
-
-	const std::vector<bookmark_t>& masterList = g_store.GetMasterList();
 
 	size_t old_size = masterList.size();
 
@@ -343,7 +342,7 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 		//UI update
 		if (!bshooting_down) {
 			bool bscroll_list = cfg_autosave_focus_newtrack.get();
-			refresh_ui(bscroll_list, bscroll_list,masterList, guiLists);
+			refresh_ui(bscroll_list, bscroll_list, g_store.GetMasterList(), guiLists);
 		}
 	}
 	return g_store.Size() != old_size;

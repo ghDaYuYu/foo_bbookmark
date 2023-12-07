@@ -67,8 +67,10 @@ void bookmark_playlist_callback::on_playlists_removing(const bit_array& p_mask, 
 					//for (auto w = 0; w < changeMask.size(); w++) changeMask.set(w, tmp_mask[changeMask.size() - 1 - w]);
 				}
 
-void bookmark_playlist_callback::on_playlists_removed(const bit_array& p_mask, t_size p_old_count, t_size p_new_count) {
-	//..
+				gui->ReloadItems(changeMask);
+			}
+		}
+	}
 }
 
 void bookmark_playlist_callback::on_playlist_renamed(t_size p_index, const char* p_new_name, t_size p_new_name_len) {

@@ -64,7 +64,7 @@ public:
 		}
 	}
 
-	bool get_display(t_uint32 p_index, pfc::string_base& p_text, t_uint32& p_flags) {
+	virtual bool get_display(t_uint32 p_index, pfc::string_base& p_text, t_uint32& p_flags) override {
 		p_flags = 0;
 		switch (p_index) {
 		case cmd_store:

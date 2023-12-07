@@ -44,7 +44,11 @@
 		}
 
 		bool isRadio() const {
-			//todo
+			return isRadio(path);
+		}
+
+		//todo
+		bool isRadio(const pfc::string8 path) const {
 			return path.startsWith("https://");
 		}
 

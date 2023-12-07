@@ -26,7 +26,7 @@ using namespace glb;
 namespace dlg {
 
 	static const char* COLUMNNAMES[] = { "#", "Time", "Bookmark", "Playlist", "Comment", "Date"};
-	static const char BOOKMARK_COL = 2; //todo: config to ui & clipboard
+	static const char BOOKMARK_COL = 2; //index
 
 	static const std::array<uint32_t, N_COLUMNS> default_cols_width = { 20, 40, 150, 110, 150, 150 };
 	static const std::array<bool, N_COLUMNS> default_cols_active = { false, true, true, false, false, false };
@@ -85,7 +85,7 @@ namespace dlg {
 
 			parseConfig(cfg, m_sorted_dir, m_cols_width, m_cols_active);
 
-			m_cust_stylemanager->setChangeHandler([&] { this->on_style_change(); });
+			m_cust_stylemanager->setChangeHandler([&](bool) { this->on_style_change(); });
 		}
 
 		// CUI constructor
@@ -103,7 +103,7 @@ namespace dlg {
 			m_cols_content.resize(N_COLUMNS);
 			
 			parseConfig(nullptr, m_sorted_dir, m_cols_width, m_cols_active);
-			m_cust_stylemanager->setChangeHandler([&] { this->on_style_change(); });
+			m_cust_stylemanager->setChangeHandler([&](bool) { this->on_style_change(); });
 
 			initialize_window(parent);
 
@@ -342,7 +342,7 @@ namespace dlg {
 						CMenuDescriptionMap descriptions(m_hWnd);
 
 						// Set descriptions of all our items
-						descriptions.Set(ITEM_NUMBER + 1, "Item order");
+						descriptions.Set(ITEM_NUMBER + 1, "Item number");
 						descriptions.Set(TIME_COL + 1, "Playback timestamp");
 						descriptions.Set(DESC_COL + 1, "Custom bookmark description");
 						descriptions.Set(PLAYLIST_COL + 1, "Playlist");
@@ -422,21 +422,21 @@ namespace dlg {
 					menu.AppendMenu(MF_STRING | (!bupdatable || !bresetable_playlist ? MF_DISABLED | MF_GRAYED : 0), ID_RESET_PLAYLIST, L"Reset pla&ylist");
 					menu.AppendMenu(MF_STRING | (!bupdatable || !bresetable_comment ? MF_DISABLED | MF_GRAYED : 0), ID_RESET_COMMENT, L"Reset co&mment");
 					menu.AppendMenu(MF_SEPARATOR);
-					menu.AppendMenu(MF_STRING | (!bupdatable || !bassignable ? MF_DISABLED | MF_GRAYED : 0), ID_ASSIGN_PLAYLIST, L"A&ssign active playlist");
+					menu.AppendMenu(MF_STRING | (!bupdatable || !bassignable ? MF_DISABLED | MF_GRAYED : 0), ID_ASSIGN_PLAYLIST, L"Assi&gn active playlist");
 					menu.AppendMenu(MF_SEPARATOR);
 					menu.AppendMenu(MF_STRING | (!bupdatable || !(bool)csel ? MF_DISABLED | MF_GRAYED : 0), ID_DEL, L"&Remove\tDel");
 					menu.AppendMenu(MF_SEPARATOR);
 					//menu.AppendMenu(MF_STRING | (!bupdatable || !(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_CLEAR, L"C&lear all");
 					//menu.AppendMenu(MF_SEPARATOR);
 					if (bsinglesel) {
-						menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_CMD_COPY, L"&Copy");
+						menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_CMD_COPY, L"C&opy");
 						menu.AppendMenu(MF_STRING | (!(bool)icount || !m_cols_active[1] ? MF_DISABLED | MF_GRAYED : 0), ID_COPY_BOOKMARK, L"Copy &bookmark");
 						menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_COPY_PATH, L"Copy pat&h");
-						menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_CMD_OPEN_FOLDER, L"&Open containing folder");
+						menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_CMD_OPEN_FOLDER, L"Open containing &folder");
 						menu.AppendMenu(MF_SEPARATOR);
 					}
 					// Note: Ctrl+A handled automatically by CListControl, no need for us to catch it
-					menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_SELECTALL, L"Select &all\tCtrl+A");
+					menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_SELECTALL, L"&Select all\tCtrl+A");
 					menu.AppendMenu(MF_STRING | (!(bool)icount ? MF_DISABLED | MF_GRAYED : 0), ID_SELECTNONE, L"C&lear selection");
 					menu.AppendMenu(MF_STRING | (!(bool)csel ? MF_DISABLED | MF_GRAYED : 0), ID_INVERTSEL, L"&Invert selection");
 					menu.AppendMenu(MF_SEPARATOR);
@@ -477,8 +477,8 @@ namespace dlg {
 					[[fallthrough]];
 					case ID_RESET_COMMENT: {
 						size_t c = m_guiList.GetItemCount();
-						size_t f = selmask.find(true, 0, c);
-						for (size_t w = f; w < c; w = selmask.find(true, w + 1, c)) {
+						size_t f = selmask.find_first(true, 0, c);
+						for (size_t w = f; w < c; w = selmask.find_next(true, w, c)) {
 							bookmark_t rec = g_store.GetItem(w);
 							if (cmd == ID_RESET_TIME) {
 								
@@ -523,9 +523,15 @@ namespace dlg {
 					[[fallthrough]];
 					case ID_COPY_PATH: {
 
-						if (!clip_bookmark.get_length()) {
-							clip_bookmark = g_masterList.at(isel).path;
-							foobar2000_io::extract_native_path(clip_bookmark, clip_bookmark);
+						pfc::string8 fall_clip_text;
+						if (cmd == ID_COPY_BOOKMARK) {
+							auto rec = g_store.GetItem(isel);
+							fall_clip_text = rec.desc;
+						}
+						else if (cmd == ID_COPY_PATH) {
+							auto rec = g_store.GetItem(isel);
+							fall_clip_text = rec.path;
+							foobar2000_io::extract_native_path(fall_clip_text, fall_clip_text);
 						}
 
 						ClipboardHelper::OpenScope scope;

@@ -7,6 +7,7 @@
 #define IDD_BOOKMARK_PREFERENCES        148
 #define IDD_BOOKMARK_DIALOG             149
 #define IDC_VERBOSE                     1002
+#define IDC_MONITOR                     1003
 #define IDC_AUTOSAVE_EXIT               1016
 #define IDC_STATUS_FLAG                 1017
 #define IDC_MISC_FLAG                   1018

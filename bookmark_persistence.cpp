@@ -105,7 +105,7 @@ void bookmark_persistence::writeDataFileJSON(const std::vector<bookmark_t>& mast
 				add_rec(vjson, vlbl, masterList[i]);
 			}
 
-			//second pass, could have be done yet in first pass
+			//second pass, could have be done in first pass
 
 			json_t* arr_top = json_array();
 
@@ -193,6 +193,26 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 		
 			json_error_t error;
 			auto json = json_load_file(genFilePath().c_str(), JSON_DECODE_ANY, &error);
+			if (strlen(error.text) && error.line != -1) {
+				FB2K_console_print_v("JSON error: ",error.text,
+						" in line: ", error.line,
+						", column: ", error.column,
+						", position: ", error.position,
+						", src: ",error.source);
+				try {
+					if (std::filesystem::file_size(genFilePath().c_str())) {
+						FB2K_console_print_v("JSON error: Creating backup file...");
+						pfc::string8 buffer_bak;
+						buffer_bak << genFilePath().c_str() << ".bak";
+						std::filesystem::copy(genFilePath().c_str(), buffer_bak.c_str(), std::filesystem::copy_options::update_existing);
+						FB2K_console_print_v("JSON error: Backup file created.");
+					}
+				}
+				catch (std::filesystem::filesystem_error const& ex) {
+					FB2K_console_print_v("Error: Creating backup file. ", ex.what());
+				}
+				//free(error);
+			}
 			clines = json_array_size(json);
 
 			bookmark_t elem = bookmark_t();

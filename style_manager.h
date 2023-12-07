@@ -11,7 +11,7 @@ namespace {
 	public:
 
 		virtual ~StyleManager() {
-			setChangeHandler([] {});
+			setChangeHandler([](bool) {});
 		}
 
 		virtual bool isDark() const = 0;
@@ -24,7 +24,7 @@ namespace {
 		virtual LOGFONT getListFont() const = 0;
 		virtual LOGFONT getPlaylistFont() const = 0;
 
-		void setChangeHandler(std::function<void()> handler) {
+		void setChangeHandler(std::function<void(bool)> handler) {
 			changeHandler = handler;
 		};
 
@@ -34,8 +34,10 @@ namespace {
 			}
 
 			updateCache();
-			if (changeHandler)
-				changeHandler();
+
+			if (changeHandler) {
+				changeHandler(true);
+			}
 		}
 
 	protected:
@@ -71,7 +73,7 @@ namespace {
 		LOGFONT cachedPlaylistFont{};
 
 	private:
-		std::function<void()> changeHandler = nullptr;
+		std::function<void(bool)> changeHandler = nullptr;
 
 	};
 }
