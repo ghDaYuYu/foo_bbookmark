@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #define COMPONENT_NAME_H "Vital bookmarks"
 #define COMPONENT_NAME_HC "Vital Bookmarks"
 #define COMPONENT_DESC "Provides playback bookmark functionality."
@@ -8,7 +8,7 @@
 
 #define COMPONENT_VERSION_MAJOR 1
 #define COMPONENT_VERSION_MINOR 2
-#define COMPONENT_VERSION_PATCH 5
+#define COMPONENT_VERSION_PATCH 6
 #define COMPONENT_VERSION_SUB_PATCH 0
 
 #define MAKE_STRING(text) #text
