@@ -11,6 +11,7 @@
 #include <helpers/DarkMode.h>
 // CCheckBox
 #include <libPPUI/wtl-pp.h>
+#include <libPPUI/CDialogResizeHelper.h>
 
 #include "header_static.h"
 
@@ -26,7 +27,6 @@ GUID  g_get_prefs_guid() { return guid_bookmark_pref_page; }
 static const GUID guid_cfg_desc_format = { 0xa13f4068, 0xa177, 0x4cc0, { 0x9b, 0x5f, 0x4c, 0xe4, 0x85, 0x58, 0xba, 0xfc } };
 static const GUID guid_cfg_date_format = { 0x25c3c9bd, 0x80b3, 0x4926, { 0xb0, 0x6, 0xed, 0x7b, 0xb9, 0x9c, 0x1f, 0x1 } };
 static const GUID guid_cfg_autosave_newtrack_playlists = { 0x6c5226bc, 0x92a8, 0x4ae8, { 0x85, 0xde, 0xb, 0x58, 0xe3, 0x2b, 0x6e, 0x70 } };
-
 static const GUID guid_cfg_autosave_on_quit = { 0xbce06bc, 0x1d6a, 0x4bc2, { 0xbd, 0xe1, 0x64, 0x91, 0x31, 0x9f, 0xb6, 0xcf } };
 static const GUID guid_cfg_autosave_newtrack = { 0x6fc02f38, 0xfd74, 0x4352, { 0xab, 0x8f, 0xac, 0xdd, 0x10, 0x12, 0xb, 0x8f } };
 static const GUID guid_cfg_autosave_focus_newtrack = { 0x612365c1, 0x8b58, 0x434f, { 0xb8, 0xb1, 0x6f, 0x72, 0x2a, 0x85, 0x21, 0xf6 } };
@@ -104,14 +104,24 @@ struct ectrlAndString_t {
 	pfc::string8 def;
 };
 
+//snapLeft, snapTop, snapRight, snapBottom
+const CDialogResizeHelper::Param resize_params[] = {
+	{IDC_STATIC_PREF_HEADER, 0,0,1,0},
+	{IDC_TITLEFORMAT, 0,0,1,0},
+	{IDC_PREVIEW, 0,0,1,0},
+	{IDC_MONITOR, 0,0,1,0},
+	{IDC_QUEUE_FLAG, 0,0,1,0},
+	{IDC_AUTOSAVE_RADIO_TRACK, 1,0,1,0},
+	{IDC_AUTOSAVE_RADIO_COMMENT_ST, 1,0,1,0},
+};
 
 class CBookmarkPreferences : public CDialogImpl<CBookmarkPreferences>,
-	public CDialogResize<CBookmarkPreferences>,
 	public preferences_page_instance {
 
 public:
 
-	CBookmarkPreferences(preferences_page_callback::ptr callback) : m_callback(callback) {
+	CBookmarkPreferences(preferences_page_callback::ptr callback) : m_callback(callback),
+			m_resize_helper(resize_params) {
 		//..
 	}
 
@@ -127,25 +137,15 @@ public:
 	void reset() override;
 
 	BEGIN_MSG_MAP_EX(CBookmarkPreferences)
+		CHAIN_MSG_MAP_MEMBER(m_resize_helper)
 		MSG_WM_INITDIALOG(OnInitDialog)
 		COMMAND_CODE_HANDLER_EX(EN_CHANGE, OnEditChange)
 		COMMAND_CODE_HANDLER_EX(CBN_SELCHANGE, OnComboChange)
 		COMMAND_CODE_HANDLER_EX(BN_CLICKED, OnCheckChange)
 		MESSAGE_HANDLER_SIMPLE(glb::UMSG_NEW_TRACK, OnNewTrackMessage)
 		MESSAGE_HANDLER_SIMPLE(glb::UMSG_PAUSED, OnPaused)
-		CHAIN_MSG_MAP(CDialogResize<CBookmarkPreferences>)
 	END_MSG_MAP()
 
-	BEGIN_DLGRESIZE_MAP(CPreviewLeadingTagDialog)
-		DLGRESIZE_CONTROL(IDC_STATIC_PREF_HEADER, DLSZ_SIZE_X)
-		DLGRESIZE_CONTROL(IDC_TITLEFORMAT, DLSZ_SIZE_X)
-		DLGRESIZE_CONTROL(IDC_PREVIEW, DLSZ_SIZE_X)
-		DLGRESIZE_CONTROL(IDC_AUTOSAVE_TRACK_FILTER, DLSZ_SIZE_X)
-	END_DLGRESIZE_MAP()
-
-	void DlgResize_UpdateLayout(int cxWidth, int cyHeight) {
-		CDialogResize<CBookmarkPreferences>::DlgResize_UpdateLayout(cxWidth, cyHeight);
-	}
 
 private:
 
@@ -271,6 +271,7 @@ public:
 
 private:
 
+	CDialogResizeHelper m_resize_helper;
 	HeaderStatic m_staticPrefHeader;
 	fb2k::CDarkModeHooks m_dark;
 
@@ -334,9 +335,7 @@ void InitDateCombo(HWND hwndParent, UINT idc_date, pfc::string8 strval) {
 	}
 }
 
-BOOL CBookmarkPreferences::OnInitDialog(CWindow wndCtl, LPARAM) {
-
-	DlgResize_Init(false, true);
+BOOL CBookmarkPreferences::OnInitDialog(CWindow, LPARAM) {
 
 	glb::g_wnd_bookmark_pref = m_hWnd;
 
