@@ -282,6 +282,7 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 
 	auto track_length = track_bm->get_length();
 	bool bsamepath = pfc::string8(track_bm->get_path()).equals(dummy.path);
+	bsamepath &= track_subsong == dummy.subsong;
 
 	bool bsame_radio_content = true;
 
@@ -314,6 +315,7 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 
 			bool brevtime = abs(rit->get_time() - dummy.get_time()) <= 2 * KMin_Lapse;
 			bool brevpath = rit->path.equals(dummy.path) && pfc::guid_equal(rit->guid_playlist, dummy.guid_playlist);
+			brevpath = brevpath && rit->subsong == dummy.subsong;
 			bool brevradio = !dummy.isRadio() || (rit->desc.equals(dummy.desc));
 
 			if (dummy.need_playlist || (brevtime && brevpath && brevradio)) {
