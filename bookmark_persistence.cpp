@@ -267,7 +267,7 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 					js_fld = json_object_get(js_wobj, "subsong");
 					const char* dmp_str = json_string_value(js_fld);
 					if (dmp_str) {
-						elem.subsong = static_cast<t_uint32>(json_real_value(js_fld));
+						elem.subsong = static_cast<t_uint32>(atoi(dmp_str))
 					}
 				}
 
