@@ -26,10 +26,10 @@ using namespace glb;
 namespace dlg {
 
 	static const char* COLUMNNAMES[] = { "#", "Time", "Bookmark", "Playlist", "Comment", "Date"};
-	static const char BOOKMARK_COL = 2; //index
+	static const char BOOKMARK_COL = static_cast<char>(colcast(colID::DESC_COL));
 
-	static const std::array<uint32_t, N_COLUMNS> default_cols_width = { 20, 40, 150, 110, 150, 150 };
-	static const std::array<bool, N_COLUMNS> default_cols_active = { false, true, true, false, false, false };
+	static const std::array<uint32_t, colcast(colID::N_COLUMNS)> default_cols_width = { 20, 40, 150, 110, 150, 150 };
+	static const std::array<bool, colcast(colID::N_COLUMNS)> default_cols_active = { false, true, true, false, false, false };
 
 	class CListCtrlMarkDialog : public CDialogImpl<CListCtrlMarkDialog>, private ILOD_BookmarkSource {
 
@@ -38,7 +38,7 @@ namespace dlg {
 		//not overriding - serves cui_bmark
 		HWND get_wnd() const { return m_hWnd; }
 
-		void on_style_change() {
+		void on_style_change(bool repaint = true) {
 
 			//todo: rev DUI/CUI fonts, etc
 
@@ -90,7 +90,9 @@ namespace dlg {
 
 		// CUI constructor
 
-		CListCtrlMarkDialog(HWND parent, bool sorted_dir, std::array<uint32_t, N_COLUMNS> colWidths, std::array<bool, N_COLUMNS> colActive)
+		CListCtrlMarkDialog(HWND parent, bool sorted_dir,
+				std::array<uint32_t, colcast(colID::N_COLUMNS)> colWidths,
+				std::array<bool, colcast(colID::N_COLUMNS)> colActive)
 			: m_sorted_dir(sorted_dir), m_cols_width(colWidths), m_cols_active(colActive), m_guiList(this, true), m_cust_stylemanager(new CuiStyleManager())
 		{
 
@@ -100,7 +102,7 @@ namespace dlg {
 				m_cols_active = default_cols_active;
 			}
 
-			m_cols_content.resize(N_COLUMNS);
+			m_cols_content.resize(colcast(colID::N_COLUMNS));
 			
 			parseConfig(nullptr, m_sorted_dir, m_cols_width, m_cols_active);
 			m_cust_stylemanager->setChangeHandler([&](bool) { this->on_style_change(); });
@@ -317,7 +319,7 @@ namespace dlg {
 
 					//Header columns
 					const int stringlength = 25;
-					for (uint32_t i = 0; i < N_COLUMNS; i++) {
+					for (uint32_t i = 0; i < colcast(colID::N_COLUMNS); i++) {
 
 						//Need to convert to UI friendly stringformat first:
 						wchar_t wideString[stringlength];
@@ -342,12 +344,12 @@ namespace dlg {
 						CMenuDescriptionMap descriptions(m_hWnd);
 
 						// Set descriptions of all our items
-						descriptions.Set(ITEM_NUMBER + 1, "Item number");
-						descriptions.Set(TIME_COL + 1, "Playback timestamp");
-						descriptions.Set(DESC_COL + 1, "Custom bookmark description");
-						descriptions.Set(PLAYLIST_COL + 1, "Playlist");
-						descriptions.Set(ELU_COL + 1, "Comment");
-						descriptions.Set(DATE_COL + 1, "Bookmark date");
+						descriptions.Set(ucolcast(colID::ITEM_NUMBER) + 1, "Item number");
+						descriptions.Set(ucolcast(colID::TIME_COL) + 1, "Playback timestamp");
+						descriptions.Set(ucolcast(colID::DESC_COL) + 1, "Custom bookmark description");
+						descriptions.Set(ucolcast(colID::PLAYLIST_COL) + 1, "Playlist");
+						descriptions.Set(ucolcast(colID::ELU_COL) + 1, "Comment");
+						descriptions.Set(ucolcast(colID::DATE_COL) + 1, "Bookmark date");
 
 						cmd = menu.TrackPopupMenuEx(TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, point.x, point.y, descriptions, nullptr);
 					}
@@ -638,7 +640,7 @@ namespace dlg {
 
 			FB2K_console_print_v("get_configuration called.");
 
-			for (int i = 0; i < N_COLUMNS; i++) {
+			for (int i = 0; i < colcast(colID::N_COLUMNS); i++) {
 				auto col_ndx = m_cols_content[i];
 				if (i < static_cast<int>(m_guiList.GetColumnCount())) {
 					m_cols_width[col_ndx] = static_cast<int>(m_guiList.GetColumnWidthF(i));
@@ -663,8 +665,9 @@ namespace dlg {
 
 		//todo: merge makeConfig
 
-		void GetRuntimeColumnWidths(std::array<uint32_t, N_COLUMNS> & tmp_cols_width) const {
-			for (int i = 0; i < N_COLUMNS; i++) {
+		void GetRuntimeColumnWidths(std::array<uint32_t, colcast(colID::N_COLUMNS)> & tmp_cols_width) const {
+
+			for (int i = 0; i < colcast(colID::N_COLUMNS); i++) {
 				auto col_ndx = m_cols_content[i];
 				if (i < static_cast<int>(m_guiList.GetColumnCount())) {
 					tmp_cols_width[col_ndx] = static_cast<int>(m_guiList.GetColumnWidthF(i));
@@ -677,26 +680,27 @@ namespace dlg {
 		}
 
 		void get_uicfg(stream_writer_formatter<>* out, abort_callback& p_abort/*, const std::array<uint32_t, N_COLUMNS>& cols_width, const std::array<bool, N_COLUMNS>& cols_active*/) const {
-			std::array<uint32_t, N_COLUMNS> tmp_cols_width/* = cols_width*/;
+			std::array<uint32_t, colcast(colID::N_COLUMNS)> tmp_cols_width/* = cols_width*/;
 
 			GetRuntimeColumnWidths(tmp_cols_width);
 
 			pfc::string8 strVer; strVer << kUI_CONF_VER;
 			*out << (pfc::string_base&)strVer;
 
-			for (int i = 0; i < N_COLUMNS; i++) {
+			for (int i = 0; i < colcast(colID::N_COLUMNS); i++) {
 				*out << tmp_cols_width[i];
 			}
-			for (int i = 0; i < N_COLUMNS; i++) {
+			for (int i = 0; i < colcast(colID::N_COLUMNS); i++) {
 				*out << m_cols_active[i];
 			}
 
 			*out << m_guiList.GetSortOrder();
 		}
-
 		// todo: merge parseConfig
-		static void set_cui_config(stream_reader* p_reader, t_size p_size, abort_callback& p_abort, bool &bsort, std::array<uint32_t, N_COLUMNS>& cols_width, std::array<bool, N_COLUMNS>& cols_active) {
-	
+		static void set_cui_config(stream_reader* p_reader, t_size p_size, abort_callback& p_abort,
+				bool &bsort, std::array<uint32_t, colcast(colID::N_COLUMNS)>& cols_width,
+				std::array<bool, colcast(colID::N_COLUMNS)>& cols_active) {
+
 			size_t cfg_ver = 0;
 
 			stream_reader_buffered srb(p_reader, p_size);
@@ -723,20 +727,20 @@ namespace dlg {
 			srmr.reset();
 
 			if (cfg_ver == 0) {
-				for (int i = 1; i < dlg::N_COLUMNS; i++) {
+				for (int i = 1; i < colcast(colID::N_COLUMNS); i++) {
 					reader >> (t_uint32)cols_width[i];
 				}
-				for (int i = 1; i < dlg::N_COLUMNS; i++) {
+				for (int i = 1; i < colcast(colID::N_COLUMNS); i++) {
 					reader >> (bool)cols_active[i];
 				}
 			}
 			else {
 				pfc::string8 strVer;
 				reader >> strVer;
-				for (int i = 0; i < dlg::N_COLUMNS; i++) {
+				for (int i = 0; i < colcast(colID::N_COLUMNS); i++) {
 					reader >> (t_uint32)cols_width[i];
 				}
-				for (int i = 0; i < dlg::N_COLUMNS; i++) {
+				for (int i = 0; i < colcast(colID::N_COLUMNS); i++) {
 					reader >> (bool)cols_active[i];
 				}
 
@@ -748,7 +752,10 @@ namespace dlg {
 	private:
 
 		//todo: merge set_cui_config
-		static void parseConfig(ui_element_config::ptr cfg, bool & bsort, std::array<uint32_t, N_COLUMNS>& widths, std::array<bool, N_COLUMNS>& active) {
+		static void parseConfig(ui_element_config::ptr cfg,
+				bool & bsort,
+				std::array<uint32_t, colcast(colID::N_COLUMNS)>& widths,
+				std::array<bool, colcast(colID::N_COLUMNS)>& active) {
 
 			FB2K_console_print_v("Parsing config");
 
@@ -783,9 +790,9 @@ namespace dlg {
 
 				::ui_element_config_parser configParser(cfg);
 				if (cfg_ver == 0) {
-					for (int i = 1; i < N_COLUMNS; i++)
+					for (int i = 1; i < colcast(colID::N_COLUMNS); i++)
 						configParser >> widths[i];
-					for (int i = 1; i < N_COLUMNS; i++) {
+					for (int i = 1; i < colcast(colID::N_COLUMNS); i++) {
 						configParser >> active[i];
 					}
 				}
@@ -796,9 +803,9 @@ namespace dlg {
 					}
 					pfc::string8 ver;
 					configParser >> ver; //todo: skip instead
-					for (int i = 0; i < N_COLUMNS; i++)
+					for (int i = 0; i < colcast(colID::N_COLUMNS); i++)
 						configParser >> widths[i];
-					for (int i = 0; i < N_COLUMNS; i++) {
+					for (int i = 0; i < colcast(colID::N_COLUMNS); i++) {
 						configParser >> active[i];
 					}
 
@@ -813,10 +820,13 @@ namespace dlg {
 			}
 		}
 
-		//todo: merge get_uicfg 
-		static ui_element_config::ptr makeConfig(GUID ui_guid, bool bsort, std::array<uint32_t, N_COLUMNS> widths = default_cols_width, const std::array<bool, N_COLUMNS> active = default_cols_active) {
-	
-			if (sizeof(widths) / sizeof(uint32_t) != N_COLUMNS) {
+		//todo: merge get_uicfg
+		static ui_element_config::ptr makeConfig(GUID ui_guid,
+				bool bsort,
+				std::array<uint32_t, colcast(colID::N_COLUMNS)> widths = default_cols_width,
+				const std::array<bool, colcast(colID::N_COLUMNS)> active = default_cols_active) {
+
+			if (sizeof(widths) / sizeof(uint32_t) != colcast(colID::N_COLUMNS)) {
 				return makeConfig(ui_guid, false);
 			}
 
@@ -827,9 +837,9 @@ namespace dlg {
 			pfc::string8 strVer; strVer << kUI_CONF_VER;
 			out << (pfc::string_base&)strVer;
 
-			for (int i = 0; i < N_COLUMNS; i++)
+			for (int i = 0; i < colcast(colID::N_COLUMNS); i++)
 				out << widths[i];
-			for (int i = 0; i < N_COLUMNS; i++)
+			for (int i = 0; i < colcast(colID::N_COLUMNS); i++)
 				out << active[i];
 
 			out << bsort;
@@ -856,8 +866,8 @@ namespace dlg {
 
 			m_guiList.SetSortOrder(m_sorted_dir);
 
-			size_t ndx_tail = N_COLUMNS - 1;
-			for (int i = 0; i < N_COLUMNS; i++) {
+			size_t ndx_tail = colcast(colID::N_COLUMNS) - 1;
+			for (int i = 0; i < colcast(colID::N_COLUMNS); i++) {
 				auto ndx_cont = !m_guiList.IsHeaderEnabled() ? 0 : m_guiList.GetColumnCount();
 				if (m_cols_active[i]) {
 
@@ -892,8 +902,8 @@ namespace dlg {
 		bool m_cui = false;
 
 		bool m_sorted_dir = false;
-		std::array<uint32_t, N_COLUMNS> m_cols_width = {0};
-		std::array<bool, N_COLUMNS> m_cols_active;
+		std::array<uint32_t, colcast(colID::N_COLUMNS)> m_cols_width = {0};
+		std::array<bool, colcast(colID::N_COLUMNS)> m_cols_active;
 		pfc::array_t<size_t> m_cols_content;
 
 		friend class CListControlBookmark;

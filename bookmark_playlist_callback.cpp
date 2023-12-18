@@ -59,12 +59,10 @@ void bookmark_playlist_callback::on_playlists_removing(const bit_array& p_mask, 
 
 			for (auto gui : g_guiLists) {
 
-				//mask positions come from the master list (not getselected()).
-				//in this case ReloadItems needs positions in the list.
+				//mask positions from master list, not get_selected()
+
 				if (gui->GetSortOrder()) {
-					gui->GetSortOrdererMask(changeMask);
-					//bit_array_bittable tmp_mask(changeMask);
-					//for (auto w = 0; w < changeMask.size(); w++) changeMask.set(w, tmp_mask[changeMask.size() - 1 - w]);
+					gui->GetSortOrderedMask(changeMask);
 				}
 
 				gui->ReloadItems(changeMask);
@@ -113,10 +111,9 @@ void bookmark_playlist_callback::on_playlist_renamed(t_size p_index, const char*
 	if (bchanged) {
 		for (auto gui : g_guiLists) {
 			
-			//Mask positions come from the master list not from getselected()).
-			//ReloadItems need positions in the list.
+			//mask positions from master list, not get_selected()
 			if (gui->GetSortOrder()) {
-				gui->GetSortOrdererMask(changeMask);
+				gui->GetSortOrderedMask(changeMask);
 			}
 
 			gui->ReloadItems(changeMask);

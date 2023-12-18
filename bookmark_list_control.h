@@ -10,7 +10,7 @@
 
 namespace dlg {
 
-	const enum colID {
+	const enum class colID : int {
 		ITEM_NUMBER = 0,
 		TIME_COL,
 		DESC_COL,
@@ -19,6 +19,13 @@ namespace dlg {
 		DATE_COL,
 		N_COLUMNS //6
 	};
+
+	constexpr size_t colcast(colID col) {
+		return static_cast<size_t>(col);
+	}
+	constexpr unsigned ucolcast(colID col) {
+		return static_cast<unsigned>(col);
+	}
 
 	class CListControlBookmark;
 
@@ -78,8 +85,11 @@ namespace dlg {
 		typedef CListControlOwnerColors TParent;
 
 		BEGIN_MSG_MAP_EX(CListControlBookmark)
+			MESSAGE_HANDLER(WM_KEYDOWN, OnKeyDown);
 			CHAIN_MSG_MAP(TParent)
 		END_MSG_MAP()
+
+		LRESULT OnKeyDown(UINT, WPARAM p_wp, LPARAM, BOOL& bHandled);
 
 		void Initialize(pfc::array_t<size_t>* pcols_content) {
 			InitializeHeaderCtrl(HDS_BUTTONS);
@@ -223,7 +233,7 @@ namespace dlg {
 
 		bool GetSortOrder() const { return m_sorted_dir; }
 		void SetSortOrder(bool enable) { m_sorted_dir = enable; }
-		void GetSortOrdererMask(bit_array_bittable& ordered_mask) {
+		void GetSortOrderedMask(bit_array_bittable& ordered_mask) {
 			bit_array_bittable tmp_mask(ordered_mask);
 			for (size_t w = 0; w < ordered_mask.size(); w++) ordered_mask.set(w, tmp_mask[tmp_mask.size() - 1 - w]);
 		}
@@ -235,22 +245,7 @@ namespace dlg {
 
 	protected:
 
-		virtual void OnColumnHeaderClick(t_size index) override {
-			if (GetColContent(index) != 0) {
-				return;
-			}
-
-			m_sorted_dir = !m_sorted_dir;
-
-			SelectNone();
-			SetColumnSort(index, m_sorted_dir);
-
-			m_host->listColumnHeaderClick(this, index);
-			ReloadItems(bit_array_true());
-			if (GetItemCount()) {
-				SetFocusItem(0);
-			}
-		}
+		virtual void OnColumnHeaderClick(t_size index) override;
 
 	private:
 

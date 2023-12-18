@@ -280,6 +280,7 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 		track_bm = metadb_ptr->handle_create(dummy.path.c_str(), dummy.subsong);
 	}
 
+	auto track_subsong = bnowPlaying ? track_current->get_subsong_index() : track_bm->get_subsong_index();
 	auto track_length = track_bm->get_length();
 	bool bsamepath = pfc::string8(track_bm->get_path()).equals(dummy.path);
 	bsamepath &= track_subsong == dummy.subsong;

@@ -1,11 +1,12 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include <regex>
 #include <iomanip>
 
+#include "bookmark_core.h"
 #include "bookmark_store.h"
 
 #include "bookmark_list_control.h"
-#include "bookmark_list_dialog.h" 
+#include "bookmark_list_dialog.h"
 
 namespace dlg {
 
@@ -29,10 +30,12 @@ namespace dlg {
 
 		auto subItemContent = plc->GetColContent(subItem);
 
-		switch (subItemContent) {
-		case ITEM_NUMBER:
+		colID subItemcol = static_cast<colID>(subItemContent);
+
+		switch (subItemcol) {
+		case colID::ITEM_NUMBER:
 			return std::to_string(item + 1).c_str();
-		case TIME_COL:
+		case colID::TIME_COL:
 		{
 			std::ostringstream conv;
 			int hours = (int)(rec.get_time() / 3600);
@@ -43,13 +46,13 @@ namespace dlg {
 			conv << std::setfill('0') << std::setw(2) << minutes << ":" << std::setfill('0') << std::setw(2) << seconds;
 			return conv.str().c_str();
 		}
-		case DESC_COL:
-			return rec.desc.c_str();
-		case PLAYLIST_COL:
+		case colID::DESC_COL:
+			return rec.get_name(true); //rec.desc.c_str();
+		case colID::PLAYLIST_COL:
 			return rec.playlist.c_str();
-		case ELU_COL:
+		case colID::ELU_COL:
 			return rec.comment.c_str();
-		case DATE_COL:
+		case colID::DATE_COL:
 			return rec.runtime_date.c_str();
 		default:
 			return "";
@@ -97,8 +100,7 @@ namespace dlg {
 		//remove from global list
 
 		if (plc->GetSortOrder()) {
-		
-			plc->GetSortOrdererMask(sorted_mask);
+			plc->GetSortOrderedMask(sorted_mask);
 			new_mask = sorted_mask;
 		}
 
@@ -140,7 +142,10 @@ namespace dlg {
 		CListControlBookmark* plc = (CListControlBookmark*)(ctx);
 		auto subItemContent = plc->GetColContent(subItem);
 
-		if (subItemContent == ELU_COL || subItemContent == TIME_COL) {
+		if (subItemContent == colcast(colID::DESC_COL) ||
+			subItemContent == colcast(colID::ELU_COL) ||
+			subItemContent == colcast(colID::TIME_COL)) {
+
 			return true;
 		}
 		return false;
@@ -159,10 +164,13 @@ namespace dlg {
 		CListControlBookmark* plc = (CListControlBookmark*)(ctx);
 		auto subItemContent = plc->GetColContent(subItem);
 
-		if (subItemContent == ELU_COL) {
+		if (subItemContent == colcast(colID::DESC_COL)) {
+			//..
+		}
+		else if (subItemContent == colcast(colID::ELU_COL)) {
 			lineCount = 2;
 		}
-		else if (subItemContent == TIME_COL) {
+		else if (subItemContent == colcast(colID::TIME_COL)) {
 			lineCount = 1;
 		}
 
@@ -206,6 +214,41 @@ namespace dlg {
 		return secs;
 	}
 
+	bool gen_desc(bookmark_t & rec) {
+
+		bool bres = false;
+
+		pfc::string_formatter songDesc;
+		titleformat_object::ptr desc_format;
+		static_api_ptr_t<titleformat_compiler>()->compile_safe_ex(desc_format, cfg_desc_format.get_value().c_str());
+
+		if (rec.path.get_length() && !rec.path.startsWith("https://")) {
+			abort_callback_impl p_abort;
+			try {
+				if (!filesystem_v3::g_exists(rec.path.c_str(), p_abort)) {
+					FB2K_console_print_e("Create description failed...object not found.");
+					return false;
+				}
+			}
+			catch (exception_aborted) {
+				return false;
+			}
+
+			auto metadb_ptr = metadb::get();
+			metadb_handle_ptr track_bm = metadb_ptr->handle_create(rec.path.c_str(), rec.subsong);
+
+			if (!track_bm->format_title(NULL, songDesc, desc_format, NULL)) {
+				FB2K_console_print_e("Description format failed.");
+				return false;
+			}
+
+			rec.desc = songDesc;
+			bres = true;
+		} // end check path
+
+		return bres;
+	}
+
 	void ILOD_BookmarkSource::listSetEditField(ctx_t ctx, size_t item, size_t subItem, const char* val) {
 
 		CListControlBookmark* plc = (CListControlBookmark*)(ctx);
@@ -215,7 +258,26 @@ namespace dlg {
 
 		auto subItemContent = plc->GetColContent(subItem);
 
-		if (subItemContent == TIME_COL) {
+		if (subItemContent == colcast(colID::DESC_COL)) {
+
+			pfc::string8 buffer(val);
+			bookmark_t rec = g_store.GetItem(item);
+			if (!stricmp_utf8(buffer, rec.desc)) {
+				rec.set_name("");
+			}
+			else if (!buffer.get_length()) {
+				rec.set_name("");
+				//regen desc
+				gen_desc(rec);
+			}
+			else {
+				rec.set_name(buffer);
+			}
+
+			g_store.SetItem(item, rec);
+			g_store.Write();
+		}
+		else if (subItemContent == colcast(colID::TIME_COL)) {
 
 			size_t secs = GetEditFieldSeconds(val);
 
@@ -233,7 +295,7 @@ namespace dlg {
 				g_store.Write();
 			}
 		}
-		else if (subItemContent == ELU_COL) {
+		else if (subItemContent == colcast(colID::ELU_COL)) {
 			//replace comment
 			bookmark_t rec = g_store.GetItem(item);
 
@@ -247,6 +309,309 @@ namespace dlg {
 	bool ILOD_BookmarkSource::listAllowTypeFindHere(ctx_t ctx, size_t item, size_t subItem) {
 		CListControlBookmark* plc = (CListControlBookmark*)(ctx);
 		auto subItemContent = plc->GetColContent(subItem);
-		return subItemContent == DESC_COL || subItemContent == PLAYLIST_COL || subItemContent == ELU_COL;
+		return subItemContent == colcast(colID::DESC_COL) ||
+			subItemContent == colcast(colID::PLAYLIST_COL) ||
+			subItemContent == colcast(colID::ELU_COL);
+	}
+
+	LRESULT CListControlBookmark::OnKeyDown(UINT, WPARAM p_wp, LPARAM, BOOL& bHandled) {
+
+		switch (p_wp) {
+		case VK_F2: {
+
+				auto isingle = GetSingleSel();
+				if (isingle != SIZE_MAX) {
+
+					if (!TableEdit_IsActive()) {
+
+						TableEdit_Start(isingle, colcast(colID::DESC_COL));
+
+					}
+				}
+				return 0;
+		}
+		default:
+			break;
+		}
+
+		bHandled = FALSE;
+		return 0;
+	}
+
+	bool are_other_column_sorted(const CHeaderCtrl* hc, size_t current_col) {
+		bool bres = false;
+
+		HDITEM hditem;
+		hditem.mask = HDI_FORMAT | HDI_ORDER;
+		hditem.fmt |= HDF_OWNERDRAW;
+
+		for (auto w = 0; w < hc->GetItemCount(); w++) {
+			if (w == current_col) continue;
+			auto bitems = hc->GetItem(w, &hditem);
+			bool asc = hditem.fmt & HDF_SORTUP;
+			bool desc = hditem.fmt & HDF_SORTDOWN;
+			if (asc || desc) {
+				return true;
+			}
+		}
+		return bres;
+	}
+
+	inline static int field_compare(const char* p1, const char* p2) {
+		return stricmp_utf8(p1, p2);
+	}
+
+	inline static int field_compare_rev(const char* p1, const char* p2) {
+		return stricmp_utf8(p2, p2);
+	}
+
+	const pfc::string8& get_rec_col_content(const bookmark_t& rec, size_t col_content_index) {
+
+		if (col_content_index == colcast(colID::DESC_COL)) {
+			return rec.desc;
+		}
+		else if (col_content_index == colcast(colID::PLAYLIST_COL)) {
+			return rec.playlist;
+		}
+		else if (col_content_index == colcast(colID::ELU_COL)) {
+			return rec.comment;
+		}
+		else if (col_content_index == colcast(colID::DATE_COL)) {
+			return rec.runtime_date;
+		}
+		else {
+			PFC_ASSERT(false);
+		}
+		return rec.desc;
+	}
+
+	void get_sort_expr(const bookmark_t& bm, size_t colcontent, pfc::string8 & out) {
+
+		if (colcontent == colcast(colID::TIME_COL)) {
+			out = std::to_string(bm.get_time()).c_str();
+		}
+		else {
+			out = get_rec_col_content(bm, colcontent);
+		}
+		if (colcontent != colcast(colID::DATE_COL)) {
+			out << bm.runtime_date;
+		}
+		if (colcontent != colcast(colID::TIME_COL)) {
+			out << std::to_string(bm.get_time()).c_str();
+		}
+		if (colcontent != colcast(colID::DESC_COL)) {
+			out << bm.desc;
+		}
+		if (colcontent != colcast(colID::PLAYLIST_COL)) {
+			out << bm.playlist;
+		}
+
+	}
+
+	size_t calc_ordered_focus(size_t ifocus, size_t* order, size_t count) {
+
+		if (ifocus != SIZE_MAX) {
+			
+			pfc::array_t<bool> focus_arr; focus_arr.set_size(count);
+			pfc::fill_array_t(focus_arr, 0);
+			focus_arr[ifocus] = true;
+			pfc::reorder_t(focus_arr, order, count);
+
+			for (auto n = 0; n < count; n++)
+			{
+				if (focus_arr[n]) {
+					return n;
+				}
+			}
+		}
+		return SIZE_MAX;
+	}
+
+	void CListControlBookmark::OnColumnHeaderClick(t_size index) {
+
+		auto colContentIndex = GetColContent(index);
+
+		int header_ndx = static_cast<int>(index);
+
+		if (colContentIndex == 0) {
+
+			// #
+
+			m_sorted_dir = !m_sorted_dir;
+
+			//selection
+			auto selMask = GetSelectionMask();
+			auto csel = GetSelectedCount();
+			auto ifocus = GetFocusItem();
+			//
+
+			HDITEM hditem;
+			hditem.mask = HDI_FORMAT | HDI_ORDER;
+			hditem.fmt |= HDF_OWNERDRAW;
+
+			auto bitems = GetHeaderCtrl().GetItem(header_ndx, &hditem);
+
+			bool asc = hditem.fmt & HDF_SORTUP;
+			bool desc = hditem.fmt & HDF_SORTDOWN;
+
+			hditem.fmt &= ~HDF_SORTDOWN;
+			hditem.fmt &= ~HDF_SORTUP;
+
+			bitems = GetHeaderCtrl().SetItem(header_ndx, &hditem);
+
+			SetColumnSort(index, m_sorted_dir);
+
+			bitems = GetHeaderCtrl().GetItem(header_ndx, &hditem);
+
+			asc = hditem.fmt & HDF_SORTUP;
+			desc = hditem.fmt & HDF_SORTDOWN;
+
+			m_host->listColumnHeaderClick(this, index);
+			ReloadItems(bit_array_true());
+
+			if (auto cItems = GetItemCount()) {
+
+				bit_array_bittable revMask(bit_array_false(), cItems);
+				auto n = selMask.find_first(true, 0, cItems);
+				for (n; n < cItems; n = selMask.find_next(true, n, cItems)) {
+					revMask.set(cItems - 1 - n, true);
+				}
+				SetSelection(bit_array_true(), revMask);
+				if (ifocus < cItems) {
+					SetFocusItem(cItems - 1 - ifocus);
+				}
+				EnsureItemVisible(0, false);
+			}
+		}
+
+		else if (colContentIndex > colcast(colID::ITEM_NUMBER)
+			&& colContentIndex <= colcast(colID::DATE_COL)) {
+
+			//time, desc, playlist, elu, date
+
+			//todo
+			if (GetSortOrder()) {
+				SetSortOrder(false);
+				if (auto count = GetItemCount()) {
+					SelectNone();
+					auto ifocus = GetFocusItem();
+					SetFocusItem(count - 1);
+					OnFocusChanged(ifocus, count - 1);
+				}
+			}
+
+			auto tmpList = g_store.GetMasterList();
+
+			HDITEM hditem;
+			hditem.mask = HDI_FORMAT;
+
+			auto items = GetHeaderCtrl().GetItem(header_ndx, &hditem);
+			bool bheader_asc = hditem.fmt & HDF_SORTUP;
+			bool bheader_desc = hditem.fmt & HDF_SORTDOWN;
+
+			bool bsort_active = bheader_asc || bheader_desc;
+			bool breverse = bheader_desc;
+
+			if (!bsort_active) {
+
+				bool bsome_col_sorted = are_other_column_sorted(&GetHeaderCtrl(), index/*current*/);
+
+				if (bsome_col_sorted) {
+					//todo
+				}
+
+				breverse = false;
+			}
+			else {
+				breverse = !breverse;
+			}
+
+			SetColumnSort(index, !breverse);
+
+			//selection
+
+			pfc::list_t<pfc::string8> permuList; permuList.set_size(tmpList.size());
+
+			for (auto w = 0; w < permuList.get_size(); w++) {
+				get_sort_expr(tmpList[w], colContentIndex, permuList[w]);
+			}
+
+			pfc::array_t<size_t> order; order.resize(tmpList.size());
+			order_helper::g_fill(order);
+
+			//sel permutation
+			//todo: sort_stable_get_permutation_t
+			if (!breverse) {
+				permuList.sort_get_permutation_t(path_compare, order.get_ptr());
+			}
+			else {
+				permuList.sort_get_permutation_t(path_compare_rev, order.get_ptr());
+			}
+
+			//sort sel
+
+			pfc::array_t<bool> sel_arr;
+			selarr.append_fromptr(GetSelectionArray(), tmpList.size());
+			pfc::reorder_t(sel_arr, order.get_ptr(), tmpList.size());
+
+			bit_array_bittable new_sel(bit_array_false(), sel_arr.get_count());
+
+			for (size_t walk = 0; walk < selarr.get_count(); ++walk) {
+				new_sel.set(walk, sel_arr[walk]);
+			}
+
+			SetSelection(bit_array_true(), new_sel);
+
+			//sort focus
+
+			size_t ifocus = GetFocusItem();
+
+			if (ifocus != SIZE_MAX) {
+				auto count = tmpList.size();
+
+				if ((ifocus = calc_ordered_focus(ifocus, order.get_ptr(), count)) != SIZE_MAX) {
+					SetFocusItem(ifocus);
+				}
+				else {
+					SetFocusItem(0);
+				}
+			}
+
+			//todo: mod master list type, stable sort
+			//sort list
+
+			std::/*stable_*/sort(tmpList.begin(), tmpList.end(),
+				[&](bookmark_t& abm, bookmark_t& bbm) {
+
+					pfc::string8 a_str;
+					pfc::string8 b_str;
+
+					get_sort_expr(abm, colContentIndex, a_str);
+					get_sort_expr(bbm, colContentIndex, b_str);
+
+					std::string a = a_str.c_str();
+					std::string b = b_str.c_str();
+
+					if (!breverse) {
+						return a < b;
+					}
+					else {
+						return b < a;
+					}
+
+				});
+
+
+			g_store.SetMasterList(std::move(tmpList));
+			ReloadItems(bit_array_true());
+
+		}
+		else {
+
+			//..
+			return;
+			//..
+
+		}
 	}
 }
