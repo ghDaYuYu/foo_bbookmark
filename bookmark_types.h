@@ -72,6 +72,7 @@
 		void swap(bookmark_t& other)
 		{
 			bookmark_t tmp = other;
+
 			other.guid_bm = this->guid_bm;
 			other.comment.move(this->comment);
 			other.playlist.move(this->playlist);
@@ -81,6 +82,7 @@
 			other.name.move(this->name);
 			other.desc.move(this->desc);
 			other.path.move(this->path);
+			other.subsong = this->subsong;
 			other.time = this->time;
 
 			guid_bm = tmp.guid_bm;
@@ -92,6 +94,7 @@
 			name.move(tmp.name);
 			desc.move(tmp.desc);
 			path.move(tmp.path);
+			subsong = tmp.subsong;
 			time = tmp.time;
 		}
 	};

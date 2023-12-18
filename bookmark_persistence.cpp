@@ -309,6 +309,23 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 					}
 				}
 
+				//recover non-cue tracks from swap subsong bug (v1.3.1)
+				std::filesystem::path p(elem.path.c_str());
+				auto ext = p.extension().string();
+				if (p.extension().string().compare(".cue")) {
+					//not cue
+					if (elem.subsong) {
+						elem.subsong = 0;
+					}
+				}
+				else {
+					//cue
+					if (!elem.subsong) {
+						//not recoverable, default to 1
+						elem.subsong = 1;
+					}
+				}
+
 				temp_data.push_back(elem);	//save to vector
 			}
 		}
