@@ -319,16 +319,39 @@ namespace dlg {
 		switch (p_wp) {
 		case VK_F2: {
 
-				auto isingle = GetSingleSel();
-				if (isingle != SIZE_MAX) {
+			auto isingle = GetSingleSel();
+			if (isingle != SIZE_MAX) {
 
-					if (!TableEdit_IsActive()) {
+				size_t edit_first_col_ndx = SIZE_MAX;
+				size_t edit_desc_col_ndx = SIZE_MAX;
 
-						TableEdit_Start(isingle, colcast(colID::DESC_COL));
+				for (auto w = 0; w < GetColumnCount(); w++) {
 
+					if (edit_first_col_ndx == SIZE_MAX) {
+						if (m_host->listIsColumnEditable(this, w)) {
+							edit_first_col_ndx = w;
+						}
+					}
+
+					if (GetColContent(w) == colcast(colID::DESC_COL)) {
+						edit_desc_col_ndx = w;
+					}
+
+					if (edit_first_col_ndx != SIZE_MAX && edit_desc_col_ndx != SIZE_MAX) {
+						break;
 					}
 				}
-				return 0;
+
+				if (edit_desc_col_ndx != SIZE_MAX) {
+					m_host->listSubItemClicked(this, isingle, edit_desc_col_ndx);
+					return 0;
+				}
+				else if (edit_first_col_ndx != SIZE_MAX) {
+					m_host->listSubItemClicked(this, isingle, edit_first_col_ndx);
+					return 0;
+				}
+			}
+			return 0;
 		}
 		default:
 			break;
