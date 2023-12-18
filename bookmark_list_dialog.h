@@ -366,11 +366,12 @@ namespace dlg {
 							m_cols_active[colndx] = !m_cols_active[colndx];
 						}
 						else {
-							if (!m_cols_active[colndx]) {
-								//keep width before disabling
-								auto col_ndx = m_cols_content[colndx];
-								m_cols_width[col_ndx] = static_cast<int>(m_guiList.GetColumnWidthF(colndx));
-							}
+							//v1.3.1 quick fix: out of bounds
+							//if (!m_cols_active[colndx]) {
+							//	//keep width before disabling
+							//	auto col_ndx = m_cols_content[colndx];
+							//	m_cols_width[col_ndx] = static_cast<int>(m_guiList.GetColumnWidthF(colndx));
+							//}
 							configToUI(true);
 						}
 					}
