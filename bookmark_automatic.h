@@ -74,7 +74,7 @@ public:
 		dummy.need_playlist = true;
 	}
 
-	void resetDummyAll() { dummy = bookmark_t(); }
+	void resetDummyAll() { dummy.reset(); }
 	void setDummyTime(double time) { dummy.set_time(time); }
 
 	bool isRestoredDummy(const bookmark_t& bm);

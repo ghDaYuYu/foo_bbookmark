@@ -13,7 +13,11 @@
 	struct bookmark_t {
 	private:
 		double time = 0.0;
+		pfc::string8 name;
+
 	public:
+
+		GUID guid_bm = pfc::guid_null;
 		pfc::string8 path;
 		pfc::string8 desc;
 		pfc::string8 comment;
@@ -43,6 +47,14 @@
 			return time;
 		}
 
+		const pfc::string8 get_name(bool or_desc) const {
+			return name.get_length() ? name : or_desc ? desc : "";
+		}
+
+		void set_name(pfc::string8 aname) {
+			name = aname;
+		}
+
 		bool isRadio() const {
 			return isRadio(path);
 		}
@@ -54,5 +66,34 @@
 
 		void reset() {
 			*this = bookmark_t();
+			this->guid_bm = pfc::createGUID();
+		}
+
+		void swap(bookmark_t& other)
+		{
+			bookmark_t tmp = other;
+			other.guid_bm = this->guid_bm;
+			other.comment.move(this->comment);
+			other.playlist.move(this->playlist);
+			other.guid_playlist = this->guid_playlist;
+			other.date.move(this->date);
+			other.runtime_date.move(this->runtime_date);
+			other.name.move(this->name);
+			other.desc.move(this->desc);
+			other.path.move(this->path);
+			other.time = this->time;
+
+			guid_bm = tmp.guid_bm;
+			comment.move(tmp.comment);
+			playlist.move(tmp.playlist);
+			guid_playlist = tmp.guid_playlist;
+			date.move(tmp.date);
+			runtime_date.move(tmp.runtime_date);
+			name.move(tmp.name);
+			desc.move(tmp.desc);
+			path.move(tmp.path);
+			time = tmp.time;
 		}
 	};
+
+	extern void unix_str_date_to_time(pfc::string8 unix_date, time_t& out_rawtime, tm& out_tm);

@@ -78,3 +78,12 @@ private:
 	std::vector<bookmark_t> m_masterList;
 	bookmark_persistence m_persist;
 };
+
+
+namespace std {
+	inline void swap(bookmark_t& a, bookmark_t& b)
+	{
+		a.swap(b);
+	}
+
+}
