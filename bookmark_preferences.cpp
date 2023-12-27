@@ -26,6 +26,7 @@ GUID  g_get_prefs_guid() { return guid_bookmark_pref_page; }
 
 static const GUID guid_cfg_desc_format = { 0xa13f4068, 0xa177, 0x4cc0, { 0x9b, 0x5f, 0x4c, 0xe4, 0x85, 0x58, 0xba, 0xfc } };
 static const GUID guid_cfg_date_format = { 0x25c3c9bd, 0x80b3, 0x4926, { 0xb0, 0x6, 0xed, 0x7b, 0xb9, 0x9c, 0x1f, 0x1 } };
+static const GUID guid_cfg_display_ms = { 0xd7983d68, 0x7073, 0x4ae6, { 0x95, 0x1f, 0xc3, 0x46, 0xcd, 0xb, 0x3e, 0xf6 } };
 static const GUID guid_cfg_autosave_newtrack_playlists = { 0x6c5226bc, 0x92a8, 0x4ae8, { 0x85, 0xde, 0xb, 0x58, 0xe3, 0x2b, 0x6e, 0x70 } };
 static const GUID guid_cfg_autosave_on_quit = { 0xbce06bc, 0x1d6a, 0x4bc2, { 0xbd, 0xe1, 0x64, 0x91, 0x31, 0x9f, 0xb6, 0xcf } };
 static const GUID guid_cfg_autosave_newtrack = { 0x6fc02f38, 0xfd74, 0x4352, { 0xab, 0x8f, 0xac, 0xdd, 0x10, 0x12, 0xb, 0x8f } };
@@ -50,6 +51,7 @@ static const GUID guid_cfg_misc_flag = { 0x452ac946, 0xf849, 0x4c79, { 0x98, 0x6
 
 static const pfc::string8 default_cfg_bookmark_desc_format = "%title% - $if2(%album% - ,- )%artist%";
 static const pfc::string8 default_cfg_date_format = "%a %b %d %H:%M:%S %Y";
+static const bool default_cfg_display_ms = false;
 static const pfc::string8 default_cfg_autosave_newtrack_playlists = "Podcatcher";
 
 static const bool default_cfg_autosave_newtrack = false;
@@ -70,6 +72,7 @@ static const int default_cfg_misc_flag = 0;
 
 cfg_string cfg_desc_format(guid_cfg_desc_format, default_cfg_bookmark_desc_format.c_str());
 cfg_string cfg_date_format(guid_cfg_date_format, default_cfg_date_format.c_str());
+cfg_bool cfg_display_ms(guid_cfg_display_ms, default_cfg_display_ms);
 cfg_string cfg_autosave_newtrack_playlists(guid_cfg_autosave_newtrack_playlists, default_cfg_autosave_newtrack_playlists.c_str());
 
 cfg_bool cfg_autosave_newtrack(guid_cfg_autosave_newtrack, default_cfg_autosave_newtrack);
@@ -113,6 +116,8 @@ const CDialogResizeHelper::Param resize_params[] = {
 	{IDC_QUEUE_FLAG, 0,0,1,0},
 	{IDC_AUTOSAVE_RADIO_TRACK, 1,0,1,0},
 	{IDC_AUTOSAVE_RADIO_COMMENT_ST, 1,0,1,0},
+	{IDC_DISPLAY_MS, 1,0,1,0},
+	{IDC_STATIC_DISPLAY_MS, 1,0,1,0},
 };
 
 class CBookmarkPreferences : public CDialogImpl<CBookmarkPreferences>,
@@ -281,6 +286,7 @@ private:
 	//TODO: group all these, then use for loops
 	ectrlAndString_t eat_format = { IDC_TITLEFORMAT, &cfg_desc_format, default_cfg_bookmark_desc_format };
 	ectrlAndString_t eat_date = { IDC_CMB_DATEFORMAT, &cfg_date_format, default_cfg_date_format };
+	boxAndBool_t bab_display_ms = { IDC_DISPLAY_MS, &cfg_display_ms, default_cfg_display_ms };
 	ectrlAndString_t eat_as_newtrack_playlists = { IDC_AUTOSAVE_TRACK_FILTER, &cfg_autosave_newtrack_playlists, default_cfg_autosave_newtrack_playlists };
 
 	boxAndBool_t bab_as_newtrack = { IDC_AUTOSAVE_TRACK, &cfg_autosave_newtrack, default_cfg_autosave_newtrack };
@@ -343,6 +349,7 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow, LPARAM) {
 
 	cfgToUi(eat_format);
 	cfgToUi(eat_date);
+	cfgToUi(bab_display_ms);
 	cfgToUi(eat_as_newtrack_playlists);
 
 	cfgToUi(bab_as_exit);
@@ -494,6 +501,7 @@ void CBookmarkPreferences::reset() {
 
 	defToUi(eat_format);
 	defToUi(eat_date);
+	defToUi(bab_display_ms);
 	defToUi(eat_as_newtrack_playlists);
 
 	defToUi(bab_as_exit);
@@ -517,8 +525,11 @@ void CBookmarkPreferences::reset() {
 
 void CBookmarkPreferences::apply() {
 
+	bool bneedReload = isUiChanged(bab_display_ms);
+
 	uiToCfg(eat_format);
 	uiToCfg(eat_date);
+	uiToCfg(bab_display_ms);
 	uiToCfg(eat_as_newtrack_playlists);
 
 	uiToCfg(bab_as_exit);
@@ -544,6 +555,13 @@ void CBookmarkPreferences::apply() {
 	uiToCfg(bai_status_flag);
 	uiToCfg(bai_misc_flag);
 
+
+	if (bneedReload) {
+		for (auto gui : glb::g_guiLists) {
+			gui->ReloadItems(bit_array_true());
+		}
+	}
+
 	OnChanged();
 }
 
@@ -552,6 +570,7 @@ bool CBookmarkPreferences::HasChanged() {
 	bool result = false;
 	result |= isUiChanged(eat_format);
 	result |= isUiChanged(eat_date);
+	result |= isUiChanged(bab_display_ms);
 	result |= isUiChanged(eat_as_newtrack_playlists);
 
 	result |= isUiChanged(bab_as_exit);

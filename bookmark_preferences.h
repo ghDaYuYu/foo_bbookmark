@@ -2,6 +2,7 @@
 
   extern cfg_string cfg_desc_format;
   extern cfg_string cfg_date_format;
+  extern cfg_bool cfg_display_ms;
   extern cfg_string cfg_autosave_newtrack_playlists;
 
   extern cfg_bool cfg_autosave_newtrack;

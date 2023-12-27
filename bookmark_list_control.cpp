@@ -41,9 +41,19 @@ namespace dlg {
 			int hours = (int)(rec.get_time() / 3600);
 			int minutes = (int)(std::fmod(rec.get_time(), 3600) / 60);
 			int seconds = (int)(std::fmod(rec.get_time(), 60));
-			if (hours != 0)
+
+			if (hours != 0) {
 				conv << hours << ":";
+			}
+
 			conv << std::setfill('0') << std::setw(2) << minutes << ":" << std::setfill('0') << std::setw(2) << seconds;
+			
+			if (cfg_display_ms.get()) {
+				double millsec;
+				if (millsec = std::fmod(rec.get_time(), 60) - seconds) {
+					conv << std::to_string(millsec).substr(1, 4);
+				}
+			}
 			return conv.str().c_str();
 		}
 		case colID::DESC_COL:
@@ -177,9 +187,36 @@ namespace dlg {
 		return listGetSubItemText(ctx, item, subItem);
 	}
 
-	size_t GetEditFieldSeconds(const char* val) {
-	
+	double ParseTimeEditField(const char* val) {
+
 		std::string field = val;
+		struct lconv* lc = localeconv();
+		const std::string strdot(lc->decimal_point);
+		std::string frac;
+		size_t frac_pos;
+		if ((frac_pos = field.find_last_of('.')) != std::string::npos) {
+			frac = "0" + strdot + field.substr(frac_pos + 1);
+			field = field.substr(0, frac_pos);
+
+			if (!std::atof(frac.c_str())) {
+				frac = "";
+			}
+		}
+
+		if (field.find_first_of(":") == std::string::npos) {
+
+			double dres = atof(field.c_str());
+			dres += atof(frac.c_str());
+
+			//exit
+
+			if (dres > 59.99) {
+				return static_cast<double>(SIZE_MAX);
+			}
+			else {
+				return dres;
+			}
+		}
 
 		std::smatch sm;
 		std::regex regex_v("^(?:(?:([01]?\\d|2[0-3]):)?([0-5]?\\d):)?([0-5]?\\d)$");
@@ -196,7 +233,7 @@ namespace dlg {
 			}
 		}
 
-		size_t secs = SIZE_MAX;
+		double secs = static_cast<float>(SIZE_MAX);
 
 		if (vhms.size() && vhms.size() <= 3) {
 
@@ -209,6 +246,10 @@ namespace dlg {
 			if (vhms.size() > 2) {
 				secs += vhms[vhms.size() - 3] * 3600;
 			}
+		}
+
+		if (frac.length()) {
+			secs += atof(frac.c_str());
 		}
 
 		return secs;
@@ -279,9 +320,9 @@ namespace dlg {
 		}
 		else if (subItemContent == colcast(colID::TIME_COL)) {
 
-			size_t secs = GetEditFieldSeconds(val);
+			double secs = ParseTimeEditField(val);
 
-			if (secs == SIZE_MAX) {
+			if (secs == static_cast<double>(SIZE_MAX)) {
 				plc->TableEdit_Abort(false);
 				return;
 			}
@@ -289,7 +330,7 @@ namespace dlg {
 				//replace time
 				bookmark_t rec = g_store.GetItem(item);
 
-				rec.set_time(static_cast<double>(secs));
+				rec.set_exact_time(secs);
 				g_store.SetItem(item, rec);
 
 				g_store.Write();

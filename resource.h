@@ -28,6 +28,8 @@
 #define IDC_STATIC_UI_UNSUPPORTED       1038
 #define IDC_QUEUE_FLUSH_FLAG            1038
 #define IDC_AUTOSAVE_RADIO_COMMENT_ST   1039
+#define IDC_DISPLAY_MS                  1040
+#define IDC_STATIC_DISPLAY_MS           1041
 
 // Next default values for new objects
 // 
