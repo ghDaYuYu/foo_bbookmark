@@ -13,6 +13,7 @@ namespace {
 
 			if (g_primaryGuiList) {
 				g_primaryGuiList->ReloadData();
+				g_primaryGuiList->RestoreLastFocus();
 			}
 		}
 

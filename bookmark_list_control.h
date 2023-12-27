@@ -94,9 +94,10 @@ namespace dlg {
 
 		LRESULT OnKeyDown(UINT, WPARAM p_wp, LPARAM, BOOL& bHandled);
 
-		void Initialize(pfc::array_t<size_t>* pcols_content) {
+		void Initialize(pfc::array_t<size_t>* pcols_content, uint32_t last_focus) {
 			InitializeHeaderCtrl(HDS_BUTTONS);
 			m_pcols_content = pcols_content;
+			m_last_focus = last_focus;
 			SetPlaylistStyle();
 			SetWantReturn(true);
 			::SetWindowLongPtr(m_hWnd, GWL_EXSTYLE, 0);
@@ -241,6 +242,12 @@ namespace dlg {
 			for (size_t w = 0; w < ordered_mask.size(); w++) ordered_mask.set(w, tmp_mask[tmp_mask.size() - 1 - w]);
 		}
 
+		void RestoreLastFocus() {
+			if (m_last_focus != UINT32_MAX && GetItemCount() > m_last_focus) {
+				SetFocusItem(m_last_focus);
+			}
+		}
+
 		size_t GetColContent(size_t icol) {
 
 			return (*m_pcols_content)[icol];
@@ -256,6 +263,6 @@ namespace dlg {
 		bool m_cui = false;
 
 		pfc::array_t<size_t>* m_pcols_content;
-
+		uint32_t m_last_focus;
 	};
 }

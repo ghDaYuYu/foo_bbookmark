@@ -44,7 +44,7 @@ namespace {
 
 					// create dlg
 
-					window.emplace(wnd_parent, m_hosted_sorted_dir, m_hosted_colWidths, m_hosted_colActive);
+					window.emplace(wnd_parent, m_hosted_sorted_dir, m_hosted_colWidths, m_hosted_colActive, m_hosted_last_focus);
 
 				}
 				catch (std::exception& e) {
@@ -79,7 +79,7 @@ namespace {
 		void set_config(stream_reader* p_reader, t_size p_size, abort_callback& p_abort) override {
 
 			//window is not created yet
-			dlg::CListCtrlMarkDialog::set_cui_config(p_reader, p_size, p_abort, m_hosted_sorted_dir, m_hosted_colWidths, m_hosted_colActive);
+			dlg::CListCtrlMarkDialog::set_cui_config(p_reader, p_size, p_abort, m_hosted_sorted_dir, m_hosted_colWidths, m_hosted_colActive, m_hosted_last_focus);
 
 		};
 
@@ -105,6 +105,7 @@ namespace {
 		std::array<uint32_t, colcast(dlg::colID::N_COLUMNS)> m_hosted_colWidths;
 		std::array<bool, colcast(dlg::colID::N_COLUMNS)> m_hosted_colActive;
 		bool m_hosted_sorted_dir;
+		uint32_t m_hosted_last_focus;
 	};
 
 	// S T A T I C   C U I - E L E M E N T

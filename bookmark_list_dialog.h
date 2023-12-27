@@ -83,7 +83,9 @@ namespace dlg {
 			m_cols_active = default_cols_active;
 			m_cols_content.resize(colcast(colID::N_COLUMNS));
 
-			parseConfig(cfg, m_sorted_dir, m_cols_width, m_cols_active);
+			m_last_focus = 0;
+
+			parseConfig(cfg, m_sorted_dir, m_cols_width, m_cols_active, m_last_focus);
 
 			m_cust_stylemanager->setChangeHandler([&](bool) { this->on_style_change(); });
 		}
@@ -92,8 +94,8 @@ namespace dlg {
 
 		CListCtrlMarkDialog(HWND parent, bool sorted_dir,
 				std::array<uint32_t, colcast(colID::N_COLUMNS)> colWidths,
-				std::array<bool, colcast(colID::N_COLUMNS)> colActive)
-			: m_sorted_dir(sorted_dir), m_cols_width(colWidths), m_cols_active(colActive), m_guiList(this, true), m_cust_stylemanager(new CuiStyleManager())
+				std::array<bool, colcast(colID::N_COLUMNS)> colActive, uint32_t last_focus)
+			: m_sorted_dir(sorted_dir), m_cols_width(colWidths), m_cols_active(colActive), m_last_focus(last_focus), m_guiList(this, true), m_cust_stylemanager(new CuiStyleManager())
 		{
 
 			m_cui = true;
@@ -104,7 +106,7 @@ namespace dlg {
 
 			m_cols_content.resize(colcast(colID::N_COLUMNS));
 			
-			parseConfig(nullptr, m_sorted_dir, m_cols_width, m_cols_active);
+			parseConfig(nullptr, m_sorted_dir, m_cols_width, m_cols_active, m_last_focus);
 			m_cust_stylemanager->setChangeHandler([&](bool) { this->on_style_change(); });
 
 			initialize_window(parent);
@@ -260,7 +262,7 @@ namespace dlg {
 			::ShowWindow(GetDlgItem(IDC_BOOKMARKLIST), SW_SHOW);
 
 			m_guiList.CreateInDialog(*this, IDC_BOOKMARKLIST);
-			m_guiList.Initialize(&m_cols_content);
+			m_guiList.Initialize(&m_cols_content, m_last_focus);
 			configToUI(false);
 
 			m_dark.AddDialogWithControls(*this);
@@ -652,15 +654,18 @@ namespace dlg {
 				}
 			}
 
-			return makeConfig(ui_guid, m_guiList.GetSortOrder(), m_cols_width, m_cols_active);
+			m_last_focus = static_cast<uint32_t>(m_guiList.GetFocusItem());
+
+			return makeConfig(ui_guid, m_guiList.GetSortOrder(), m_cols_width, m_cols_active, m_last_focus);
 		}
 
 		// host to dlg
 
 		void set_configuration(ui_element_config::ptr config) {
-			FB2K_console_print_v("set_configuration called.");
-			parseConfig(config, m_sorted_dir, m_cols_width, m_cols_active);
 
+			FB2K_console_print_v("set_configuration called.");
+
+			parseConfig(config, m_sorted_dir, m_cols_width, m_cols_active, m_last_focus);
 			configToUI(false);
 		}
 
@@ -696,11 +701,12 @@ namespace dlg {
 			}
 
 			*out << m_guiList.GetSortOrder();
+			*out << static_cast<uint32_t>(m_guiList.GetFocusItem());
 		}
 		// todo: merge parseConfig
 		static void set_cui_config(stream_reader* p_reader, t_size p_size, abort_callback& p_abort,
 				bool &bsort, std::array<uint32_t, colcast(colID::N_COLUMNS)>& cols_width,
-				std::array<bool, colcast(colID::N_COLUMNS)>& cols_active) {
+				std::array<bool, colcast(colID::N_COLUMNS)>& cols_active, uint32_t & last_focus) {
 
 			size_t cfg_ver = 0;
 
@@ -746,7 +752,12 @@ namespace dlg {
 				}
 
 				reader >> bsort;
-
+				if (cfg_ver < kUI_CONF_VER) {
+					last_focus = _UI32_MAX;
+				}
+				else {
+					reader >> last_focus;
+				}
 			}
 		}
 
@@ -756,7 +767,8 @@ namespace dlg {
 		static void parseConfig(ui_element_config::ptr cfg,
 				bool & bsort,
 				std::array<uint32_t, colcast(colID::N_COLUMNS)>& widths,
-				std::array<bool, colcast(colID::N_COLUMNS)>& active) {
+				std::array<bool, colcast(colID::N_COLUMNS)>& active,
+				uint32_t & last_focus) {
 
 			FB2K_console_print_v("Parsing config");
 
@@ -764,6 +776,7 @@ namespace dlg {
 				bsort = false;
 				widths = default_cols_width;
 				active = default_cols_active;
+				last_focus = 0;
 			}
 			else {
 				//..
@@ -811,6 +824,13 @@ namespace dlg {
 					}
 
 					configParser >> bsort;
+
+					if (cfg_ver < kUI_CONF_VER) {
+						last_focus = _UI32_MAX;
+					}
+					else {
+						configParser >> last_focus;
+					}
 				}
 			}
 			catch (exception_io_data_truncation e) {
@@ -825,7 +845,7 @@ namespace dlg {
 		static ui_element_config::ptr makeConfig(GUID ui_guid,
 				bool bsort,
 				std::array<uint32_t, colcast(colID::N_COLUMNS)> widths = default_cols_width,
-				const std::array<bool, colcast(colID::N_COLUMNS)> active = default_cols_active) {
+				const std::array<bool, colcast(colID::N_COLUMNS)> active = default_cols_active, uint32_t lastfocus = 0) {
 
 			if (sizeof(widths) / sizeof(uint32_t) != colcast(colID::N_COLUMNS)) {
 				return makeConfig(ui_guid, false);
@@ -844,6 +864,7 @@ namespace dlg {
 				out << active[i];
 
 			out << bsort;
+			out << lastfocus;
 
 			return out.finish(ui_guid);
 		}
@@ -906,6 +927,7 @@ namespace dlg {
 		std::array<uint32_t, colcast(colID::N_COLUMNS)> m_cols_width = {0};
 		std::array<bool, colcast(colID::N_COLUMNS)> m_cols_active;
 		pfc::array_t<size_t> m_cols_content;
+		uint32_t m_last_focus = 0;
 
 		friend class CListControlBookmark;
 	};
