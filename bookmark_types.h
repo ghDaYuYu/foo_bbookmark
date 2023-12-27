@@ -100,3 +100,6 @@
 	};
 
 	extern void unix_str_date_to_time(pfc::string8 unix_date, time_t& out_rawtime, tm& out_tm);
+
+	extern int get_month_index(std::string name);
+	extern int get_wday_index(std::string name);

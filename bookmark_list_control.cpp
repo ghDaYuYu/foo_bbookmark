@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include <regex>
 #include <iomanip>
 
@@ -385,7 +385,7 @@ namespace dlg {
 	}
 
 	inline static int field_compare_rev(const char* p1, const char* p2) {
-		return stricmp_utf8(p2, p2);
+		return stricmp_utf8(p2, p1);
 	}
 
 	const pfc::string8& get_rec_col_content(const bookmark_t& rec, size_t col_content_index) {
@@ -565,10 +565,10 @@ namespace dlg {
 			//sel permutation
 			//todo: sort_stable_get_permutation_t
 			if (!breverse) {
-				permuList.sort_get_permutation_t(path_compare, order.get_ptr());
+				permuList.sort_get_permutation_t(field_compare, order.get_ptr());
 			}
 			else {
-				permuList.sort_get_permutation_t(path_compare_rev, order.get_ptr());
+				permuList.sort_get_permutation_t(field_compare_rev, order.get_ptr());
 			}
 
 			//sort sel

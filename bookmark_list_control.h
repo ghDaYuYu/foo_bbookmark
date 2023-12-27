@@ -26,6 +26,9 @@ namespace dlg {
 	constexpr unsigned ucolcast(colID col) {
 		return static_cast<unsigned>(col);
 	}
+	constexpr int icolcast(colID col) {
+		return static_cast<int>(col);
+	}
 
 	class CListControlBookmark;
 

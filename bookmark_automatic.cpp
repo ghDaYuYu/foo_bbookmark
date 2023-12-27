@@ -285,19 +285,13 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 	bool bsamepath = pfc::string8(track_bm->get_path()).equals(dummy.path);
 	bsamepath &= track_subsong == dummy.subsong;
 
-	bool bsame_radio_content = true;
-
-	pfc::string_formatter songDesc;
-	bool myPendingRadioDyna = false;
-	
 	//todo: unify with local files which are rejected by duplicated criteria
 	bool bradio_restored = isRestoredRadioDummy(dummy);
 	bool bdummy_restored = isRestoredDummy(dummy);
 
 	if (!core_api::is_shutting_down()) {
 		if (bsamepath && (bradio_restored || bdummy_restored)) {
-				return false;
-			}
+			return false;
 		}
 		else {
 			//updateDummy();

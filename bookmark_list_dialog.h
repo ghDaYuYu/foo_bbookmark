@@ -81,7 +81,7 @@ namespace dlg {
 			m_cui = false;
 
 			m_cols_active = default_cols_active;
-			m_cols_content.resize(N_COLUMNS);
+			m_cols_content.resize(colcast(colID::N_COLUMNS));
 
 			parseConfig(cfg, m_sorted_dir, m_cols_width, m_cols_active);
 
@@ -641,7 +641,7 @@ namespace dlg {
 
 			FB2K_console_print_v("get_configuration called.");
 
-			for (int i = 0; i < colcast(colID::N_COLUMNS); i++) {
+			for (int i = 0; i < icolcast(colID::N_COLUMNS); i++) {
 				auto col_ndx = m_cols_content[i];
 				if (i < static_cast<int>(m_guiList.GetColumnCount())) {
 					m_cols_width[col_ndx] = static_cast<int>(m_guiList.GetColumnWidthF(i));
@@ -668,7 +668,7 @@ namespace dlg {
 
 		void GetRuntimeColumnWidths(std::array<uint32_t, colcast(colID::N_COLUMNS)> & tmp_cols_width) const {
 
-			for (int i = 0; i < colcast(colID::N_COLUMNS); i++) {
+			for (int i = 0; i < icolcast(colID::N_COLUMNS); i++) {
 				auto col_ndx = m_cols_content[i];
 				if (i < static_cast<int>(m_guiList.GetColumnCount())) {
 					tmp_cols_width[col_ndx] = static_cast<int>(m_guiList.GetColumnWidthF(i));
@@ -688,10 +688,10 @@ namespace dlg {
 			pfc::string8 strVer; strVer << kUI_CONF_VER;
 			*out << (pfc::string_base&)strVer;
 
-			for (int i = 0; i < colcast(colID::N_COLUMNS); i++) {
+			for (int i = 0; i < icolcast(colID::N_COLUMNS); i++) {
 				*out << tmp_cols_width[i];
 			}
-			for (int i = 0; i < colcast(colID::N_COLUMNS); i++) {
+			for (int i = 0; i < icolcast(colID::N_COLUMNS); i++) {
 				*out << m_cols_active[i];
 			}
 
@@ -728,20 +728,20 @@ namespace dlg {
 			srmr.reset();
 
 			if (cfg_ver == 0) {
-				for (int i = 1; i < colcast(colID::N_COLUMNS); i++) {
+				for (int i = 1; i < icolcast(colID::N_COLUMNS); i++) {
 					reader >> (t_uint32)cols_width[i];
 				}
-				for (int i = 1; i < colcast(colID::N_COLUMNS); i++) {
+				for (int i = 1; i < icolcast(colID::N_COLUMNS); i++) {
 					reader >> (bool)cols_active[i];
 				}
 			}
 			else {
 				pfc::string8 strVer;
 				reader >> strVer;
-				for (int i = 0; i < colcast(colID::N_COLUMNS); i++) {
+				for (int i = 0; i < icolcast(colID::N_COLUMNS); i++) {
 					reader >> (t_uint32)cols_width[i];
 				}
-				for (int i = 0; i < colcast(colID::N_COLUMNS); i++) {
+				for (int i = 0; i < icolcast(colID::N_COLUMNS); i++) {
 					reader >> (bool)cols_active[i];
 				}
 
@@ -790,23 +790,23 @@ namespace dlg {
 				}
 
 				::ui_element_config_parser configParser(cfg);
-				if (cfg_ver == 0) {
-					for (int i = 1; i < colcast(colID::N_COLUMNS); i++)
+				if (!cfg_ver) {
+					for (int i = 1; i < icolcast(colID::N_COLUMNS); i++)
 						configParser >> widths[i];
-					for (int i = 1; i < colcast(colID::N_COLUMNS); i++) {
+					for (int i = 1; i < icolcast(colID::N_COLUMNS); i++) {
 						configParser >> active[i];
 					}
 				}
 				else {
-					if (cfg_ver != kUI_CONF_VER) { 
+					if (cfg_ver > kUI_CONF_VER) {
 						exception_io_data_truncation e;
 						throw e;
 					}
 					pfc::string8 ver;
 					configParser >> ver; //todo: skip instead
-					for (int i = 0; i < colcast(colID::N_COLUMNS); i++)
+					for (int i = 0; i < icolcast(colID::N_COLUMNS); i++)
 						configParser >> widths[i];
-					for (int i = 0; i < colcast(colID::N_COLUMNS); i++) {
+					for (int i = 0; i < icolcast(colID::N_COLUMNS); i++) {
 						configParser >> active[i];
 					}
 
@@ -838,9 +838,9 @@ namespace dlg {
 			pfc::string8 strVer; strVer << kUI_CONF_VER;
 			out << (pfc::string_base&)strVer;
 
-			for (int i = 0; i < colcast(colID::N_COLUMNS); i++)
+			for (int i = 0; i < icolcast(colID::N_COLUMNS); i++)
 				out << widths[i];
-			for (int i = 0; i < colcast(colID::N_COLUMNS); i++)
+			for (int i = 0; i < icolcast(colID::N_COLUMNS); i++)
 				out << active[i];
 
 			out << bsort;
@@ -868,7 +868,7 @@ namespace dlg {
 			m_guiList.SetSortOrder(m_sorted_dir);
 
 			size_t ndx_tail = colcast(colID::N_COLUMNS) - 1;
-			for (int i = 0; i < colcast(colID::N_COLUMNS); i++) {
+			for (int i = 0; i < icolcast(colID::N_COLUMNS); i++) {
 				auto ndx_cont = !m_guiList.IsHeaderEnabled() ? 0 : m_guiList.GetColumnCount();
 				if (m_cols_active[i]) {
 
