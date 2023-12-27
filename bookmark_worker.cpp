@@ -26,6 +26,7 @@ void bookmark_worker::store(const bookmark_t bookmark) {
 
 	if (cfg_monitor.get()) {
 		newMark = bookmark;
+		newMark.set_time(playback_control::get()->playback_get_position());
 	}
 	else {
 		pfc::string_formatter songDesc;
@@ -101,7 +102,6 @@ void bookmark_worker::restore(size_t index) {
 		return;
 	}
 
-
 	if (index >= 0 && index < masterList.size()) {	//load using the index
 		auto rec = masterList[index];
 
@@ -135,7 +135,7 @@ void bookmark_worker::restore(size_t index) {
 			size_t index_pl = ~0;
 			size_t index_item = ~0;
 			bool bplaylist_item_fault = true;
-			
+
 			if (pfc::guid_equal(rec.guid_playlist, pfc::guid_null)) {
 				FB2K_console_print_v("Item queued... ", rec.desc);
 			}
@@ -156,8 +156,6 @@ void bookmark_worker::restore(size_t index) {
 						playlist_manager_ptr->queue_flush();
 					}
 
-					g_pendingSeek = 0.0; //cancel queued item start time
-
 					bool bplaying = playback_control_ptr->is_playing();
 					bool bpaused = playback_control_ptr->is_paused();
 					auto cq = playlist_manager_ptr->queue_get_count();
@@ -168,6 +166,11 @@ void bookmark_worker::restore(size_t index) {
 						//only the first item send to an empty queue can be seek
 						g_pendingSeek = rec.get_time();
 					}
+					else {
+						g_pendingSeek = 0.0;
+						g_bmAuto.ResetRestoredDummyTime();
+					}
+
 
 					if (bplaylist_item_fault) {
 						playlist_manager_ptr->queue_add_item(track_bm);
@@ -181,14 +184,14 @@ void bookmark_worker::restore(size_t index) {
 						//..
 					}
 					else {
-							if ((playlist_manager_ptr->queue_get_count() > 1) && playback_control_ptr->is_playing()) {
+						if ((playlist_manager_ptr->queue_get_count() > 1) && playback_control_ptr->is_playing()) {
 								return;
-							}
+						}
 					}
 
 					playback_control_ptr->play_or_unpause();
-				} 
-			} 
+				}
+			}
 			else {
 				size_t plpos;
 				playlist_manager_ptr->playlist_find_item(index_pl, track_bm, plpos);
@@ -257,7 +260,7 @@ public:
 			});
 
 			g_pendingSeek = 0.0;
-
+			g_bmAuto.ResetRestoredDummyTime();
 		}
 	}
 

@@ -58,6 +58,7 @@ public:
 	bool upgradeDummy(std::list< dlg::CListControlBookmark*> guiList);
 
 	void ResetRestoredDummy();
+	void ResetRestoredDummyTime();
 	void SetRestoredDummy(bookmark_t& bm);
 	void checkDeletedRestoredDummy(const bit_array& mask, size_t count);
 

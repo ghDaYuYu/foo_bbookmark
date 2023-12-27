@@ -352,7 +352,11 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 }
 
 void bookmark_automatic::ResetRestoredDummy() {
-	restored_dummy = bookmark_t();
+	restored_dummy.reset();
+}
+
+void bookmark_automatic::ResetRestoredDummyTime() {
+	restored_dummy.set_time(0.0);
 }
 
 void bookmark_automatic::SetRestoredDummy(bookmark_t& bm) {
@@ -360,8 +364,8 @@ void bookmark_automatic::SetRestoredDummy(bookmark_t& bm) {
 }
 
 bool bookmark_automatic::isRestoredDummy(const bookmark_t& bm) {
-	
-	if (pfc::guid_equal(restored_dummy.guid_playlist, bm.guid_playlist) && 
+
+	if (restored_dummy.get_time() || pfc::guid_equal(restored_dummy.guid_playlist, bm.guid_playlist) &&
 		(restored_dummy.path.equals(bm.path)) && abs(restored_dummy.get_time() - bm.get_time()) <= 3) {
 		return true;
 	}
