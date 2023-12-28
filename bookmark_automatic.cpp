@@ -315,10 +315,8 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 
 			if (dummy.need_playlist || (brevtime && brevpath && brevradio)) {
 
-				if (cfg_verbose) {
-					if (!dummy.need_playlist && (brevtime && brevpath)) {
-						FB2K_console_print_v("Skipping duplicated bookmark: ", dummy.path);
-					}
+				if (!dummy.need_playlist && (brevtime && brevpath)) {
+					FB2K_console_print_v("Skipping duplicated bookmark: ", dummy.path);
 				}
 
 				// nothing to do
@@ -333,6 +331,7 @@ bool bookmark_automatic::upgradeDummy(std::list< dlg::CListControlBookmark*> gui
 		else {
 			//The filter was either disabled or matched the current playlist, continue:
 			g_store.AddItem(std::move(bookmark_t(dummy)));
+
 			FB2K_console_print_v("Dummy stored");
 		}
 

@@ -156,5 +156,4 @@ namespace ibom {
 		CComSafeArray<BSTR> m_data;
 		pfc::com_ptr_t<IDataObject> m_cp;
 	};
-
 }

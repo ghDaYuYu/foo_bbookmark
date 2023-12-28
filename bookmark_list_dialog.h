@@ -113,7 +113,7 @@ namespace dlg {
 
 		}
 
-		// DESTRUCTOR
+		// destructor
 
 		~CListCtrlMarkDialog() {
 
@@ -134,7 +134,7 @@ namespace dlg {
 			MSG_WM_INITDIALOG(OnInitDialog)
 			MSG_WM_SIZE(OnSize)
 			MSG_WM_CONTEXTMENU(OnContextMenu)
-			END_MSG_MAP()
+		END_MSG_MAP()
 
 		void initialize_window(HWND parent) {
 
@@ -845,7 +845,8 @@ namespace dlg {
 		static ui_element_config::ptr makeConfig(GUID ui_guid,
 				bool bsort,
 				std::array<uint32_t, colcast(colID::N_COLUMNS)> widths = default_cols_width,
-				const std::array<bool, colcast(colID::N_COLUMNS)> active = default_cols_active, uint32_t lastfocus = 0) {
+				const std::array<bool, colcast(colID::N_COLUMNS)> active = default_cols_active,
+				uint32_t lastfocus = 0) {
 
 			if (sizeof(widths) / sizeof(uint32_t) != colcast(colID::N_COLUMNS)) {
 				return makeConfig(ui_guid, false);
@@ -872,7 +873,6 @@ namespace dlg {
 		void configToUI(bool breload) {
 
 			FB2K_console_print_v("Applying config to UI");
-
 
 			auto DPI = m_guiList.GetDPI();
 

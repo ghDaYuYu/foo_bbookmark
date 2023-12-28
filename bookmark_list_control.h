@@ -85,6 +85,7 @@ namespace dlg {
 		~CListControlBookmark() {
 			//..
 		}
+
 		typedef CListControlOwnerColors TParent;
 
 		BEGIN_MSG_MAP_EX(CListControlBookmark)
@@ -186,6 +187,7 @@ namespace dlg {
 				}
 
 				mhl.add_item(track_bm);
+
 			}
 
 			if (m_sorted_dir) {

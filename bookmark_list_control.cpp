@@ -285,7 +285,7 @@ namespace dlg {
 
 			rec.desc = songDesc;
 			bres = true;
-		} // end check path
+		}
 
 		return bres;
 	}
