@@ -44,6 +44,9 @@ static const GUID guid_cfg_queue_flag = { 0xe0b79d39, 0x269c, 0x49ed, { 0x88, 0x
 // {3B8608CE-F964-463D-9011-41999D4E0DD9}
 static const GUID guid_cfg_status_flag = { 0x3b8608ce, 0xf964, 0x463d, { 0x90, 0x11, 0x41, 0x99, 0x9d, 0x4e, 0xd, 0xd9 } };
 
+// {82C85AE9-51D4-45F4-8DBA-CE004EC45AAB}
+static const GUID guid_cfg_enter_advance = { 0x82c85ae9, 0x51d4, 0x45f4, { 0x8d, 0xba, 0xce, 0x0, 0x4e, 0xc4, 0x5a, 0xab } };
+
 // {452AC946-F849-4C79-9868-01C60F0421E6}
 static const GUID guid_cfg_misc_flag = { 0x452ac946, 0xf849, 0x4c79, { 0x98, 0x68, 0x1, 0xc6, 0xf, 0x4, 0x21, 0xe6 } };
 
@@ -66,6 +69,9 @@ static const bool default_cfg_monitor = true;
 
 static const int default_cfg_queue_flag = 0;
 static const int default_cfg_status_flag = 0;
+
+static const bool default_cfg_enter_advance = false;
+
 static const int default_cfg_misc_flag = 0;
 
 // cfg_var
@@ -87,6 +93,9 @@ cfg_bool cfg_monitor(guid_cfg_monitor, default_cfg_monitor);
 
 cfg_int cfg_queue_flag(guid_cfg_queue_flag, default_cfg_queue_flag);
 cfg_int cfg_status_flag(guid_cfg_status_flag, default_cfg_status_flag);
+
+cfg_bool cfg_enter_advance(guid_cfg_enter_advance, default_cfg_enter_advance);
+
 cfg_int cfg_misc_flag(guid_cfg_misc_flag, default_cfg_misc_flag);
 
 struct boxAndBool_t {
@@ -112,12 +121,12 @@ const CDialogResizeHelper::Param resize_params[] = {
 	{IDC_STATIC_PREF_HEADER, 0,0,1,0},
 	{IDC_TITLEFORMAT, 0,0,1,0},
 	{IDC_PREVIEW, 0,0,1,0},
-	{IDC_MONITOR, 0,0,1,0},
 	{IDC_QUEUE_FLAG, 0,0,1,0},
 	{IDC_AUTOSAVE_RADIO_TRACK, 1,0,1,0},
 	{IDC_AUTOSAVE_RADIO_COMMENT_ST, 1,0,1,0},
 	{IDC_DISPLAY_MS, 1,0,1,0},
 	{IDC_STATIC_DISPLAY_MS, 1,0,1,0},
+	{IDC_MONITOR, 1,0,1,0},
 };
 
 class CBookmarkPreferences : public CDialogImpl<CBookmarkPreferences>,
@@ -301,6 +310,9 @@ private:
 
 	boxAndInt_t bai_queue_flag = { IDC_QUEUE_FLAG, &cfg_queue_flag, default_cfg_queue_flag };
 	boxAndInt_t bai_status_flag = { IDC_STATUS_FLAG, &cfg_status_flag, default_cfg_status_flag };
+
+	boxAndBool_t bab_enter_advance = { IDC_EDIT_ENTER_ADVANCE, &cfg_enter_advance, default_cfg_enter_advance };
+
 	boxAndInt_t bai_misc_flag = { IDC_MISC_FLAG, &cfg_misc_flag, default_cfg_misc_flag };
 
 };
@@ -366,6 +378,9 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow, LPARAM) {
 	cfgToUi(bai_queue_flag, QUEUE_FLUSH_FLAG, IDC_QUEUE_FLUSH_FLAG);
 
 	cfgToUi(bai_status_flag);
+
+	cfgToUi(bab_enter_advance);
+
 	cfgToUi(bai_misc_flag);
 
 	//static header
@@ -518,6 +533,9 @@ void CBookmarkPreferences::reset() {
 	defToUi(bai_queue_flag, QUEUE_FLUSH_FLAG, IDC_QUEUE_FLUSH_FLAG);
 
 	defToUi(bai_status_flag);
+
+	defToUi(bab_enter_advance);
+
 	defToUi(bai_misc_flag);
 
 	OnChanged();
@@ -553,6 +571,9 @@ void CBookmarkPreferences::apply() {
 	ui_fval = IsDlgButtonChecked(IDC_QUEUE_FLUSH_FLAG) ? ui_fval | QUEUE_FLUSH_FLAG : ui_fval;
 	uiToCfg(bai_queue_flag, ui_fval);
 	uiToCfg(bai_status_flag);
+
+	uiToCfg(bab_enter_advance);
+
 	uiToCfg(bai_misc_flag);
 
 
@@ -589,6 +610,9 @@ bool CBookmarkPreferences::HasChanged() {
 	result |= isUiChanged(bai_queue_flag, ui_fval);
 
 	result |= isUiChanged(bai_status_flag);
+
+	result |= isUiChanged(bab_enter_advance);
+
 	result |= isUiChanged(bai_misc_flag);
 
 	return result;

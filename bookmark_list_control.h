@@ -104,6 +104,8 @@ namespace dlg {
 			::SetWindowLongPtr(m_hWnd, GWL_EXSTYLE, 0);
 		}
 
+		virtual bool TableEdit_Advance(t_size& item, t_size& subItem, t_uint32 whathappened) override;
+
 		virtual uint32_t QueryDragDropTypes() const override {
 			return dragDrop_reorder | dragDrop_external;
 		}

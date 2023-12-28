@@ -671,11 +671,21 @@ namespace dlg {
 
 		}
 		else {
-
 			//..
 			return;
 			//..
+		}
+	}
 
+	bool CListControlBookmark::TableEdit_Advance(t_size& item, t_size& subItem, t_uint32 whathappened) {
+
+		bool bedit_enter = (whathappened & InPlaceEdit::KEditMaskReason) == InPlaceEdit::KEditEnter;
+
+		if (bedit_enter && !cfg_enter_advance.get()) {
+			return false;
+		}
+		else {
+			return CTableEditHelperV2::TableEdit_Advance(item, subItem, whathappened);
 		}
 	}
 }

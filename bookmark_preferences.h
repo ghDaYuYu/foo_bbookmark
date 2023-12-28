@@ -17,6 +17,9 @@
 
   extern cfg_int cfg_queue_flag;
   extern cfg_int cfg_status_flag;
+
+  extern cfg_bool cfg_enter_advance;
+
   extern cfg_int cfg_misc_flag;
 
 
