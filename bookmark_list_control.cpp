@@ -362,6 +362,11 @@ namespace dlg {
 
 	LRESULT CListControlBookmark::OnKeyDown(UINT, WPARAM p_wp, LPARAM, BOOL& bHandled) {
 
+		if (m_cui) {
+			if (uie::window::g_process_keydown_keyboard_shortcuts(p_wp))
+				return 0;
+		}
+
 		switch (p_wp) {
 		case VK_F2: {
 
