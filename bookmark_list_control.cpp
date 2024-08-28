@@ -163,9 +163,14 @@ namespace dlg {
 
 	void ILOD_BookmarkSource::listSubItemClicked(ctx_t ctx, size_t item, size_t subItem)
 	{
-		if (listIsColumnEditable(ctx, subItem)) {
-			CListControlBookmark* plc = (CListControlBookmark*)(ctx);
-			plc->TableEdit_Start(item, subItem);
+		bool F2_KeyState = GetAsyncKeyState(VK_F2) & 0x01;
+		bool edit_mode = F2_KeyState || cfg_edit_mode.get();
+
+		if (edit_mode) {
+			if (listIsColumnEditable(ctx, subItem)) {
+				CListControlBookmark* plc = (CListControlBookmark*)(ctx);
+				plc->TableEdit_Start(item, subItem);
+			}
 		}
 	}
 
@@ -681,7 +686,7 @@ namespace dlg {
 
 		bool bedit_enter = (whathappened & InPlaceEdit::KEditMaskReason) == InPlaceEdit::KEditEnter;
 
-		if (bedit_enter && !cfg_enter_advance.get()) {
+		if (bedit_enter && !is_cfg_Enter_Key_Adv()) {
 			return false;
 		}
 		else {
