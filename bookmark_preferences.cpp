@@ -70,7 +70,7 @@ static const bool default_cfg_monitor = true;
 static const int default_cfg_queue_flag = 0;
 static const int default_cfg_status_flag = 0;
 
-static const bool default_cfg_enter_advance = false;
+static const bool default_cfg_edit_mode = false;
 
 static const int default_cfg_misc_flag = 0;
 
@@ -94,7 +94,7 @@ cfg_bool cfg_monitor(guid_cfg_monitor, default_cfg_monitor);
 cfg_int cfg_queue_flag(guid_cfg_queue_flag, default_cfg_queue_flag);
 cfg_int cfg_status_flag(guid_cfg_status_flag, default_cfg_status_flag);
 
-cfg_bool cfg_enter_advance(guid_cfg_enter_advance, default_cfg_enter_advance);
+cfg_bool cfg_edit_mode(guid_cfg_enter_advance, default_cfg_edit_mode);
 
 cfg_int cfg_misc_flag(guid_cfg_misc_flag, default_cfg_misc_flag);
 
@@ -122,6 +122,7 @@ const CDialogResizeHelper::Param resize_params[] = {
 	{IDC_TITLEFORMAT, 0,0,1,0},
 	{IDC_PREVIEW, 0,0,1,0},
 	{IDC_QUEUE_FLAG, 0,0,1,0},
+	{IDC_EDIT_MODE, 0,0,1,0},
 	{IDC_AUTOSAVE_RADIO_TRACK, 1,0,1,0},
 	{IDC_AUTOSAVE_RADIO_COMMENT_ST, 1,0,1,0},
 	{IDC_DISPLAY_MS, 1,0,1,0},
@@ -311,7 +312,7 @@ private:
 	boxAndInt_t bai_queue_flag = { IDC_QUEUE_FLAG, &cfg_queue_flag, default_cfg_queue_flag };
 	boxAndInt_t bai_status_flag = { IDC_STATUS_FLAG, &cfg_status_flag, default_cfg_status_flag };
 
-	boxAndBool_t bab_enter_advance = { IDC_EDIT_ENTER_ADVANCE, &cfg_enter_advance, default_cfg_enter_advance };
+	boxAndBool_t bab_edit_mode = { IDC_EDIT_MODE, &cfg_edit_mode, default_cfg_edit_mode };
 
 	boxAndInt_t bai_misc_flag = { IDC_MISC_FLAG, &cfg_misc_flag, default_cfg_misc_flag };
 
@@ -379,7 +380,7 @@ BOOL CBookmarkPreferences::OnInitDialog(CWindow, LPARAM) {
 
 	cfgToUi(bai_status_flag);
 
-	cfgToUi(bab_enter_advance);
+	cfgToUi(bab_edit_mode);
 
 	cfgToUi(bai_misc_flag);
 
@@ -534,7 +535,7 @@ void CBookmarkPreferences::reset() {
 
 	defToUi(bai_status_flag);
 
-	defToUi(bab_enter_advance);
+	defToUi(bab_edit_mode);
 
 	defToUi(bai_misc_flag);
 
@@ -572,7 +573,7 @@ void CBookmarkPreferences::apply() {
 	uiToCfg(bai_queue_flag, ui_fval);
 	uiToCfg(bai_status_flag);
 
-	uiToCfg(bab_enter_advance);
+	uiToCfg(bab_edit_mode);
 
 	uiToCfg(bai_misc_flag);
 
@@ -611,7 +612,7 @@ bool CBookmarkPreferences::HasChanged() {
 
 	result |= isUiChanged(bai_status_flag);
 
-	result |= isUiChanged(bab_enter_advance);
+	result |= isUiChanged(bab_edit_mode);
 
 	result |= isUiChanged(bai_misc_flag);
 

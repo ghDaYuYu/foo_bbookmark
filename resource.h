@@ -30,7 +30,7 @@
 #define IDC_AUTOSAVE_RADIO_COMMENT_ST   1039
 #define IDC_DISPLAY_MS                  1040
 #define IDC_STATIC_DISPLAY_MS           1041
-#define IDC_EDIT_ENTER_ADVANCE          1042
+#define IDC_EDIT_MODE                   1042
 
 // Next default values for new objects
 // 

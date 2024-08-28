@@ -84,13 +84,12 @@ BEGIN
     PUSHBUTTON      "Add playlist",IDC_BTN_ADD_EXISTING_PLAYLIST,171,192,63,16
     CONTROL         "Restore bookmarks to queue (seek time only applies to empty queues)",IDC_QUEUE_FLAG,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,215,263,10
-    CONTROL         "Flush queue",IDC_QUEUE_FLUSH_FLAG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,25,230,59,10
-    CONTROL         "Misc flag",IDC_MISC_FLAG,"Button",BS_AUTOCHECKBOX | NOT WS_VISIBLE | WS_TABSTOP,171,232,66,10
-    CONTROL         "Edit mode: Enter key moves down",IDC_EDIT_ENTER_ADVANCE,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,247,145,10
-    CONTROL         "Verbose console",IDC_VERBOSE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,260,75,10
+    CONTROL         "Flush queue",IDC_QUEUE_FLUSH_FLAG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,25,228,59,10
+    CONTROL         "Enter key moves down",IDC_MISC_FLAG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,25,256,163,10
+    CONTROL         "Edit mode",IDC_EDIT_MODE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,243,51,10
+    CONTROL         "Verbose console",IDC_VERBOSE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,270,75,10
     CONTROL         "Callback monitor (required for auto-creation)",IDC_MONITOR,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,114,260,164,10
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,114,270,164,10
 END
 
 IDD_BOOKMARK_DIALOG DIALOGEX 0, 0, 192, 176

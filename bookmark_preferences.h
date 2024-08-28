@@ -18,7 +18,7 @@
   extern cfg_int cfg_queue_flag;
   extern cfg_int cfg_status_flag;
 
-  extern cfg_bool cfg_enter_advance;
+  extern cfg_bool cfg_edit_mode;
 
   extern cfg_int cfg_misc_flag;
 
@@ -28,12 +28,15 @@
 #define QUEUE_CUST2_FLAG                      1 << 2
 //cfg_status_flag
 #define STATUS_PAUSED_FLAG                    1 << 0
-
-
-#define MISC_CUST_FLAG                        1 << 0
-
+#define STATUS_CUST_FLAG                      1 << 1
+#define STATUS_CUST2_FLAG                     1 << 2
+//cfg_misc_flag
+#define MISC_FLAG_EDIT_ENTER_KEY_ADV          1 << 0
+#define MISC_CUST2_FLAG                       1 << 1
+#define MISC_CUST3_FLAG                       1 << 2
 
   inline bool is_cfg_Bookmarking() { return !(cfg_status_flag.get_value() & STATUS_PAUSED_FLAG); }
   inline bool is_cfg_Queuing() { return cfg_queue_flag.get_value() & QUEUE_RESTORE_TO_FLAG; }
   inline bool is_cfg_Flush_Queue() { return cfg_queue_flag.get_value() & QUEUE_FLUSH_FLAG; }
+  inline bool is_cfg_Enter_Key_Adv() { return cfg_misc_flag.get_value() & MISC_FLAG_EDIT_ENTER_KEY_ADV; }
   extern GUID g_get_prefs_guid();
