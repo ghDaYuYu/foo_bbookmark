@@ -1,4 +1,5 @@
 #pragma once
+#include <filesystem>
 #include "helpers/CmdThread.h"
 #include "bookmark_types.h"
 #include <vector>
@@ -22,6 +23,6 @@ public:
 private:
 	static void replaceMasterList(std::vector<bookmark_t>& newContent, std::vector<bookmark_t>& masterList);
 
-	pfc::string8 genFilePath();
+	std::filesystem::path bookmark_persistence::genFilePath();
 };
 

@@ -1,6 +1,5 @@
 #include "stdafx.h"
 
-#include <filesystem>
 #include <string>
 #include <sstream>
 
@@ -28,19 +27,19 @@ void bookmark_persistence::replaceMasterList(std::vector<bookmark_t>& newContent
 	masterList.insert(masterList.begin(), newContent.begin(), newContent.end());
 }
 
-pfc::string8 bookmark_persistence::genFilePath() {
+std::filesystem::path bookmark_persistence::genFilePath() {
 
-	static pfc::string8 path;
+	pfc::string8 n8_path = core_api::pathInProfile("configuration");
+	extract_native_path(n8_path, n8_path);
 
-	if (path.empty()) {
-		path = core_api::get_profile_path();
-		path << "\\configuration\\";
-		path << core_api::get_my_file_name();
-		path << ".dll.dat";
-		foobar2000_io::extract_native_path(path, path);
-	}
+	std::filesystem::path os_dst = std::filesystem::u8path(n8_path.c_str());
 
-	return path;
+	pfc::string8 filename = core_api::get_my_file_name();
+	filename << ".dll.dat";
+
+	os_dst.append(filename.c_str());
+
+	return os_dst;
 }
 
 void add_rec(std::vector<json_t*> &vjson, const std::vector<pfc::string8>& vlbl, const bookmark_t & rec) {
@@ -88,7 +87,7 @@ void bookmark_persistence::writeDataFileJSON(const std::vector<bookmark_t>& mast
 		return;
 	}
 		if (!masterList.size()) {
-			std::filesystem::path os_file_name = std::filesystem::u8path(genFilePath().c_str());
+			std::filesystem::path os_file_name = genFilePath();
 			if (std::filesystem::exists(os_file_name)) {
 				std::error_code ec;
 				std::filesystem::remove(os_file_name, ec);
@@ -121,10 +120,10 @@ void bookmark_persistence::writeDataFileJSON(const std::vector<bookmark_t>& mast
 			}
 
 			// dump object array
+			setlocale(LC_ALL, ".UTF8");
+			std::filesystem::path os_file = genFilePath();
 
-			std::filesystem::path os_root = genFilePath().c_str();
-
-			auto res = json_dump_file(arr_top, os_root.u8string().c_str(), JSON_INDENT(5));
+			auto res = json_dump_file(arr_top, os_file.generic_string().c_str(), JSON_INDENT(5));
 
 			for (auto w : vjson) {
 				free(w);
@@ -153,7 +152,10 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 		try {
 		
 			json_error_t error;
-			auto json = json_load_file(genFilePath().c_str(), JSON_DECODE_ANY, &error);
+			setlocale(LC_ALL, ".UTF8");
+			std::filesystem::path os_file = genFilePath();
+
+			auto json = json_load_file(os_file.generic_string().c_str(), JSON_DECODE_ANY, &error);
 			if (strlen(error.text) && error.line != -1) {
 				FB2K_console_print_v("JSON error: ",error.text,
 						" in line: ", error.line,
@@ -161,11 +163,11 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 						", position: ", error.position,
 						", src: ",error.source);
 				try {
-					if (std::filesystem::file_size(genFilePath().c_str())) {
+					if (std::filesystem::file_size(os_file.c_str())) {
 						FB2K_console_print_v("JSON error: Creating backup file...");
 						pfc::string8 buffer_bak;
-						buffer_bak << genFilePath().c_str() << ".bak";
-						std::filesystem::copy(genFilePath().c_str(), buffer_bak.c_str(), std::filesystem::copy_options::update_existing);
+						buffer_bak << os_file.c_str() << ".bak";
+						std::filesystem::copy(os_file, buffer_bak.c_str(), std::filesystem::copy_options::update_existing);
 						FB2K_console_print_v("JSON error: Backup file created.");
 					}
 				}
@@ -334,7 +336,7 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 			return false;
 		}
 		catch (...) {
-			FB2K_console_print_e("Reading data from file failed", "Unhandled Exception");
+			FB2K_console_print_e("Reading data from file failed:", " Unhandled Exception");
 			return false;
 		}
 
