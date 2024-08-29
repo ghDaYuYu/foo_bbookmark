@@ -16,6 +16,10 @@ public:
 		return m_masterList;
 	}
 
+	void SetMasterList(std::vector<bookmark_t> v) {
+		m_masterList = std::move(v);
+	}
+
 	size_t Size() {
 		return m_masterList.size();
 	};
@@ -35,7 +39,6 @@ public:
 
 	void _setItem(size_t pos, bookmark_t rec) {
 		m_masterList[pos] = rec;
-		m_persist.writeDataFile(m_masterList);
 	}
 	void SetItem(size_t pos, bookmark_t rec) {
 		_setItem(pos, rec);

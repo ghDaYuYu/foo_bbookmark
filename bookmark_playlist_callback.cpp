@@ -64,9 +64,9 @@ void bookmark_playlist_callback::on_playlists_removing(const bit_array& p_mask, 
 				if (gui->GetSortOrder()) {
 					gui->GetSortOrderedMask(changeMask);
 				}
-
 				gui->ReloadItems(changeMask);
 			}
+			g_store.Write();
 		}
 	}
 }
@@ -118,6 +118,7 @@ void bookmark_playlist_callback::on_playlist_renamed(t_size p_index, const char*
 
 			gui->ReloadItems(changeMask);
 		}
+		g_store.Write();
 	}
 }
 

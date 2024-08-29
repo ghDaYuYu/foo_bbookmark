@@ -513,6 +513,10 @@ namespace dlg {
 							}
 						}
 
+						if (f < c) {
+							g_store.Write();
+						}
+
 						//ReloadItems and UpdateItems require unsorted selection mask
 						auto directmask = m_guiList.GetSelectionMask();
 						m_guiList.ReloadItems(directmask);
