@@ -1,7 +1,9 @@
 #include "stdafx.h"
 
 #include <string>
-#include <sstream>
+#include <fcntl.h>
+#include <share.h>
+#include <io.h>
 
 #include "jansson.h"
 
@@ -95,6 +97,9 @@ void bookmark_persistence::writeDataFileJSON(const std::vector<bookmark_t>& mast
 			return;
 		}
 
+
+		int jf = -1;
+
 		try {
 
 			FB2K_console_print_v("Write data file...");
@@ -119,11 +124,16 @@ void bookmark_persistence::writeDataFileJSON(const std::vector<bookmark_t>& mast
 				auto res = json_array_append(arr_top, wobj);
 			}
 
-			// dump object array
-			setlocale(LC_ALL, ".UTF8");
 			std::filesystem::path os_file = genFilePath();
+			jf = _wopen(os_file.wstring().c_str(), _O_CREAT | _O_RDWR | _O_TEXT/*_O_U8TEXT*/, _S_IWRITE);
 
-			auto res = json_dump_file(arr_top, os_file.generic_string().c_str(), JSON_INDENT(5));
+			if (jf == -1) {
+				foobar2000_io::exception_io e("Open failed on output file");
+				throw e;
+			}
+
+			auto res = json_dumpfd(arr_top, jf, JSON_INDENT(5));
+			_close(jf);
 
 			for (auto w : vjson) {
 				free(w);
@@ -132,9 +142,15 @@ void bookmark_persistence::writeDataFileJSON(const std::vector<bookmark_t>& mast
 			FB2K_console_print_v("Wrote ", std::to_string(n_entries).c_str(), " bookmarks to file");
 		}
 		catch (foobar2000_io::exception_io e) {
+			if (jf != -1) {
+				_close(jf);
+			}
 			FB2K_console_print_e("Could not write bookmarks to file", e);
 		}
 		catch (...) {
+			if (jf != -1) {
+				_close(jf);
+			}
 			FB2K_console_print_e("Could not write bookmarks to file", "Unhandled Exception");
 		}
 	//}
@@ -149,11 +165,21 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 		size_t clines = 0;
 		std::vector<bookmark_t> temp_data;
 
+		int jf = -1;
+
 		try {
 		
-			json_error_t error;
-			setlocale(LC_ALL, ".UTF8");
 			std::filesystem::path os_file = genFilePath();
+			jf = _wopen(os_file.wstring().c_str(), _O_RDONLY);
+
+			if (jf == -1) {
+				foobar2000_io::exception_io e("Open failed on input file");
+				throw e;
+			}
+
+			json_error_t error;
+			auto json = json_loadfd(jf, JSON_DECODE_ANY, &error);
+			_close(jf);
 
 			auto json = json_load_file(os_file.generic_string().c_str(), JSON_DECODE_ANY, &error);
 			if (strlen(error.text) && error.line != -1) {
@@ -332,10 +358,16 @@ bool bookmark_persistence::readDataFileJSON(std::vector<bookmark_t>& masterList)
 			}
 		}
 		catch (foobar2000_io::exception_io e) {
+			if (jf != -1) {
+				_close(jf);
+			}
 			FB2K_console_print_e("Reading data from file failed", e);
 			return false;
 		}
 		catch (...) {
+			if (jf != -1) {
+				_close(jf);
+			}
 			FB2K_console_print_e("Reading data from file failed:", " Unhandled Exception");
 			return false;
 		}

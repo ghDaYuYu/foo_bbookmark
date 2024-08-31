@@ -30,6 +30,9 @@
 /* #undef HAVE_INTTYPES_H */
 #define HAVE_SYS_TYPES_H 1
 
+/* Enable json_loadfd & json_dumpfd */
+#define HAVE_UNISTD_H 1
+
 /* Include our standard type header for the integer typedef */
 
 #if defined(HAVE_STDINT_H)
