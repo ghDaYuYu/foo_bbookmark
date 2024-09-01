@@ -125,7 +125,7 @@ void bookmark_persistence::writeDataFileJSON(const std::vector<bookmark_t>& mast
 			}
 
 			std::filesystem::path os_file = genFilePath();
-			jf = _wopen(os_file.wstring().c_str(), _O_CREAT | _O_RDWR | _O_TEXT/*_O_U8TEXT*/, _S_IWRITE);
+			jf = _wopen(os_file.wstring().c_str(), _O_CREAT | _O_TRUNC | _O_RDWR | _O_TEXT/*_O_U8TEXT*/, _S_IWRITE);
 
 			if (jf == -1) {
 				foobar2000_io::exception_io e("Open failed on output file");
