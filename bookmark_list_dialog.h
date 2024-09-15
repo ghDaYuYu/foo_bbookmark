@@ -401,10 +401,12 @@ namespace dlg {
 					bool bactive_playlist = playlist_api->get_active_playlist() != SIZE_MAX;
 
 					bool bresetable_time = false, bresetable_playlist = false, bresetable_comment = false, bassignable = false;
+					bool bresetable_time_ms = false;
 
 					if (bsinglesel) {
 						const bookmark_t rec = g_store.GetItem(isel);
 						bresetable_time =  rec.get_time();
+						bresetable_time_ms = static_cast<size_t>(rec.get_time()) != rec.get_time();
 						bresetable_playlist = rec.playlist.get_length();
 						bresetable_comment = rec.comment.get_length();
 					}
@@ -412,11 +414,12 @@ namespace dlg {
 					bassignable = (bool)icount && (bsinglesel ||csel > 1) && bactive_playlist;
 
 					bresetable_time |= csel > 1;
+					bresetable_time_ms |= csel > 1;
 					bresetable_playlist |= csel > 1;
 					bresetable_comment |= csel > 1;
 
 					//Contextmenu for listbody
-					enum { ID_STORE = 1, ID_RESTORE, ID_RESET_TIME, ID_ASSIGN_PLAYLIST, ID_RESET_PLAYLIST, ID_RESET_COMMENT, ID_DEL, ID_CLEAR,
+					enum { ID_STORE = 1, ID_RESTORE, ID_RESET_TIME, ID_RESET_TIME_MS, ID_ASSIGN_PLAYLIST, ID_ADD_TO_QUEUE, ID_RESET_PLAYLIST, ID_RESET_COMMENT, ID_DEL, ID_CLEAR,
 						ID_COPY_BOOKMARK, ID_CMD_COPY, ID_COPY_PATH, ID_CMD_OPEN_FOLDER, ID_SELECTALL, ID_SELECTNONE, ID_INVERTSEL, ID_MAKEPRIME,
 						ID_PAUSE_BOOKMARKS, ID_PREF_PAGE, ID_CMD_SEL_PROPERTIES
 					};
@@ -424,6 +427,9 @@ namespace dlg {
 					menu.AppendMenu(MF_STRING | (!bsinglesel ? MF_DISABLED | MF_GRAYED : 0), ID_RESTORE, L"R&estore\tENTER");
 					menu.AppendMenu(MF_SEPARATOR);
 					menu.AppendMenu(MF_STRING | (!bupdatable || !bresetable_time ? MF_DISABLED | MF_GRAYED : 0), ID_RESET_TIME, L"Reset &time");
+					if (cfg_display_ms.get()) {
+						menu.AppendMenu(MF_STRING | (!bupdatable || !bresetable_time_ms ? MF_DISABLED | MF_GRAYED : 0), ID_RESET_TIME_MS, L"Reset time ms");
+					}
 					menu.AppendMenu(MF_STRING | (!bupdatable || !bresetable_playlist ? MF_DISABLED | MF_GRAYED : 0), ID_RESET_PLAYLIST, L"Reset pla&ylist");
 					menu.AppendMenu(MF_STRING | (!bupdatable || !bresetable_comment ? MF_DISABLED | MF_GRAYED : 0), ID_RESET_COMMENT, L"Reset co&mment");
 					menu.AppendMenu(MF_SEPARATOR);
@@ -478,22 +484,37 @@ namespace dlg {
 					[[fallthrough]];
 					case ID_RESET_TIME:
 					[[fallthrough]];
+					case ID_RESET_TIME_MS:
+						[[fallthrough]];
 					case ID_RESET_PLAYLIST:
 					[[fallthrough]];
 					case ID_RESET_COMMENT: {
 						size_t c = m_guiList.GetItemCount();
 						size_t f = selmask.find_first(true, 0, c);
+
+						bool changed = false;
+
 						for (size_t w = f; w < c; w = selmask.find_next(true, w, c)) {
 							bookmark_t rec = g_store.GetItem(w);
 							if (cmd == ID_RESET_TIME) {
-								
 								rec.set_time(0.0);
 								g_store.SetItem(w, rec);
+								changed |= true;
+							}
+							else if (cmd == ID_RESET_TIME_MS) {
+								size_t it = static_cast<size_t>(rec.get_time());
+								double t = static_cast<double>(it);
+								if (rec.get_time() != t) {
+									rec.set_time(t);
+									g_store.SetItem(w, rec);
+									changed |= true;
+								}
 							}
 							else if (cmd == ID_RESET_PLAYLIST) {
 								rec.playlist = "";
 								rec.guid_playlist = pfc::guid_null;
 								g_store.SetItem(w, rec);
+								changed |= true;
 							}
 							else if (cmd == ID_ASSIGN_PLAYLIST) {
 
@@ -506,21 +527,22 @@ namespace dlg {
 								rec.playlist = buffer;
 								rec.guid_playlist = guid;
 								g_store.SetItem(w, rec);
+								changed |= true;
 							}
 							else if (cmd == ID_RESET_COMMENT) {
 								rec.comment = "";
 								g_store.SetItem(w, rec);
+								changed |= true;
 							}
 						}
 
-						if (f < c) {
+						if (changed) {
 							g_store.Write();
+							//ReloadItems and UpdateItems require unsorted selection mask
+							auto directmask = m_guiList.GetSelectionMask();
+							m_guiList.ReloadItems(directmask);
+							m_guiList.UpdateItems(directmask);
 						}
-
-						//ReloadItems and UpdateItems require unsorted selection mask
-						auto directmask = m_guiList.GetSelectionMask();
-						m_guiList.ReloadItems(directmask);
-						m_guiList.UpdateItems(directmask);
 
 						break;
 					}
@@ -900,7 +922,11 @@ namespace dlg {
 					size_t width = (m_cols_width[i] != 0 && m_cols_width[i] != pfc_infinite) ? m_cols_width[i] : default_cols_width[i];	//use defaults instead of zero
 					width = pfc::min_t<size_t>(width, 1000);
 					m_cols_content[ndx_cont] = i;
-					m_guiList.AddColumn(COLUMNNAMES[i], MulDiv(static_cast<int>(width), DPI.cx, 96), LVCFMT_LEFT, false);
+					auto align = LVCFMT_LEFT;
+					if (!stricmp_utf8(COLUMNNAMES[i],"Time")) {
+						align = LVCFMT_RIGHT;
+					}
+					m_guiList.AddColumn(COLUMNNAMES[i], MulDiv(static_cast<int>(width), DPI.cx, 96), align, false);
 				}
 				else {
 					//move to tail

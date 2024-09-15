@@ -53,6 +53,9 @@ namespace dlg {
 				if (millsec = std::fmod(rec.get_time(), 60) - seconds) {
 					conv << std::to_string(millsec).substr(1, 4);
 				}
+				else {
+					conv << ".000";
+				}
 			}
 			return conv.str().c_str();
 		}
@@ -144,7 +147,15 @@ namespace dlg {
 	}
 
 	uint32_t ILOD_BookmarkSource::listGetEditFlags(ctx_t ctx, size_t item, size_t subItem) {
-		return listIsColumnEditable(ctx, subItem) ? 0 : InPlaceEdit::KFlagReadOnly;
+
+		CListControlBookmark* plc = (CListControlBookmark*)(ctx);
+		auto subItemContent = plc->GetColContent(subItem);
+
+		auto editable_flag = InPlaceEdit::KEditAborted; //i.e. 0
+		if (subItemContent == colcast(colID::TIME_COL)) {
+			editable_flag = InPlaceEdit::KFlagAlignRight;
+		}
+		return listIsColumnEditable(ctx, subItem) ? editable_flag : InPlaceEdit::KFlagReadOnly;
 	}
 
 	bool ILOD_BookmarkSource::listIsColumnEditable(ctx_t ctx, size_t subItem) {
